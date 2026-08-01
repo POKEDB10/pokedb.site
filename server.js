@@ -158,7 +158,8 @@ const nanoid = customAlphabet('0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLM
 
 const RESERVED_BLOCKLIST = new Set([
   'api', 'tools', 'shared', 'favicon.ico', 'static', 'public',
-  'shorten', 'health', 'index.html', 'stats', 'admin', 'dashboard'
+  'shorten', 'health', 'index.html', 'stats', 'admin', 'dashboard',
+  'v', 'drop', 'tinyurl', 'qr'
 ]);
 
 const shortenLimiter = rateLimit({
