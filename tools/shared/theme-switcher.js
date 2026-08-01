@@ -40,8 +40,31 @@
   } catch (e) {}
   root.setAttribute('data-theme', savedTheme);
 
+  function resolveNavLinks() {
+    var host = window.location.hostname.toLowerCase();
+    var isProduction = host.includes('pokedb.site');
+    var proto = window.location.protocol;
+
+    var navElements = document.querySelectorAll('[data-nav]');
+    navElements.forEach(function (el) {
+      var key = el.getAttribute('data-nav');
+      if (!key) return;
+
+      if (isProduction) {
+        if (key === 'main') el.href = proto + '//pokedb.site/';
+        else if (key === 'tools') el.href = proto + '//tools.pokedb.site/';
+        else el.href = proto + '//' + key + '.pokedb.site/';
+      } else {
+        if (key === 'main') el.href = '/';
+        else if (key === 'tools') el.href = '/tools/';
+        else el.href = '/tools/' + key + '/';
+      }
+    });
+  }
+
   document.addEventListener('DOMContentLoaded', function () {
     applyTheme(savedTheme, false);
+    resolveNavLinks();
 
     var select = document.getElementById('theme-select');
     if (select) {
@@ -56,6 +79,21 @@
     getAccentAndSurface: getAccentAndSurface,
     getCurrentTheme: function () {
       return root.getAttribute('data-theme') || savedTheme;
+    },
+    getNavUrl: function (target) {
+      var host = window.location.hostname.toLowerCase();
+      var isProduction = host.includes('pokedb.site');
+      var proto = window.location.protocol;
+
+      if (isProduction) {
+        if (target === 'main') return proto + '//pokedb.site/';
+        if (target === 'tools') return proto + '//tools.pokedb.site/';
+        return proto + '//' + target + '.pokedb.site/';
+      } else {
+        if (target === 'main') return '/';
+        if (target === 'tools') return '/tools/';
+        return '/tools/' + target + '/';
+      }
     }
   };
 })();

@@ -197,8 +197,62 @@ function isValidTargetUrl(targetUrl, reqHost) {
 // 1. STATIC ASSET & ROUTE SERVING
 // ============================================================
 
-// Shared Theme CSS/JS Assets (/tools/shared/*)
+// Shared Theme CSS/JS Assets (/tools/shared/* or /shared/*)
 app.use('/tools/shared', express.static(path.join(__dirname, 'tools/shared')));
+app.use('/shared', express.static(path.join(__dirname, 'tools/shared')));
+
+// ============================================================
+// SUBDOMAIN & HOST ROUTING MIDDLEWARE
+// Supports tools.pokedb.site, tinyurl.pokedb.site, qr.pokedb.site, drop.pokedb.site
+// ============================================================
+app.use((req, res, next) => {
+  const host = (req.get('host') || '').split(':')[0].toLowerCase();
+
+  // 1. tools.pokedb.site -> Tools Hub Index
+  if (host === 'tools.pokedb.site') {
+    if (req.path === '/' || req.path === '/index.html') {
+      return res.sendFile(path.join(__dirname, 'tools/index.html'));
+    }
+  }
+
+  // 2. tinyurl.pokedb.site -> TinyURL Tool
+  if (host === 'tinyurl.pokedb.site') {
+    if (req.path === '/' || req.path === '/index.html') {
+      return res.sendFile(path.join(__dirname, 'tools/tinyurl/public/index.html'));
+    }
+    const staticFile = path.join(__dirname, 'tools/tinyurl/public', req.path);
+    if (fs.existsSync(staticFile) && fs.statSync(staticFile).isFile()) {
+      return res.sendFile(staticFile);
+    }
+  }
+
+  // 3. qr.pokedb.site -> QR Studio Tool
+  if (host === 'qr.pokedb.site') {
+    if (req.path === '/' || req.path === '/index.html') {
+      return res.sendFile(path.join(__dirname, 'tools/qr/public/index.html'));
+    }
+    const staticFile = path.join(__dirname, 'tools/qr/public', req.path);
+    if (fs.existsSync(staticFile) && fs.statSync(staticFile).isFile()) {
+      return res.sendFile(staticFile);
+    }
+  }
+
+  // 4. drop.pokedb.site -> Drop Storage Gateway & Viewer
+  if (host === 'drop.pokedb.site') {
+    if (req.path === '/' || req.path === '/index.html') {
+      return res.sendFile(path.join(__dirname, 'tools/drop/public/index.html'));
+    }
+    if (req.path.startsWith('/v/') || req.path.startsWith('/view/')) {
+      return res.sendFile(path.join(__dirname, 'tools/drop/public/view.html'));
+    }
+    const staticFile = path.join(__dirname, 'tools/drop/public', req.path);
+    if (fs.existsSync(staticFile) && fs.statSync(staticFile).isFile()) {
+      return res.sendFile(staticFile);
+    }
+  }
+
+  next();
+});
 
 // TinyURL Tool (/tools/tinyurl/ and /tools/tinyurl)
 app.use('/tools/tinyurl', express.static(path.join(__dirname, 'tools/tinyurl/public')));
