@@ -74,7 +74,7 @@ app.post('/api/[your-tool-name]/action', async (req, res) => {
 
 ### 1. Clone & Install
 ```bash
-git clone https://github.com/YOUR_GITHUB_USERNAME/pokedb.site.git
+git clone https://github.com/POKEDB10/pokedb.site.git
 cd pokedb.site
 npm install
 ```

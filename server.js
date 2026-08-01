@@ -202,20 +202,58 @@ app.use('/tools/shared', express.static(path.join(__dirname, 'tools/shared')));
 app.use('/shared', express.static(path.join(__dirname, 'tools/shared')));
 
 // ============================================================
-// SUBDOMAIN & HOST ROUTING MIDDLEWARE
-// Supports tools.pokedb.site, tinyurl.pokedb.site, qr.pokedb.site, drop.pokedb.site
+// DUAL DOMAIN & SUBDOMAIN HOST ROUTING MIDDLEWARE
+// Supports Render 2-Domain limit (pokedb.site + tools.pokedb.site)
+// - tools.pokedb.site/          -> Tools Hub Index
+// - tools.pokedb.site/tinyurl   -> TinyURL Shortener
+// - tools.pokedb.site/qr        -> QR Studio Tool
+// - tools.pokedb.site/drop      -> Drop Storage Gateway
+// - tools.pokedb.site/v/:fileId -> File Viewer Landing Page
 // ============================================================
 app.use((req, res, next) => {
   const host = (req.get('host') || '').split(':')[0].toLowerCase();
 
-  // 1. tools.pokedb.site -> Tools Hub Index
+  // 1. Host: tools.pokedb.site
   if (host === 'tools.pokedb.site') {
     if (req.path === '/' || req.path === '/index.html') {
       return res.sendFile(path.join(__dirname, 'tools/index.html'));
     }
+    if (req.path === '/tinyurl' || req.path === '/tinyurl/') {
+      return res.sendFile(path.join(__dirname, 'tools/tinyurl/public/index.html'));
+    }
+    if (req.path.startsWith('/tinyurl/')) {
+      const staticPath = req.path.replace('/tinyurl/', '/');
+      const staticFile = path.join(__dirname, 'tools/tinyurl/public', staticPath);
+      if (fs.existsSync(staticFile) && fs.statSync(staticFile).isFile()) {
+        return res.sendFile(staticFile);
+      }
+    }
+    if (req.path === '/qr' || req.path === '/qr/') {
+      return res.sendFile(path.join(__dirname, 'tools/qr/public/index.html'));
+    }
+    if (req.path.startsWith('/qr/')) {
+      const staticPath = req.path.replace('/qr/', '/');
+      const staticFile = path.join(__dirname, 'tools/qr/public', staticPath);
+      if (fs.existsSync(staticFile) && fs.statSync(staticFile).isFile()) {
+        return res.sendFile(staticFile);
+      }
+    }
+    if (req.path === '/drop' || req.path === '/drop/') {
+      return res.sendFile(path.join(__dirname, 'tools/drop/public/index.html'));
+    }
+    if (req.path.startsWith('/drop/')) {
+      const staticPath = req.path.replace('/drop/', '/');
+      const staticFile = path.join(__dirname, 'tools/drop/public', staticPath);
+      if (fs.existsSync(staticFile) && fs.statSync(staticFile).isFile()) {
+        return res.sendFile(staticFile);
+      }
+    }
+    if (req.path.startsWith('/v/') || req.path.startsWith('/view/')) {
+      return res.sendFile(path.join(__dirname, 'tools/drop/public/view.html'));
+    }
   }
 
-  // 2. tinyurl.pokedb.site -> TinyURL Tool
+  // 2. Backward compatibility for sub-subdomains (tinyurl.pokedb.site, etc.)
   if (host === 'tinyurl.pokedb.site') {
     if (req.path === '/' || req.path === '/index.html') {
       return res.sendFile(path.join(__dirname, 'tools/tinyurl/public/index.html'));
@@ -225,8 +263,6 @@ app.use((req, res, next) => {
       return res.sendFile(staticFile);
     }
   }
-
-  // 3. qr.pokedb.site -> QR Studio Tool
   if (host === 'qr.pokedb.site') {
     if (req.path === '/' || req.path === '/index.html') {
       return res.sendFile(path.join(__dirname, 'tools/qr/public/index.html'));
@@ -236,8 +272,6 @@ app.use((req, res, next) => {
       return res.sendFile(staticFile);
     }
   }
-
-  // 4. drop.pokedb.site -> Drop Storage Gateway & Viewer
   if (host === 'drop.pokedb.site') {
     if (req.path === '/' || req.path === '/index.html') {
       return res.sendFile(path.join(__dirname, 'tools/drop/public/index.html'));
