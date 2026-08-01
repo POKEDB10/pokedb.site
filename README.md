@@ -1,47 +1,76 @@
-# pokedb.site — High-Performance Developer Tools & Drop Storage Platform
+# pokedb.site — Developer Tools & Storage Platform
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
-[![Node.js](https://img.shields.io/badge/Node.js-v18%2B-green.svg)](https://nodejs.org/)
-[![Express](https://img.shields.io/badge/Express-4.x-black.svg)](https://expressjs.com/)
-
-A modern, terminal-themed developer suite and file storage platform built with Node.js, Express, and Vanilla CSS/JS. Features high-speed URL shortening, QR code generation, and 25 GB file transfer storage powered by Rootz API streaming.
+A modular, high-performance web platform and API hub built with Node.js, Express, and Vanilla CSS/JS. Designed for seamless extensibility, `pokedb.site` provides high-speed URL shortening, vector QR code generation, and 25 GB file transfer storage powered by Rootz API memory-streaming.
 
 ---
 
-## 🚀 Features Showcase
+## Core Suite
 
-### 1. ⚡ TinyURL Shortener (`/tools/tinyurl/`)
-- Custom URL alias claiming with conflict protection (`/Idk-what-this-is`).
-- Expiration control (1 Day, 7 Days, 30 Days [Default], or Permanent).
-- Non-sequential hash generation & rate limiting.
-- Automatic vector QR Code generator with SVG & PNG instant downloads.
+### 1. TinyURL Shortener (`/tools/tinyurl/`)
+- Custom URL alias claiming with conflict handling (`/custom-alias`).
+- Configurable link expiration rules (1 Day, 7 Days, 30 Days [Default], or Permanent).
+- Non-sequential hash generation and rate limiting.
+- Automatic vector QR Code generator with SVG and PNG export capabilities.
 
-### 2. 📦 Drop Storage Gateway (`/tools/drop/`)
-- **Rootz API Streaming**: Direct memory-to-cloud streaming (`multer.memoryStorage()`) — zero local disk caching.
-- **25 GB File Transfers**: Supports large file uploads with password protection for files > 1 GB.
-- **Upload Telemetry**: Real-time upload speed (`⚡ MB/s`), transfer percentage, ETA, and drop-box file status badge.
-- **Media Landing Page (`/v/:fileId`)**: Sleek media viewer card featuring direct download, mobile QR modal, and download counter telemetry.
+### 2. Drop Storage Gateway (`/tools/drop/`)
+- **Rootz API Streaming**: Direct memory-to-cloud streaming (`multer.memoryStorage()`) with zero local disk caching.
+- **25 GB File Transfers**: Supports large file uploads with password protection for files exceeding 1 GB.
+- **Upload Telemetry**: Real-time upload speed calculation (MB/s), transfer progress, estimated time remaining, and drop box status badge.
+- **Media Landing Page (`/v/:fileId`)**: File transfer landing card featuring direct download, mobile QR modal, and download counter telemetry.
 
-### 3. 🎨 QR Studio (`/tools/qr/`)
-- Custom foreground and background color pickers.
+### 3. QR Studio (`/tools/qr/`)
+- Custom foreground and background color selection.
 - High-resolution SVG and PNG export engine.
 - Instant live preview with custom scale controls.
 
-### 4. 🌓 12 Dynamic UI Design Themes
-- Includes 12 hand-crafted color palettes: *Paper (Light)*, *Matrix (Green)*, *Cyberpunk (Cyan)*, *Synthwave (80s)*, *Nordic (Ice)*, *Dracula (Violet)*, *Gruvbox (Retro)*, *Emerald*, *Sunset*, *Solarized*, *OLED Pitch Black*, and *Tokyo Neon*.
+### 4. Dynamic Theme Engine
+- Includes 12 curated color palettes: Paper (Light), Matrix (Green), Cyberpunk (Cyan), Synthwave, Nordic Ice, Dracula, Gruvbox, Emerald, Sunset, Solarized, OLED Pitch Black, and Tokyo Neon.
 
 ---
 
-## 🔒 Security & Privacy Built-in
+## Modular Architecture: Adding New Tools
 
-- 🛡️ **Zero Disk Storage**: Files uploaded to Drop Storage stream directly to cloud storage; no temporary files remain on the web server.
-- 🔑 **Secrets Isolation**: `data/config.json`, `data/store.json`, and `.env` are protected in `.gitignore`.
-- 🌐 **SSRF & Path Traversal Protection**: Remote URL fetches strictly block private IPs (`localhost`, `127.0.0.1`, `10.x.x.x`, `192.168.x.x`).
-- ⚡ **Rate Limiting & Security Headers**: Helmet HTTP security headers, CORS origin controls, and Express rate limiting.
+`pokedb.site` is architected as an expandable developer tool suite. Adding a new tool involves two main steps:
+
+### 1. Frontend Tool Scaffold
+Create a directory under `/tools/[your-tool-name]/public/`:
+```text
+tools/
+├── [your-tool-name]/
+│   └── public/
+│       ├── index.html
+│       └── app.js
+```
+Link shared resources in your HTML:
+```html
+<link rel="stylesheet" href="/tools/shared/theme.css">
+<script src="/tools/shared/theme-switcher.js"></script>
+```
+
+### 2. Express Backend Integration
+Register your tool routes and API endpoints in `server.js`:
+```javascript
+// Serve tool static frontend
+app.use('/tools/[your-tool-name]', express.static(path.join(__dirname, 'tools/[your-tool-name]/public')));
+
+// Define tool API endpoints
+app.post('/api/[your-tool-name]/action', async (req, res) => {
+  // Implementation logic
+});
+```
 
 ---
 
-## 🛠️ Quickstart / Local Setup
+## Security & Privacy Standards
+
+- **Zero Disk Storage**: Files uploaded via Drop Storage stream directly to cloud storage; no temporary files remain on the host server.
+- **Secrets Isolation**: Environment variables and sensitive data (`data/config.json`, `data/store.json`, `.env`) are ignored via `.gitignore`.
+- **SSRF & Path Traversal Protection**: Remote URL fetches strictly block private IPs (`localhost`, `127.0.0.1`, `10.x.x.x`, `192.168.x.x`).
+- **Rate Limiting & Security Headers**: Includes Helmet HTTP security headers, CORS origin controls, and Express rate limiting.
+
+---
+
+## Local Development Setup
 
 ### 1. Clone & Install
 ```bash
@@ -50,7 +79,7 @@ cd pokedb.site
 npm install
 ```
 
-### 2. Configure Environment
+### 2. Environment Configuration
 Create `data/config.json` (or copy `.env.example` to `.env`):
 ```json
 {
@@ -60,34 +89,34 @@ Create `data/config.json` (or copy `.env.example` to `.env`):
 }
 ```
 
-### 3. Start Development Server
+### 3. Run Development Server
 ```bash
 npm start
 ```
-Open **[http://localhost:5050](http://localhost:5050)** in your browser.
+Access the application at `http://localhost:5050`.
 
 ---
 
-## 🐳 Docker Deployment
+## Docker Deployment
 
-Run with Docker Compose:
+Run using Docker Compose:
 ```bash
 docker-compose up -d --build
 ```
 
 ---
 
-## 🌐 Deploy to Production (Render / Koyeb / Railway)
+## Production Deployment (Render / Koyeb / Railway)
 
-1. Push your code to your GitHub repository.
-2. Connect your repo on [Render](https://render.com) or [Koyeb](https://koyeb.com).
-3. Set Environment Variables:
+1. Push your repository to GitHub.
+2. Connect your repository on Render or Koyeb.
+3. Configure Environment Variables:
    - `BASE_URL`: `https://pokedb.site`
    - `ROOTZ_API_KEY`: `your-rootz-api-key`
    - `LARGE_FILE_PASSWORD`: `your-password`
-4. Attach your custom domain (`pokedb.site`) in platform settings.
+4. Map your custom domain (`pokedb.site`) in platform settings.
 
 ---
 
-## 📜 License
+## License
 Released under the [MIT License](LICENSE). Created by [POKEDB10](https://github.com/POKEDB10).
