@@ -53,7 +53,7 @@
       if (isProduction) {
         if (key === 'main') el.href = proto + '//pokedb.site/';
         else if (key === 'tools') el.href = proto + '//tools.pokedb.site/';
-        else el.href = proto + '//tools.pokedb.site/' + key;
+        else el.href = proto + '//' + key + '.pokedb.site/';
       } else {
         if (key === 'main') el.href = '/';
         else if (key === 'tools') el.href = '/tools/';
@@ -88,7 +88,7 @@
       if (isProduction) {
         if (target === 'main') return proto + '//pokedb.site/';
         if (target === 'tools') return proto + '//tools.pokedb.site/';
-        return proto + '//tools.pokedb.site/' + target;
+        return proto + '//' + target + '.pokedb.site/';
       } else {
         if (target === 'main') return '/';
         if (target === 'tools') return '/tools/';
