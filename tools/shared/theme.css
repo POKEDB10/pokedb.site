@@ -1,0 +1,394 @@
+/* ============================================================
+   THEME TOKENS — 12 High-Contrast & Unique Palettes
+   ============================================================ */
+
+:root, [data-theme="paper"] {
+  --bg: #F9F8F6;
+  --surface: #FFFFFF;
+  --border: #E5E3DC;
+  --text: #1A1A1A;
+  --muted: #666660;
+  --accent: #C83B2B;
+  --accent-text: #FFFFFF;
+}
+[data-theme="matrix"] {
+  --bg: #050B05;
+  --surface: #0D170D;
+  --border: #1B331B;
+  --text: #00FF66;
+  --muted: #4D9966;
+  --accent: #00FF66;
+  --accent-text: #050B05;
+}
+[data-theme="cyberpunk"] {
+  --bg: #090A0F;
+  --surface: #121420;
+  --border: #2A2E45;
+  --text: #E0E6ED;
+  --muted: #7E8B9B;
+  --accent: #00F3FF;
+  --accent-text: #090A0F;
+}
+[data-theme="synthwave"] {
+  --bg: #160C28;
+  --surface: #23153C;
+  --border: #3B2363;
+  --text: #F7ECE1;
+  --muted: #9F86C0;
+  --accent: #FF007F;
+  --accent-text: #FFFFFF;
+}
+[data-theme="nordic-ice"] {
+  --bg: #0F172A;
+  --surface: #1E293B;
+  --border: #334155;
+  --text: #F8FAFC;
+  --muted: #94A3B8;
+  --accent: #38BDF8;
+  --accent-text: #0F172A;
+}
+[data-theme="dracula-neon"] {
+  --bg: #181825;
+  --surface: #242438;
+  --border: #363654;
+  --text: #F8F8F2;
+  --muted: #A6ADC8;
+  --accent: #A855F7;
+  --accent-text: #FFFFFF;
+}
+[data-theme="gruvbox-retro"] {
+  --bg: #1D2021;
+  --surface: #282828;
+  --border: #3C3836;
+  --text: #FBF1C7;
+  --muted: #928374;
+  --accent: #FE8019;
+  --accent-text: #1D2021;
+}
+[data-theme="emerald-forest"] {
+  --bg: #0A1612;
+  --surface: #12241E;
+  --border: #203C33;
+  --text: #ECFDF5;
+  --muted: #6EE7B7;
+  --accent: #10B981;
+  --accent-text: #0A1612;
+}
+[data-theme="sunset-amber"] {
+  --bg: #1A0C0E;
+  --surface: #2A1619;
+  --border: #442428;
+  --text: #FFF1F2;
+  --muted: #FDA4AF;
+  --accent: #F43F5E;
+  --accent-text: #FFFFFF;
+}
+[data-theme="solarized-gold"] {
+  --bg: #001E26;
+  --surface: #002B36;
+  --border: #074E5E;
+  --text: #FDF6E3;
+  --muted: #839496;
+  --accent: #B58900;
+  --accent-text: #001E26;
+}
+[data-theme="oled-black"] {
+  --bg: #000000;
+  --surface: #111111;
+  --border: #222222;
+  --text: #FFFFFF;
+  --muted: #888888;
+  --accent: #6366F1;
+  --accent-text: #FFFFFF;
+}
+[data-theme="tokyo-neon"] {
+  --bg: #1A1B26;
+  --surface: #24283B;
+  --border: #414868;
+  --text: #C0CAF5;
+  --muted: #7AA2F7;
+  --accent: #F7768E;
+  --accent-text: #1A1B26;
+}
+
+/* ============================================================
+   RESET & BASE
+   ============================================================ */
+
+*, *::before, *::after { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'IBM Plex Sans', system-ui, -apple-system, sans-serif;
+  font-size: 16px;
+  line-height: 1.6;
+  transition: background-color .25s ease, color .25s ease;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+main { flex: 1; }
+h1, h2, h3 { font-family: 'IBM Plex Mono', ui-monospace, monospace; margin: 0; }
+p { margin: 0; }
+a { color: inherit; }
+.mono { font-family: 'IBM Plex Mono', ui-monospace, monospace; }
+.eyebrow {
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: .8rem;
+  letter-spacing: .04em;
+  color: var(--muted);
+  display: block;
+  margin-bottom: .6rem;
+}
+.container {
+  width: 100%;
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+}
+.section {
+  padding: 4rem 0;
+  border-top: 1px solid var(--border);
+  transition: border-color .25s ease;
+}
+.section:first-of-type { border-top: none; }
+
+/* focus visibility */
+a:focus-visible, button:focus-visible, select:focus-visible, input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+/* ============================================================
+   NAV + THEME SWITCHER
+   ============================================================ */
+
+.site-nav {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.5rem;
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--border);
+  width: 100%;
+}
+.logo {
+  font-family: 'IBM Plex Mono', monospace;
+  font-weight: 600;
+  font-size: .95rem;
+  text-decoration: none;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+.logo span { color: var(--accent); }
+.nav-links { display: flex; align-items: center; gap: 1rem; }
+.nav-link {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: .85rem;
+  text-decoration: none;
+  color: var(--muted);
+  transition: color .2s ease;
+}
+.nav-link:hover { color: var(--accent); }
+
+.theme-switcher {
+  display: flex;
+  align-items: center;
+  gap: .55rem;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: .8rem;
+  color: var(--muted);
+}
+.theme-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--accent);
+  flex-shrink: 0;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 20%, transparent);
+}
+#theme-select {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: .8rem;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: .4rem .6rem;
+  cursor: pointer;
+}
+
+/* ============================================================
+   HERO / TERMINAL & COMPONENTS
+   ============================================================ */
+
+.hero { padding: 3.5rem 0 2.5rem; width: 100%; }
+.term-window {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  width: 100%;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+}
+.term-titlebar {
+  padding: .6rem 1rem;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: .75rem;
+  color: var(--muted);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.term-body {
+  padding: 1.25rem 1.5rem 1.5rem;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: .92rem;
+  line-height: 1.8;
+  overflow-x: auto;
+  word-break: break-word;
+}
+.term-body .prompt { color: var(--accent); }
+.term-body .out { color: var(--text); }
+.cursor {
+  display: inline-block;
+  width: .55em;
+  height: 1em;
+  background: var(--accent);
+  margin-left: .15em;
+  vertical-align: text-bottom;
+  animation: blink 1s step-end infinite;
+}
+@keyframes blink { 50% { opacity: 0; } }
+
+.hero-bio {
+  margin-top: 1.75rem;
+  max-width: 62ch;
+  color: var(--text);
+  font-size: 1rem;
+  line-height: 1.65;
+}
+.hero-bio strong { color: var(--accent); font-weight: 600; }
+
+.hero-actions { margin-top: 1.75rem; display: flex; gap: .75rem; flex-wrap: wrap; }
+.btn {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: .85rem;
+  text-decoration: none;
+  padding: .65rem 1.1rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+  transition: transform .15s ease, border-color .15s ease, background-color .15s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+}
+.btn:hover { transform: translateY(-1px); border-color: var(--accent); }
+.btn-solid { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
+.btn-solid:hover { transform: translateY(-1px); filter: brightness(1.05); }
+
+/* ============================================================
+   PROJECT CARDS & TAGS
+   ============================================================ */
+
+.tags { display: flex; flex-wrap: wrap; gap: .6rem; }
+.tag {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: .82rem;
+  padding: .45rem .8rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--muted);
+  background: var(--surface);
+}
+
+.project-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1.25rem;
+  margin-top: 1.5rem;
+  width: 100%;
+}
+.project-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1.25rem;
+  text-decoration: none;
+  color: var(--text);
+  display: flex;
+  flex-direction: column;
+  gap: .5rem;
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity .4s ease, transform .4s ease, border-color .2s ease;
+}
+.project-card.is-visible { opacity: 1; transform: translateY(0); }
+.project-card:hover { border-color: var(--accent); }
+.project-card-head { display: flex; align-items: center; justify-content: space-between; }
+.project-name { font-family: 'IBM Plex Mono', monospace; font-weight: 600; font-size: 1rem; }
+.status-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--accent);
+  flex-shrink: 0;
+}
+.project-desc { color: var(--muted); font-size: .92rem; }
+
+.contact-row { display: flex; flex-wrap: wrap; gap: .75rem; margin-top: 1.5rem; }
+
+footer {
+  border-top: 1px solid var(--border);
+  padding: 1.5rem;
+  margin-top: auto;
+}
+.footer-inner {
+  max-width: 880px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: .5rem;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: .78rem;
+  color: var(--muted);
+}
+
+/* ============================================================
+   RESPONSIVE MEDIA QUERIES
+   ============================================================ */
+
+@media (max-width: 768px) {
+  .container { padding: 0 1.25rem; }
+  .section { padding: 3rem 0; }
+  .hero { padding: 2.5rem 0 1.5rem; }
+  .site-nav { padding: .85rem 1rem; }
+  .project-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 480px) {
+  .site-nav { flex-direction: column; align-items: flex-start; gap: .75rem; }
+  .theme-switcher { width: 100%; justify-content: space-between; }
+  .hero-actions { flex-direction: column; width: 100%; }
+  .btn { width: 100%; justify-content: center; text-align: center; }
+  .term-body { font-size: .85rem; padding: 1rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cursor { animation: none; opacity: 1; }
+  .project-card { opacity: 1; transform: none; transition: none; }
+  html { scroll-behavior: auto; }
+}

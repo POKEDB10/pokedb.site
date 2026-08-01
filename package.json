@@ -1,0 +1,29 @@
+{
+  "name": "pokedb-site",
+  "version": "1.0.0",
+  "description": "Unified platform & self-hosted tools hub for pokedb.site",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "test": "jest --detectOpenHandles --forceExit",
+    "check": "node --check server.js",
+    "health": "node -e \"require('http').get('http://localhost:5050/health', r => r.pipe(process.stdout))\""
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "express-rate-limit": "^7.3.1",
+    "helmet": "^7.1.0",
+    "ioredis": "^5.4.1",
+    "multer": "^2.2.0",
+    "nanoid": "^3.3.7",
+    "qrcode": "^1.5.4",
+    "rate-limit-redis": "^4.2.0",
+    "valid-url": "^1.0.9"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "supertest": "^7.0.0"
+  }
+}

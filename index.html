@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="oled-black">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chaitanya (@POKEDB10) — Systems &amp; Infrastructure Developer</title>
+<meta name="description" content="Personal hub and project directory of Chaitanya (@POKEDB10) — CS student at BITS Pilani Dubai and Jr. Mod at Eternal.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%236366F1'/%3E%3Ctext x='16' y='22' font-family='monospace' font-size='16' fill='white' text-anchor='middle'%3E%3E_%3C/text%3E%3C/svg%3E">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+
+<!-- Shared Theme Design System -->
+<link rel="stylesheet" href="/tools/shared/theme.css">
+<script src="/tools/shared/theme-switcher.js"></script>
+</head>
+<body>
+
+<header class="site-nav">
+  <div class="logo">
+    <a class="logo" href="#top">root<span>@</span>pokedb</a>
+    <div class="nav-links">
+      <a class="nav-link" href="/tools/">Tools</a>
+    </div>
+  </div>
+  <div class="theme-switcher">
+    <span class="theme-swatch" id="theme-swatch"></span>
+    <label for="theme-select" class="mono" style="display:none;">Theme</label>
+    <select id="theme-select" aria-label="Choose a color theme">
+      <option value="paper">Paper — Editorial Light</option>
+      <option value="matrix">Matrix — Phosphor Green</option>
+      <option value="cyberpunk">Cyberpunk — Neon Cyan</option>
+      <option value="synthwave">Synthwave — 80s Magenta</option>
+      <option value="nordic-ice">Nordic — Glacier Blue</option>
+      <option value="dracula-neon">Dracula — Electric Violet</option>
+      <option value="gruvbox-retro">Gruvbox — Warm Retro</option>
+      <option value="emerald-forest">Emerald — Deep Woods</option>
+      <option value="sunset-amber">Sunset — Rose Amber</option>
+      <option value="solarized-gold">Solarized — Solar Gold</option>
+      <option value="oled-black">OLED — Pitch Indigo</option>
+      <option value="tokyo-neon">Tokyo — Neon Coral</option>
+    </select>
+  </div>
+</header>
+
+<main id="top">
+
+  <section class="hero container">
+    <div class="term-window">
+      <div class="term-titlebar mono">~/about.txt</div>
+      <div class="term-body">
+        <div><span class="prompt">$</span> <span class="out">whoami</span></div>
+        <div class="out">Chaitanya (@POKEDB10) — full-stack dev</div>
+        <div><span class="prompt">$</span> <span class="out">cat interests.txt</span></div>
+        <div class="out">systems infra · Rust &amp; eBPF · Minecraft server tooling · self-hosted everything</div>
+        <div><span class="prompt">$</span> <span class="out">echo $STATUS</span></div>
+        <div class="out">Currently online.<span class="cursor"></span></div>
+      </div>
+    </div>
+
+    <p class="hero-bio">
+      Second-year CS student at BITS Pilani Dubai, and Jr. Mod at Eternal — a ~20,000-member Minecraft hosting community. Most of what's below started as an internal tool for Eternal and turned into something worth shipping properly: DDoS mitigation, server observability, a fast SFTP client, and a few other things in between.
+    </p>
+
+    <div class="hero-actions">
+      <a class="btn btn-solid" href="#projects">View projects</a>
+      <a class="btn" href="#contact">Get in touch</a>
+    </div>
+  </section>
+
+  <section class="section container" id="stack">
+    <span class="eyebrow">$ ls ~/stack</span>
+    <h2 style="font-size:1.1rem; margin-bottom:1.1rem;">Running underneath</h2>
+    <div class="tags">
+      <span class="tag">Rust</span>
+      <span class="tag">Tauri</span>
+      <span class="tag">Python</span>
+      <span class="tag">Flask</span>
+      <span class="tag">Node.js</span>
+      <span class="tag">Express</span>
+      <span class="tag">Java</span>
+      <span class="tag">Gradle</span>
+      <span class="tag">React</span>
+      <span class="tag">TypeScript</span>
+      <span class="tag">eBPF / XDP</span>
+      <span class="tag">Docker</span>
+      <span class="tag">Redis</span>
+      <span class="tag">Celery</span>
+      <span class="tag">WireGuard</span>
+      <span class="tag">Pterodactyl</span>
+      <span class="tag">llama.cpp</span>
+      <span class="tag">Alpine Linux</span>
+    </div>
+  </section>
+
+  <section class="section container" id="projects">
+    <span class="eyebrow">$ status --all</span>
+    <h2 style="font-size:1.1rem; margin-bottom:.4rem;">Live projects</h2>
+    <p style="color:var(--muted); font-size:.95rem;">Internal tools and self-hosted infrastructure built for production.</p>
+
+    <div class="project-grid">
+      <a class="project-card" href="#" data-name="aegis">
+        <div class="project-card-head">
+          <span class="project-name">Aegis</span>
+          <span class="status-dot"></span>
+        </div>
+        <p class="project-desc">DDoS mitigation reverse proxy for Minecraft servers, eBPF/XDP + TCP proof-of-work + protocol filtering.</p>
+      </a>
+      <a class="project-card" href="#" data-name="beacon">
+        <div class="project-card-head">
+          <span class="project-name">Beacon</span>
+          <span class="status-dot"></span>
+        </div>
+        <p class="project-desc">Node.js PWA for Minecraft server observability: Loki, Spark APM, remote control, Java companion plugin.</p>
+      </a>
+      <a class="project-card" href="https://github.com/POKEDB10" target="_blank" rel="noopener" data-name="firesend">
+        <div class="project-card-head">
+          <span class="project-name">FireSend</span>
+          <span class="status-dot"></span>
+        </div>
+        <p class="project-desc">Tauri/Rust/React SFTP client, built to beat rclone/lftp on throughput.</p>
+      </a>
+      <a class="project-card" href="#" data-name="kds">
+        <div class="project-card-head">
+          <span class="project-name">KDS</span>
+          <span class="status-dot"></span>
+        </div>
+        <p class="project-desc">Geo-verification + tamper-detection dashboard for Eternal Hosting.</p>
+      </a>
+      <a class="project-card" href="#" data-name="manifold">
+        <div class="project-card-head">
+          <span class="project-name">Manifold</span>
+          <span class="status-dot"></span>
+        </div>
+        <p class="project-desc">Java agent multiplexing BlueMap/Dynmap/Geyser/Voice Chat through a single port via Netty + ASM.</p>
+      </a>
+      <a class="project-card" href="https://packspliter.qzz.io" target="_blank" rel="noopener" data-name="packspliter">
+        <div class="project-card-head">
+          <span class="project-name">PackSpliter</span>
+          <span class="status-dot"></span>
+        </div>
+        <p class="project-desc">Flask/Celery/Redis modpack processor, mod detection across Fabric/Forge.</p>
+      </a>
+      <a class="project-card" href="#" data-name="prism">
+        <div class="project-card-head">
+          <span class="project-name">Prism</span>
+          <span class="status-dot"></span>
+        </div>
+        <p class="project-desc">Multi-model mesh: local Qwen3 35B + Groq + Gemini Flash, shown at AI Tinkerers Dubai Demo Day.</p>
+      </a>
+    </div>
+  </section>
+
+  <section class="section container" id="contact">
+    <span class="eyebrow">$ whois --contact</span>
+    <h2 style="font-size:1.1rem; margin-bottom:1.1rem;">Reach me</h2>
+    <div class="contact-row">
+      <a class="btn" href="https://github.com/POKEDB10" target="_blank" rel="noopener">GitHub</a>
+      <a class="btn" href="https://discord.com/users/poke_db" target="_blank" rel="noopener">Discord (poke_db)</a>
+      <a class="btn" href="mailto:delta.poke.db@gmail.com">Email</a>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="footer-inner">
+    <span id="footer-year"></span>
+    <span id="uptime">session uptime · 00:00:00</span>
+  </div>
+</footer>
+
+<script>
+(function () {
+  // Reveal project cards on scroll (skipped entirely if reduced motion is set).
+  var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var cards = document.querySelectorAll('.project-card');
+  if (reduceMotion || !('IntersectionObserver' in window)) {
+    cards.forEach(function (c) { c.classList.add('is-visible'); });
+  } else {
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('is-visible');
+          io.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.15 });
+    cards.forEach(function (c) { io.observe(c); });
+  }
+
+  // Footer: year + session uptime counter
+  document.getElementById('footer-year').textContent = '© ' + new Date().getFullYear() + ' · pokedb.site';
+  var start = Date.now();
+  var uptimeEl = document.getElementById('uptime');
+  function pad(n) { return String(n).padStart(2, '0'); }
+  setInterval(function () {
+    var s = Math.floor((Date.now() - start) / 1000);
+    var hh = Math.floor(s / 3600), mm = Math.floor((s % 3600) / 60), ss = s % 60;
+    uptimeEl.textContent = 'session uptime · ' + pad(hh) + ':' + pad(mm) + ':' + pad(ss);
+  }, 1000);
+})();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="oled-black">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tools Hub — pokedb.site</title>
+<meta name="description" content="Self-hosted developer utilities, shortener, QR generator, and micro-tools.">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/tools/shared/theme.css">
+<script src="/tools/shared/theme-switcher.js"></script>
+
+<style>
+.tools-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.25rem;
+  margin-top: 1.5rem;
+  width: 100%;
+}
+.tool-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1.5rem;
+  text-decoration: none;
+  color: var(--text);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 1rem;
+  transition: transform .2s ease, border-color .2s ease;
+}
+.tool-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--accent);
+}
+.tool-card.disabled {
+  opacity: .6;
+  cursor: not-allowed;
+}
+.tool-card.disabled:hover {
+  transform: none;
+  border-color: var(--border);
+}
+.tool-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.tool-title {
+  font-family: 'IBM Plex Mono', monospace;
+  font-weight: 600;
+  font-size: 1.1rem;
+}
+.status-pill {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: .72rem;
+  padding: .2rem .55rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
+  color: var(--accent);
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+}
+.status-pill.upcoming {
+  background: var(--bg);
+  color: var(--muted);
+  border-color: var(--border);
+}
+.tool-desc {
+  color: var(--muted);
+  font-size: .92rem;
+  line-height: 1.6;
+}
+.tool-footer {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: .85rem;
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+}
+</style>
+</head>
+<body>
+
+<header class="site-nav">
+  <div class="logo">
+    <a class="logo" href="/">root<span>@</span>pokedb</a>
+    <div class="nav-links">
+      <a class="nav-link" href="/">← Portfolio</a>
+    </div>
+  </div>
+  <div class="theme-switcher">
+    <span class="theme-swatch" id="theme-swatch"></span>
+    <select id="theme-select" aria-label="Choose a color theme">
+      <option value="paper">Paper — Editorial Light</option>
+      <option value="matrix">Matrix — Phosphor Green</option>
+      <option value="cyberpunk">Cyberpunk — Neon Cyan</option>
+      <option value="synthwave">Synthwave — 80s Magenta</option>
+      <option value="nordic-ice">Nordic — Glacier Blue</option>
+      <option value="dracula-neon">Dracula — Electric Violet</option>
+      <option value="gruvbox-retro">Gruvbox — Warm Retro</option>
+      <option value="emerald-forest">Emerald — Deep Woods</option>
+      <option value="sunset-amber">Sunset — Rose Amber</option>
+      <option value="solarized-gold">Solarized — Solar Gold</option>
+      <option value="oled-black">OLED — Pitch Indigo</option>
+      <option value="tokyo-neon">Tokyo — Neon Coral</option>
+    </select>
+  </div>
+</header>
+
+<main class="container">
+
+  <section class="hero">
+    <div class="term-window">
+      <div class="term-titlebar mono">~/tools/directory.txt</div>
+      <div class="term-body">
+        <div><span class="prompt">$</span> <span class="out">ls -la ~/tools</span></div>
+        <div class="out">drwxr-xr-x  tinyurl/   [TinyURL Shortener & Optional QR] -> LIVE</div>
+        <div class="out">drwxr-xr-x  qr/        [Standalone QR Code Generator]    -> LIVE</div>
+        <div class="out">drwxr-xr-x  pastebin/  [Encrypted Code & Text Paste]     -> PART 2</div>
+        <div class="out">drwxr-xr-x  drop/      [Fast File Drop & Remote Upload]  -> LIVE<span class="cursor"></span></div>
+      </div>
+    </div>
+
+    <p style="margin-top: 1.5rem; color: var(--text);">
+      A collection of self-hosted developer micro-services built for speed, privacy, and zero tracking.
+    </p>
+  </section>
+
+  <section class="section" style="border-top: 1px solid var(--border);">
+    <span class="eyebrow">$ status --tools</span>
+    <h2 style="font-size:1.3rem; margin-bottom: 1rem;">Available Tools</h2>
+
+    <div class="tools-grid">
+
+      <!-- Tool 1: TinyURL Shortener -->
+      <a class="tool-card" href="/tools/tinyurl/">
+        <div>
+          <div class="tool-header">
+            <span class="tool-title">TinyURL Shortener</span>
+            <span class="status-pill">● LIVE</span>
+          </div>
+          <p class="tool-desc" style="margin-top: .75rem;">
+            Fast URL shortener with non-sequential codes, rate-limiting, custom aliases, click analytics, and optional QR code generation.
+          </p>
+        </div>
+        <div class="tool-footer">Launch TinyURL →</div>
+      </a>
+
+      <!-- Tool 2: QR Generator -->
+      <a class="tool-card" href="/tools/qr/">
+        <div>
+          <div class="tool-header">
+            <span class="tool-title">QR Generator</span>
+            <span class="status-pill">● LIVE</span>
+          </div>
+          <p class="tool-desc" style="margin-top: .75rem;">
+            Instant QR code generator for any text or URL payload with high contrast rendering and PNG/SVG exports.
+          </p>
+        </div>
+        <div class="tool-footer">Launch QR Generator →</div>
+      </a>
+
+      <!-- Tool 3: File Storage Drop (Rootz) -->
+      <a class="tool-card" href="/tools/drop/">
+        <div>
+          <div class="tool-header">
+            <span class="tool-title">Drop File Transfer</span>
+            <span class="status-pill">● LIVE</span>
+          </div>
+          <p class="tool-desc" style="margin-top: .75rem;">
+            Fast file drop & remote URL upload powered by Rootz API & local fallback. Progress bars & instant links.
+          </p>
+        </div>
+        <div class="tool-footer">Launch Drop →</div>
+      </a>
+
+      <!-- Tool 4: Encrypted Pastebin -->
+      <div class="tool-card disabled">
+        <div>
+          <div class="tool-header">
+            <span class="tool-title">Pastebin</span>
+            <span class="status-pill upcoming">Part 2</span>
+          </div>
+          <p class="tool-desc" style="margin-top: .75rem;">
+            Zero-knowledge encrypted code snippet & text sharing with syntax highlighting and auto-expiring links.
+          </p>
+        </div>
+        <div class="tool-footer" style="color:var(--muted);">Coming Soon</div>
+      </div>
+
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="footer-inner">
+    <span>© pokedb.site · tools directory</span>
+    <span id="uptime">session uptime · 00:00:00</span>
+  </div>
+</footer>
+
+<script>
+(function () {
+  var start = Date.now();
+  var uptimeEl = document.getElementById('uptime');
+  function pad(n) { return String(n).padStart(2, '0'); }
+  setInterval(function () {
+    var s = Math.floor((Date.now() - start) / 1000);
+    var hh = Math.floor(s / 3600), mm = Math.floor((s % 3600) / 60), ss = s % 60;
+    uptimeEl.textContent = 'session uptime · ' + pad(hh) + ':' + pad(mm) + ':' + pad(ss);
+  }, 1000);
+})();
+</script>
+
+</body>
+</html>

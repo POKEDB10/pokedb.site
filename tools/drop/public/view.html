@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="oled-black">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>File Transfer — Drop Storage — pokedb.site</title>
+<meta name="description" content="Download files shared via Drop storage powered by Rootz API.">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/tools/shared/theme.css">
+<script src="/tools/shared/theme-switcher.js"></script>
+
+<style>
+.viewer-wrapper {
+  max-width: 680px;
+  margin: 2rem auto;
+  width: 100%;
+}
+
+.viewer-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 2.2rem;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.4);
+}
+
+.file-hero-box {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 2.5rem 1.5rem;
+  text-align: center;
+  margin: 1.5rem 0;
+  box-shadow: inset 0 0 20px rgba(0,0,0,0.3);
+}
+
+.file-big-icon {
+  font-size: 4rem;
+  display: block;
+  margin-bottom: 1rem;
+}
+
+.file-title {
+  font-size: 1.35rem;
+  font-weight: 600;
+  word-break: break-all;
+  color: var(--text);
+  margin-bottom: .6rem;
+}
+
+.badge-tag {
+  display: inline-block;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: .78rem;
+  padding: .25rem .65rem;
+  border-radius: 4px;
+  background: rgba(99,102,241,0.15);
+  color: var(--accent);
+  border: 1px solid var(--accent);
+}
+
+.meta-stats-row {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: .85rem;
+  color: var(--muted);
+  flex-wrap: wrap;
+  margin-top: .75rem;
+}
+
+.action-row {
+  display: flex;
+  gap: .85rem;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  margin-top: 1.5rem;
+}
+
+.action-row .btn {
+  padding: .85rem 1.4rem;
+  font-size: .92rem;
+}
+
+/* Modal styling for QR Code */
+.modal-backdrop {
+  display: none;
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.75);
+  z-index: 1000;
+  align-items: center;
+  justify-content: center;
+}
+.modal-box {
+  background: var(--surface);
+  border: 1px solid var(--accent);
+  border-radius: 12px;
+  padding: 1.75rem;
+  max-width: 380px;
+  width: 90%;
+  text-align: center;
+}
+</style>
+</head>
+<body>
+
+<header class="site-nav">
+  <div class="logo">
+    <a class="logo" href="/">root<span>@</span>pokedb</a>
+    <div class="nav-links">
+      <a class="nav-link" href="/tools/drop/">← Drop Storage</a>
+      <a class="nav-link" href="/tools/">Tools Hub</a>
+    </div>
+  </div>
+  <div class="theme-switcher">
+    <span class="theme-swatch" id="theme-swatch"></span>
+    <select id="theme-select" aria-label="Choose a color theme">
+      <option value="paper">Paper — Editorial Light</option>
+      <option value="matrix">Matrix — Phosphor Green</option>
+      <option value="cyberpunk">Cyberpunk — Neon Cyan</option>
+      <option value="synthwave">Synthwave — 80s Magenta</option>
+      <option value="nordic-ice">Nordic — Glacier Blue</option>
+      <option value="dracula-neon">Dracula — Electric Violet</option>
+      <option value="gruvbox-retro">Gruvbox — Warm Retro</option>
+      <option value="emerald-forest">Emerald — Deep Woods</option>
+      <option value="sunset-amber">Sunset — Rose Amber</option>
+      <option value="solarized-gold">Solarized — Solar Gold</option>
+      <option value="oled-black">OLED — Pitch Indigo</option>
+      <option value="tokyo-neon">Tokyo — Neon Coral</option>
+    </select>
+  </div>
+</header>
+
+<main class="container">
+
+  <section class="section" style="border-top:none; padding-top:1rem;">
+    <div class="viewer-wrapper">
+
+      <div class="viewer-card">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+          <span class="eyebrow">$ drop --file-transfer</span>
+          <span id="provider-badge" class="badge-tag">Rootz Storage</span>
+        </div>
+
+        <!-- File Hero Card -->
+        <div class="file-hero-box">
+          <span class="file-big-icon" id="file-icon">📦</span>
+          <h1 class="file-title" id="file-title">Loading File...</h1>
+          <span class="badge-tag" id="file-type-tag">Shared File</span>
+
+          <div class="meta-stats-row">
+            <span id="file-size-tag">0 MB</span>
+            <span>·</span>
+            <span id="file-downloads-tag">👁️ 0 downloads</span>
+          </div>
+        </div>
+
+        <!-- Main Action Buttons -->
+        <div class="action-row">
+          <a class="btn btn-solid" id="download-btn" href="#" target="_blank" rel="noopener" style="flex:2; justify-content:center;">$ download --now</a>
+          <button class="btn" id="qr-btn" style="flex:1; justify-content:center;">⚡ $ qr --code</button>
+          <button class="btn" id="copy-btn" style="flex:1; justify-content:center;">$ copy --link</button>
+        </div>
+
+        <div style="display:flex; justify-content:space-between; align-items:center; font-family:'IBM Plex Mono',monospace; font-size:.8rem; color:var(--muted); margin-top:1.75rem; padding-top:1rem; border-top:1px solid var(--border);">
+          <span id="expiry-tag">🔒 Permanent Storage Link</span>
+          <span>Powered by pokedb.site</span>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+</main>
+
+<!-- QR Code Modal -->
+<div class="modal-backdrop" id="qr-modal">
+  <div class="modal-box">
+    <span class="eyebrow">$ qr --share</span>
+    <h3 style="font-size:1.1rem; margin-bottom:1rem;">Scan to Download on Mobile</h3>
+    <div style="background:#ffffff; padding:1rem; border-radius:8px; display:inline-block; margin-bottom:1rem;" id="qr-canvas-box"></div>
+    <div>
+      <button class="btn btn-solid" id="close-qr-btn" style="width:100%;">Close</button>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <div class="footer-inner">
+    <span>© pokedb.site · drop storage gateway</span>
+    <span id="uptime">session uptime · 00:00:00</span>
+  </div>
+</footer>
+
+<script>
+(function () {
+  function formatBytes(bytes) {
+    if (!bytes || isNaN(bytes)) return '0 B';
+    var k = 1024;
+    var sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+    var i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  }
+
+  function getFileIcon(filename) {
+    var ext = (filename || '').split('.').pop().toLowerCase();
+    if (['mp4', 'mkv', 'avi', 'mov', 'webm'].includes(ext)) return '🎥';
+    if (['mp3', 'wav', 'flac', 'ogg', 'm4a'].includes(ext)) return '🎵';
+    if (['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp'].includes(ext)) return '🖼️';
+    if (['pdf', 'doc', 'docx', 'txt', 'md'].includes(ext)) return '📄';
+    if (['zip', 'tar', 'gz', '7z', 'rar'].includes(ext)) return '📦';
+    if (['js', 'ts', 'py', 'json', 'html', 'css', 'rs', 'go'].includes(ext)) return '💻';
+    return '📁';
+  }
+
+  document.addEventListener('DOMContentLoaded', async function () {
+    var pathname = window.location.pathname;
+    var fileId = pathname.split('/').pop();
+
+    var titleEl = document.getElementById('file-title');
+    var iconEl = document.getElementById('file-icon');
+    var sizeEl = document.getElementById('file-size-tag');
+    var typeEl = document.getElementById('file-type-tag');
+    var downloadsEl = document.getElementById('file-downloads-tag');
+    var expiryEl = document.getElementById('expiry-tag');
+    var downloadBtn = document.getElementById('download-btn');
+
+    var downloadUrl = 'https://rootz.so/d/' + fileId;
+    downloadBtn.href = downloadUrl;
+
+    try {
+      var res = await fetch('/api/drop/info?file_code=' + encodeURIComponent(fileId));
+      var json = await res.json();
+
+      var fileMeta = { name: fileId, size: 0, mimeType: '', downloads: 0 };
+      var item = null;
+      if (json) {
+        if (json.data) item = Array.isArray(json.data) ? json.data[0] : json.data;
+        else if (json.result) item = Array.isArray(json.result) ? json.result[0] : json.result;
+        else if (json.name || json.size || json.filecode || json.short_id) item = json;
+      }
+
+      if (item) {
+        fileMeta.name = item.name || item.filename || item.original_name || fileId;
+        fileMeta.size = Number(item.size || item.bytes || 0);
+        fileMeta.downloads = Number(item.download || item.downloads || item.download_count || 0);
+        fileMeta.mimeType = item.mimeType || item.mime_type || item.type || '';
+
+        var exp = item.expiresAt || item.expires_at;
+        if (exp) {
+          expiryEl.textContent = '⏱ Expires: ' + new Date(exp).toLocaleString();
+        } else {
+          expiryEl.textContent = '🔒 Permanent Storage Link';
+        }
+      }
+
+      titleEl.textContent = fileMeta.name;
+      iconEl.textContent = getFileIcon(fileMeta.name);
+      sizeEl.textContent = formatBytes(fileMeta.size);
+      downloadsEl.textContent = '👁️ ' + fileMeta.downloads + ' downloads';
+
+      var ext = (fileMeta.name || '').split('.').pop().toUpperCase();
+      typeEl.textContent = ext ? (ext + ' File') : 'Shared File';
+
+    } catch (err) {
+      titleEl.textContent = fileId;
+      iconEl.textContent = getFileIcon(fileId);
+    }
+
+    // Copy Link Button
+    document.getElementById('copy-btn').addEventListener('click', function () {
+      navigator.clipboard.writeText(window.location.href);
+      this.textContent = '$ copied!';
+      var b = this;
+      setTimeout(function () { b.textContent = '$ copy --link'; }, 2000);
+    });
+
+    // QR Code Modal Trigger
+    var qrModal = document.getElementById('qr-modal');
+    var qrBox = document.getElementById('qr-canvas-box');
+
+    document.getElementById('qr-btn').addEventListener('click', function () {
+      qrBox.innerHTML = '<img src="/api/qr?format=svg&text=' + encodeURIComponent(window.location.href) + '" width="220" height="220" style="display:block;">';
+      qrModal.style.display = 'flex';
+    });
+
+    document.getElementById('close-qr-btn').addEventListener('click', function () {
+      qrModal.style.display = 'none';
+    });
+  });
+})();
+</script>
+
+</body>
+</html>

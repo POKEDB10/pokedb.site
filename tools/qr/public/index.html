@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="oled-black">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QR Code Studio — pokedb.site</title>
+<meta name="description" content="Feature-rich, self-hosted QR code studio with custom themes, colors, center badges, and PNG/SVG exports.">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/tools/shared/theme.css">
+<script src="/tools/shared/theme-switcher.js"></script>
+<script src="/tools/shared/qrcode.js"></script>
+
+<style>
+.studio-wrapper {
+  max-width: 660px;
+  margin: 0 auto;
+  transition: max-width 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+  width: 100%;
+}
+.studio-wrapper.is-generated {
+  max-width: 960px;
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 1.75rem;
+  align-items: start;
+}
+@media (max-width: 860px) {
+  .studio-wrapper.is-generated { grid-template-columns: 1fr; }
+}
+
+.card-box {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+}
+
+.tab-bar {
+  display: flex;
+  gap: .5rem;
+  margin-bottom: 1.25rem;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: .75rem;
+  flex-wrap: wrap;
+}
+.tab-btn {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: .82rem;
+  background: var(--bg);
+  color: var(--muted);
+  border: 1px solid var(--border);
+  padding: .5rem .85rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all .15s ease;
+}
+.tab-btn.is-active {
+  background: var(--accent);
+  color: var(--accent-text);
+  border-color: var(--accent);
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: .4rem;
+  margin-bottom: 1.1rem;
+}
+label {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: .82rem;
+  color: var(--muted);
+}
+input[type="text"], input[type="url"], select {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: .9rem;
+  padding: .65rem .85rem;
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  width: 100%;
+  transition: border-color .15s ease;
+}
+input:focus, select:focus {
+  border-color: var(--accent);
+  outline: none;
+}
+
+.form-row {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+.form-row .form-group { flex: 1; min-width: 140px; }
+
+/* Right Preview Column (Hidden until user clicks $ qr --generate) */
+.preview-sticky {
+  display: none;
+  opacity: 0;
+  transform: scale(0.94) translateY(12px);
+  position: sticky;
+  top: 5rem;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.25rem;
+  text-align: center;
+  transition: opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1), transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.preview-sticky.is-visible {
+  display: flex;
+  opacity: 1;
+  transform: scale(1) translateY(0);
+}
+
+.qr-frame {
+  background: #ffffff;
+  padding: 1.1rem;
+  border-radius: 12px;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 220px;
+  height: 220px;
+  transition: transform .2s ease;
+}
+.qr-frame:hover { transform: scale(1.02); }
+
+#qr-preview-container svg {
+  width: 100%;
+  height: 100%;
+  animation: popIn 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes popIn {
+  from { opacity: 0; transform: scale(0.85); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.color-swatch-picker {
+  display: flex;
+  gap: .5rem;
+  align-items: center;
+}
+.color-swatch-picker input[type="color"] {
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+  background: none;
+}
+</style>
+</head>
+<body>
+
+<header class="site-nav">
+  <div class="logo">
+    <a class="logo" href="/">root<span>@</span>pokedb</a>
+    <div class="nav-links">
+      <a class="nav-link" href="/tools/">← Tools Hub</a>
+    </div>
+  </div>
+  <div class="theme-switcher">
+    <span class="theme-swatch" id="theme-swatch"></span>
+    <select id="theme-select" aria-label="Choose a color theme">
+      <option value="paper">Paper — Editorial Light</option>
+      <option value="matrix">Matrix — Phosphor Green</option>
+      <option value="cyberpunk">Cyberpunk — Neon Cyan</option>
+      <option value="synthwave">Synthwave — 80s Magenta</option>
+      <option value="nordic-ice">Nordic — Glacier Blue</option>
+      <option value="dracula-neon">Dracula — Electric Violet</option>
+      <option value="gruvbox-retro">Gruvbox — Warm Retro</option>
+      <option value="emerald-forest">Emerald — Deep Woods</option>
+      <option value="sunset-amber">Sunset — Rose Amber</option>
+      <option value="solarized-gold">Solarized — Solar Gold</option>
+      <option value="oled-black">OLED — Pitch Indigo</option>
+      <option value="tokyo-neon">Tokyo — Neon Coral</option>
+    </select>
+  </div>
+</header>
+
+<main class="container">
+
+  <section class="section" style="border-top:none; padding-top:2rem;">
+    <span class="eyebrow">$ qrcode --studio</span>
+    <h2 style="font-size:1.5rem; margin-bottom: .4rem;">QR Code Studio</h2>
+    <p style="color:var(--muted); font-size:.95rem; margin-bottom: 1.5rem;">
+      Configure payloads, colors, and badges, then click Generate to create your high-contrast QR code.
+    </p>
+
+    <div class="studio-wrapper" id="studio-wrapper">
+
+      <!-- Left Column: Payload & Controls -->
+      <div id="settings-col">
+        <div class="card-box">
+          <div class="tab-bar">
+            <button class="tab-btn is-active" data-tab="url">🔗 Web Link / Text</button>
+            <button class="tab-btn" data-tab="wifi">📶 Wi-Fi Network</button>
+            <button class="tab-btn" data-tab="email">📧 Email Payload</button>
+          </div>
+
+          <!-- Payload Form: URL / Text -->
+          <div id="tab-content-url">
+            <div class="form-group">
+              <label for="url-input">URL or Plain Text Payload</label>
+              <input type="text" id="url-input" placeholder="https://example.com or text payload..." value="https://pokedb.site">
+            </div>
+          </div>
+
+          <!-- Payload Form: Wi-Fi -->
+          <div id="tab-content-wifi" style="display:none;">
+            <div class="form-group">
+              <label for="wifi-ssid">Network Name (SSID)</label>
+              <input type="text" id="wifi-ssid" placeholder="Home_WiFi_5G">
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="wifi-pass">Password</label>
+                <input type="text" id="wifi-pass" placeholder="SecretPass123">
+              </div>
+              <div class="form-group">
+                <label for="wifi-type">Encryption Type</label>
+                <select id="wifi-type">
+                  <option value="WPA">WPA/WPA2/WPA3</option>
+                  <option value="WEP">WEP</option>
+                  <option value="nopass">Open (No Password)</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Payload Form: Email -->
+          <div id="tab-content-email" style="display:none;">
+            <div class="form-group">
+              <label for="email-to">Email Address</label>
+              <input type="text" id="email-to" placeholder="hello@pokedb.site">
+            </div>
+            <div class="form-group">
+              <label for="email-subject">Subject</label>
+              <input type="text" id="email-subject" placeholder="Inquiry from QR code">
+            </div>
+          </div>
+        </div>
+
+        <!-- Customization Controls Box -->
+        <div class="card-box" style="margin-top:1.25rem;">
+          <span class="eyebrow" style="margin-bottom:1rem;">$ style --customizer</span>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="fg-color-preset">QR Module Color</label>
+              <select id="fg-color-preset">
+                <option value="#000000" selected>Pitch Black (#000000)</option>
+                <option value="theme">Theme Accent (Auto)</option>
+                <option value="#6366F1">Indigo Violet (#6366F1)</option>
+                <option value="#00F3FF">Cyberpunk Cyan (#00F3FF)</option>
+                <option value="#00FF66">Matrix Emerald (#00FF66)</option>
+                <option value="#FF007F">Synthwave Pink (#FF007F)</option>
+                <option value="custom">Custom Color Picker →</option>
+              </select>
+            </div>
+            <div class="form-group" id="custom-fg-wrap" style="display:none;">
+              <label>Custom Hex</label>
+              <div class="color-swatch-picker">
+                <input type="color" id="custom-fg-picker" value="#000000">
+                <input type="text" id="custom-fg-text" value="#000000" maxlength="7">
+              </div>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="bg-color-preset">Background Color</label>
+              <select id="bg-color-preset">
+                <option value="#ffffff" selected>Crisp White (#ffffff) [Best Scannability]</option>
+                <option value="#111111">Dark Surface (#111111)</option>
+                <option value="transparent">Transparent</option>
+                <option value="custom">Custom Color Picker →</option>
+              </select>
+            </div>
+            <div class="form-group" id="custom-bg-wrap" style="display:none;">
+              <label>Custom Hex</label>
+              <div class="color-swatch-picker">
+                <input type="color" id="custom-bg-picker" value="#ffffff">
+                <input type="text" id="custom-bg-text" value="#ffffff" maxlength="7">
+              </div>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="emblem-option">Center Emblem / Overlay Option</label>
+              <select id="emblem-option">
+                <option value="none">None (Standard QR Grid)</option>
+                <option value="p10_logo" selected>1) Our P10 Logo (Official Emblem)</option>
+                <option value="emoji">2) Any Emoji (Choose / Type Emoji)</option>
+                <option value="custom_pic">3) Custom Picture (Upload Image File)</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Option 2 Input: Any Emoji -->
+          <div class="form-group" id="emoji-input-wrap" style="display:none; margin-top: .5rem;">
+            <label for="emoji-input">Type Any Emoji (e.g. 🚀, 🔥, ⚡, 👑, 🛡️, 💻)</label>
+            <input type="text" id="emoji-input" value="⚡" placeholder="Type any emoji..." maxlength="4">
+          </div>
+
+          <!-- Option 3 Input: Custom Picture Upload -->
+          <div class="form-group" id="custom-logo-wrap" style="display:none; margin-top: .5rem;">
+            <label for="logo-file-input">Upload Image File (PNG / JPG / SVG)</label>
+            <input type="file" id="logo-file-input" accept="image/*" style="padding: .4rem;">
+            <div id="logo-status" style="font-family:'IBM Plex Mono',monospace; font-size:.78rem; color:var(--accent); margin-top:.3rem; display:none;"></div>
+          </div>
+
+          <!-- GENERATE BUTTON -->
+          <button class="btn btn-solid" id="generate-btn" style="width:100%; justify-content:center; padding: .85rem 1.25rem; font-size: 1rem; margin-top: .75rem;">
+            $ qr --generate (Generate QR Code)
+          </button>
+        </div>
+      </div>
+
+      <!-- Right Column: Live Preview & Exports (Hidden until $ qr --generate is clicked) -->
+      <div class="card-box preview-sticky" id="preview-col">
+        <span class="eyebrow">$ qr --live-preview</span>
+
+        <div class="qr-frame" id="qr-frame-box">
+          <img id="qr-preview-img" width="180" height="180" alt="QR Code" style="display:block; border-radius: 4px;">
+        </div>
+
+        <div style="width:100%; display:flex; flex-direction:column; gap:.65rem; margin-top:.5rem;">
+          <button class="btn btn-solid" id="export-png-btn" style="width:100%; justify-content:center;">$ export --png (HD Image)</button>
+          <button class="btn" id="export-svg-btn" style="width:100%; justify-content:center;">$ export --svg (Vector Print)</button>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="footer-inner">
+    <span>© pokedb.site · qr code studio</span>
+    <span id="uptime">session uptime · 00:00:00</span>
+  </div>
+</footer>
+
+<script src="/tools/qr/app.js"></script>
+
+</body>
+</html>

@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="oled-black">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TinyURL Shortener — pokedb.site</title>
+<meta name="description" content="Self-hosted terminal URL shortener with non-sequential codes, rate limiting, and optional QR code generation.">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/tools/shared/theme.css">
+<script src="/tools/shared/theme-switcher.js"></script>
+<script src="/tools/shared/qrcode.js"></script>
+
+<style>
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: .4rem;
+  margin-bottom: 1.1rem;
+}
+.form-row {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+.form-row .form-group { flex: 1; min-width: 200px; }
+
+label {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: .82rem;
+  color: var(--muted);
+}
+input[type="url"], input[type="text"], select {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: .9rem;
+  padding: .65rem .85rem;
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  width: 100%;
+  transition: border-color .15s ease;
+}
+input:focus, select:focus {
+  border-color: var(--accent);
+  outline: none;
+}
+
+.checkbox-group {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  margin-bottom: 1.25rem;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: .88rem;
+  color: var(--text);
+  cursor: pointer;
+  user-select: none;
+}
+.checkbox-group input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.result-card {
+  margin-top: 1.5rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1.5rem;
+  display: none;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+.result-card.is-active { display: flex; }
+
+.result-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  word-break: break-all;
+}
+.result-url {
+  font-family: 'IBM Plex Mono', monospace;
+  font-weight: 600;
+  font-size: 1.1rem;
+  color: var(--accent);
+  text-decoration: none;
+}
+.result-url:hover { text-decoration: underline; }
+
+.qr-display-wrap {
+  display: flex;
+  gap: 1.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+.qr-canvas-container {
+  background: #ffffff;
+  padding: .85rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+}
+#qr-img {
+  width: 160px;
+  height: 160px;
+  display: block;
+}
+.qr-actions {
+  display: flex;
+  flex-direction: column;
+  gap: .6rem;
+}
+.stats-badge {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: .8rem;
+  color: var(--muted);
+  background: var(--bg);
+  padding: .4rem .7rem;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+}
+.error-msg {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: .85rem;
+  color: #ff5555;
+  margin-top: .5rem;
+  display: none;
+}
+</style>
+</head>
+<body>
+
+<header class="site-nav">
+  <div class="logo">
+    <a class="logo" href="/">root<span>@</span>pokedb</a>
+    <div class="nav-links">
+      <a class="nav-link" href="/tools/">← Tools Hub</a>
+    </div>
+  </div>
+  <div class="theme-switcher">
+    <span class="theme-swatch" id="theme-swatch"></span>
+    <select id="theme-select" aria-label="Choose a color theme">
+      <option value="paper">Paper — Editorial Light</option>
+      <option value="matrix">Matrix — Phosphor Green</option>
+      <option value="cyberpunk">Cyberpunk — Neon Cyan</option>
+      <option value="synthwave">Synthwave — 80s Magenta</option>
+      <option value="nordic-ice">Nordic — Glacier Blue</option>
+      <option value="dracula-neon">Dracula — Electric Violet</option>
+      <option value="gruvbox-retro">Gruvbox — Warm Retro</option>
+      <option value="emerald-forest">Emerald — Deep Woods</option>
+      <option value="sunset-amber">Sunset — Rose Amber</option>
+      <option value="solarized-gold">Solarized — Solar Gold</option>
+      <option value="oled-black">OLED — Pitch Indigo</option>
+      <option value="tokyo-neon">Tokyo — Neon Coral</option>
+    </select>
+  </div>
+</header>
+
+<main class="container">
+
+  <section class="section" style="border-top:none; padding-top:2.5rem;">
+    <span class="eyebrow">$ tinyurl --create</span>
+    <h2 style="font-size:1.5rem; margin-bottom: 1.5rem;">TinyURL Shortener</h2>
+
+    <form id="shorten-form">
+      <div class="form-group">
+        <label for="long-url">Long Destination URL *</label>
+        <input type="url" id="long-url" placeholder="https://example.com/very-long-url-path" required>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="custom-alias">Custom Alias (Optional)</label>
+          <input type="text" id="custom-alias" placeholder="e.g. packspliter" maxlength="30">
+        </div>
+        <div class="form-group">
+          <label for="expires-in">Expiration (Optional)</label>
+          <select id="expires-in">
+            <option value="30" selected>30 Days (1 Month) [Default]</option>
+            <option value="1">1 Day</option>
+            <option value="7">7 Days</option>
+            <option value="0">Never expire</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Checkbox: Generate QR Code (Default ON) -->
+      <label class="checkbox-group">
+        <input type="checkbox" id="generate-qr-toggle" checked>
+        <span>Generate QR Code for short link</span>
+      </label>
+
+      <button type="submit" class="btn btn-solid" id="shorten-btn">$ tinyurl --exec</button>
+      <div class="error-msg" id="shorten-error"></div>
+    </form>
+
+    <div class="result-card" id="shorten-result">
+      <div class="result-header">
+        <div>
+          <span class="eyebrow">$ tinyurl --result</span>
+          <a class="result-url" id="short-link-href" href="#" target="_blank" rel="noopener"></a>
+        </div>
+        <button class="btn" id="copy-btn">Copy Link</button>
+      </div>
+      <div class="stats-badge" id="stats-info"></div>
+
+      <!-- QR Display Section (Shown when Generate QR Code checkbox is checked) -->
+      <div class="qr-display-wrap" id="qr-result-wrap">
+        <div class="qr-canvas-container">
+          <div id="qr-container" style="width:160px; height:160px;"></div>
+        </div>
+        <div class="qr-actions">
+          <span class="eyebrow">Export QR Code</span>
+          <button class="btn" id="download-png-btn">Download PNG</button>
+          <button class="btn" id="download-svg-btn">Download SVG</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="footer-inner">
+    <span>© pokedb.site · tinyurl shortener</span>
+    <span id="uptime">session uptime · 00:00:00</span>
+  </div>
+</footer>
+
+<script src="/tools/tinyurl/app.js"></script>
+
+</body>
+</html>
