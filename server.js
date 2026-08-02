@@ -445,8 +445,11 @@ const handleQrGeneration = async (req, res) => {
   }
 };
 
-app.get('/api/qr', handleQrGeneration);
-app.post('/api/qr', handleQrGeneration);
+app.get('/api/qr', checkApiHost(['qr.pokedb.site']), handleQrGeneration);
+app.post('/api/qr', checkApiHost(['qr.pokedb.site']), handleQrGeneration);
+
+// Enforce subdomain access control on all /api/drop endpoints
+app.use('/api/drop', checkApiHost(['drop.pokedb.site']));
 
 // ============================================================
 // DROP FILE STORAGE TOOL API (/api/drop)
@@ -803,7 +806,7 @@ app.get(['/api/drop/file/:filename', '/api/drop/stream/:filename'], async (req, 
   }
 });
 
-app.get('/api/stats/:code', async (req, res) => {
+app.get('/api/stats/:code', checkApiHost(['tinyurl.pokedb.site']), async (req, res) => {
   try {
     const code = req.params.code;
     const redisKey = `url:${code}`;
