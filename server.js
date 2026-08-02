@@ -104,11 +104,17 @@ if (process.env.NODE_ENV === 'test') {
     quit: async () => {}
   };
 } else {
-  redis = new Redis(REDIS_URL, {
+  const redisOptions = {
     lazyConnect: true,
     maxRetriesPerRequest: 1,
     enableOfflineQueue: false
-  });
+  };
+
+  if (REDIS_URL.startsWith('rediss://')) {
+    redisOptions.tls = { rejectUnauthorized: false };
+  }
+
+  redis = new Redis(REDIS_URL, redisOptions);
   redis.on('error', (err) => {
     if (!isInMemory) {
       console.warn('Redis unavailable, switching to persistent file-backed store.');
