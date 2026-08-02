@@ -26,12 +26,14 @@ if (fs.existsSync(CONFIG_FILE)) {
 }
 
 const getBaseUrl = (req) => {
+  if (req) {
+    const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'https';
+    const host = req.headers['x-forwarded-host'] || req.get('host');
+    if (host) return `${protocol}://${host}`;
+  }
   const envBase = process.env.BASE_URL || CONFIG.BASE_URL;
   if (envBase) return envBase.replace(/\/$/, '');
-  if (!req) return `http://localhost:${PORT}`;
-  const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'http';
-  const host = req.headers['x-forwarded-host'] || req.get('host') || `localhost:${PORT}`;
-  return `${protocol}://${host}`;
+  return `http://localhost:${PORT}`;
 };
 
 // 1. Trust Proxy
@@ -227,7 +229,7 @@ const checkApiHost = (allowedHosts) => {
     if (['localhost', '127.0.0.1', '::1'].includes(host) || process.env.NODE_ENV === 'test') {
       return next();
     }
-    if (['pokedb.site', 'www.pokedb.site', 'tools.pokedb.site'].includes(host)) {
+    if (['pokedb.site', 'www.pokedb.site', 'tools.pokedb.site', 'origin.pokedb.site', 'pokedb-site.onrender.com'].includes(host)) {
       return next();
     }
     if (allowedHosts.includes(host)) {
