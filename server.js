@@ -203,13 +203,33 @@ app.use('/shared', express.static(path.join(__dirname, 'tools/shared')));
 
 // Pre-configured static handlers with built-in path traversal & dotfile security
 const staticHandlers = {
-  tools: express.static(path.join(__dirname, 'tools'), { index: ['index.html'] }),
+  main: express.static(path.join(__dirname, 'public'), { index: ['index.html'] }),
+  tools: express.static(path.join(__dirname, 'tools/public'), { index: ['index.html'] }),
   tinyurl: express.static(path.join(__dirname, 'tools/tinyurl/public'), { index: ['index.html'] }),
   qr: express.static(path.join(__dirname, 'tools/qr/public'), { index: ['index.html'] }),
   drop: express.static(path.join(__dirname, 'tools/drop/public'), { index: ['index.html'] })
 };
 
 const dynamicToolHandlers = {};
+
+// Helper middleware to validate API host access per subdomain
+const checkApiHost = (allowedHosts) => {
+  return (req, res, next) => {
+    const rawHost = req.headers.host || req.get('host') || '';
+    const host = rawHost.split(':')[0].toLowerCase();
+
+    if (['localhost', '127.0.0.1', '::1'].includes(host) || process.env.NODE_ENV === 'test') {
+      return next();
+    }
+    if (['pokedb.site', 'www.pokedb.site', 'tools.pokedb.site'].includes(host)) {
+      return next();
+    }
+    if (allowedHosts.includes(host)) {
+      return next();
+    }
+    return res.status(404).json({ error: 'API endpoint not available on this subdomain' });
+  };
+};
 
 // ============================================================
 // DEDICATED HOST-BASED ROUTING MIDDLEWARE
@@ -230,41 +250,29 @@ app.use((req, res, next) => {
 
   switch (host) {
     case 'pokedb.site':
-    case 'www.pokedb.site': {
-      if (req.path === '/' || req.path === '/index.html') {
-        return res.sendFile(path.join(__dirname, 'index.html'));
-      }
-      return notFound();
-    }
+    case 'www.pokedb.site':
+      return staticHandlers.main(req, res, notFound);
 
-    case 'tools.pokedb.site': {
+    case 'tools.pokedb.site':
       return staticHandlers.tools(req, res, notFound);
-    }
 
-    case 'tinyurl.pokedb.site': {
-      // Passes through to next() (short link /:code handler) if no static file matches
-      return staticHandlers.tinyurl(req, res, next);
-    }
+    case 'tinyurl.pokedb.site':
+      return staticHandlers.tinyurl(req, res, next); // falls through to /:code resolver
 
-    case 'qr.pokedb.site': {
+    case 'qr.pokedb.site':
       return staticHandlers.qr(req, res, notFound);
-    }
 
-    case 'drop.pokedb.site': {
+    case 'drop.pokedb.site':
       if (req.path.startsWith('/v/') || req.path.startsWith('/view/')) {
         return res.sendFile(path.join(__dirname, 'tools/drop/public/view.html'));
       }
       return staticHandlers.drop(req, res, notFound);
-    }
 
-    // Localhost / Development fallback support
     case 'localhost':
     case '127.0.0.1':
-    case '::1': {
+    case '::1':
       return next();
-    }
 
-    // Auto-extensible for future tools added under /tools/<name>/public
     default: {
       if (!host.endsWith('.pokedb.site')) return notFound();
       const toolName = host.slice(0, -'.pokedb.site'.length);
@@ -300,11 +308,11 @@ app.get('/tools/shorten*', (req, res) => {
 });
 
 // Tools Hub Landing Page (/tools/ and /tools)
-app.use('/tools', express.static(path.join(__dirname, 'tools')));
+app.use('/tools', express.static(path.join(__dirname, 'tools/public')));
 
 // Root Main Portfolio (/)
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'index.html'));
+  res.sendFile(path.join(__dirname, 'public/index.html'));
 });
 
 // Health check endpoint with DX telemetry
@@ -324,7 +332,7 @@ app.get('/health', (req, res) => {
 // 2. API ENDPOINTS
 // ============================================================
 
-app.post('/api/shorten', shortenLimiter, async (req, res) => {
+app.post('/api/shorten', shortenLimiter, checkApiHost(['tinyurl.pokedb.site']), async (req, res) => {
   try {
     const { url, customAlias, expiresInDays } = req.body;
 
