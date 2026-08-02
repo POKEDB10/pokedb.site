@@ -251,6 +251,7 @@ app.use((req, res, next) => {
   switch (host) {
     case 'pokedb.site':
     case 'www.pokedb.site':
+    case 'pokedb-site.onrender.com':
       return staticHandlers.main(req, res, notFound);
 
     case 'tools.pokedb.site':
@@ -274,6 +275,9 @@ app.use((req, res, next) => {
       return next();
 
     default: {
+      if (host.endsWith('.onrender.com')) {
+        return staticHandlers.main(req, res, notFound);
+      }
       if (!host.endsWith('.pokedb.site')) return notFound();
       const toolName = host.slice(0, -'.pokedb.site'.length);
       if (!/^[a-z0-9-]+$/.test(toolName)) return notFound();
