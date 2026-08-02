@@ -292,33 +292,6 @@ app.use((req, res, next) => {
   }
 });
 
-// TinyURL Tool (/tools/tinyurl/ and /tools/tinyurl)
-app.use('/tools/tinyurl', express.static(path.join(__dirname, 'tools/tinyurl/public')));
-
-// QR Generator Tool (/tools/qr/ and /tools/qr)
-app.use('/tools/qr', express.static(path.join(__dirname, 'tools/qr/public')));
-
-// Drop File Transfer Tool (/tools/drop/ and /tools/drop)
-app.use('/tools/drop', express.static(path.join(__dirname, 'tools/drop/public')));
-
-// Drop Media Viewer Gateway (/tools/drop/view/:fileId, /tools/drop/v/:fileId, /v/:fileId)
-app.get(['/tools/drop/view/:fileId', '/tools/drop/v/:fileId', '/v/:fileId'], (req, res) => {
-  res.sendFile(path.join(__dirname, 'tools/drop/public/view.html'));
-});
-
-// Backward-compatibility redirect for /tools/shorten
-app.get('/tools/shorten*', (req, res) => {
-  res.redirect(301, '/tools/tinyurl/');
-});
-
-// Tools Hub Landing Page (/tools/ and /tools)
-app.use('/tools', express.static(path.join(__dirname, 'tools/public')));
-
-// Root Main Portfolio (/)
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public/index.html'));
-});
-
 // Health check endpoint with DX telemetry
 app.get('/health', (req, res) => {
   res.status(200).json({
@@ -465,13 +438,14 @@ const uploadMulter = multer({
 });
 
 const SERVER_ROOTZ_KEY = process.env.ROOTZ_API_KEY || CONFIG.ROOTZ_API_KEY || '';
-const LARGE_FILE_PASSWORD = process.env.LARGE_FILE_PASSWORD || CONFIG.LARGE_FILE_PASSWORD || 'pokedb-secret';
+const LARGE_FILE_PASSWORD = process.env.LARGE_FILE_PASSWORD || CONFIG.LARGE_FILE_PASSWORD || null;
 const ONE_GB = 1073741824; // 1 GB limit in bytes
 
 const verifyLargeFilePassword = (req, fileSize) => {
   if (!fileSize || fileSize <= ONE_GB) return true;
+  if (!LARGE_FILE_PASSWORD) return false;
   const provided = req.headers['x-upload-password'] || req.body?.password;
-  return provided === LARGE_FILE_PASSWORD;
+  return Boolean(provided && provided === LARGE_FILE_PASSWORD);
 };
 
 const isPrivateHost = (host) => {
