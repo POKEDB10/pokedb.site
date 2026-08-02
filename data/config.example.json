@@ -1,5 +1,7 @@
 {
   "BASE_URL": "https://pokedb.site",
   "ROOTZ_API_KEY": "YOUR_ROOTZ_API_KEY_HERE",
+  "ROOTZ_FOLDER_NAME": "pokedb.site",
+  "ROOTZ_FOLDER_ID": "",
   "LARGE_FILE_PASSWORD": "YOUR_LARGE_FILE_PASSWORD_HERE"
 }

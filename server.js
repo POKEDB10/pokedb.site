@@ -514,8 +514,12 @@ app.post('/api/drop/upload', uploadMulter.single('file'), async (req, res) => {
     const expDays = req.body.expiresInDays !== undefined ? req.body.expiresInDays : '30';
     formData.append('expiresInDays', String(expDays));
 
-    if (req.body.folderId) {
-      formData.append('folderId', String(req.body.folderId));
+    const targetFolder = req.body.folderId || process.env.ROOTZ_FOLDER_ID || CONFIG.ROOTZ_FOLDER_ID || process.env.ROOTZ_FOLDER_NAME || CONFIG.ROOTZ_FOLDER_NAME || 'pokedb.site';
+    if (targetFolder) {
+      formData.append('folderId', String(targetFolder));
+      formData.append('folder_id', String(targetFolder));
+      formData.append('folder_name', String(targetFolder));
+      formData.append('folder', String(targetFolder));
     }
 
     const headers = {};
@@ -601,12 +605,17 @@ app.post('/api/drop/remote-upload', async (req, res) => {
       headers['Authorization'] = SERVER_ROOTZ_KEY.startsWith('Bearer ') ? SERVER_ROOTZ_KEY : `Bearer ${SERVER_ROOTZ_KEY}`;
     }
 
+    const targetFolder = folderId || process.env.ROOTZ_FOLDER_ID || CONFIG.ROOTZ_FOLDER_ID || process.env.ROOTZ_FOLDER_NAME || CONFIG.ROOTZ_FOLDER_NAME || 'pokedb.site';
+
     const rootzRes = await fetch('https://rootz.so/api/files/remote-upload', {
       method: 'POST',
       headers: headers,
       body: JSON.stringify({
         url: url.trim(),
-        folderId: folderId ? String(folderId).trim() : null
+        folderId: targetFolder ? String(targetFolder).trim() : null,
+        folder_id: targetFolder ? String(targetFolder).trim() : null,
+        folder_name: targetFolder ? String(targetFolder).trim() : null,
+        folder: targetFolder ? String(targetFolder).trim() : null
       })
     });
 
