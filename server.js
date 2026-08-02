@@ -202,65 +202,105 @@ app.use('/tools/shared', express.static(path.join(__dirname, 'tools/shared')));
 app.use('/shared', express.static(path.join(__dirname, 'tools/shared')));
 
 // ============================================================
-// DEDICATED SUBDOMAIN ROUTING MIDDLEWARE
-// Primary Architecture: Each tool gets its own clean subdomain!
-// - tinyurl.pokedb.site -> TinyURL Tool & Short Links (tinyurl.pokedb.site/xxxx)
-// - qr.pokedb.site      -> QR Studio Tool
-// - drop.pokedb.site    -> Drop Storage Gateway (drop.pokedb.site/v/:fileId)
-// - tools.pokedb.site   -> Tools Hub Index
-// - pokedb.site        -> Main Portfolio & Landing Page
+// DEDICATED HOST-BASED ROUTING MIDDLEWARE
+// Switches on (req.headers.host || '').split(':')[0].toLowerCase()
+// Internal file serving only, NO 301/302 redirects.
 // ============================================================
 app.use((req, res, next) => {
-  const host = (req.get('host') || '').split(':')[0].toLowerCase();
+  const rawHost = req.headers.host || req.get('host') || '';
+  const host = rawHost.split(':')[0].toLowerCase();
 
-  // 1. tinyurl.pokedb.site -> TinyURL Tool
-  if (host === 'tinyurl.pokedb.site') {
-    if (req.path === '/' || req.path === '/index.html') {
-      return res.sendFile(path.join(__dirname, 'tools/tinyurl/public/index.html'));
-    }
-    const staticFile = path.join(__dirname, 'tools/tinyurl/public', req.path);
-    if (fs.existsSync(staticFile) && fs.statSync(staticFile).isFile()) {
-      return res.sendFile(staticFile);
-    }
+  // Allow API endpoints and health checks to pass through directly
+  if (req.path.startsWith('/api/') || req.path === '/health') {
+    return next();
   }
 
-  // 2. qr.pokedb.site -> QR Studio Tool
-  if (host === 'qr.pokedb.site') {
-    if (req.path === '/' || req.path === '/index.html') {
-      return res.sendFile(path.join(__dirname, 'tools/qr/public/index.html'));
+  switch (host) {
+    case 'pokedb.site':
+    case 'www.pokedb.site': {
+      if (req.path === '/' || req.path === '/index.html') {
+        return res.sendFile(path.join(__dirname, 'index.html'));
+      }
+      const staticFile = path.join(__dirname, req.path);
+      if (fs.existsSync(staticFile) && fs.statSync(staticFile).isFile()) {
+        return res.sendFile(staticFile);
+      }
+      return res.status(404).send('Not Found');
     }
-    const staticFile = path.join(__dirname, 'tools/qr/public', req.path);
-    if (fs.existsSync(staticFile) && fs.statSync(staticFile).isFile()) {
-      return res.sendFile(staticFile);
+
+    case 'tools.pokedb.site': {
+      if (req.path === '/' || req.path === '/index.html') {
+        return res.sendFile(path.join(__dirname, 'tools/index.html'));
+      }
+      const staticFile = path.join(__dirname, 'tools', req.path);
+      if (fs.existsSync(staticFile) && fs.statSync(staticFile).isFile()) {
+        return res.sendFile(staticFile);
+      }
+      return res.status(404).send('Not Found');
+    }
+
+    case 'tinyurl.pokedb.site': {
+      if (req.path === '/' || req.path === '/index.html') {
+        return res.sendFile(path.join(__dirname, 'tools/tinyurl/public/index.html'));
+      }
+      const staticFile = path.join(__dirname, 'tools/tinyurl/public', req.path);
+      if (fs.existsSync(staticFile) && fs.statSync(staticFile).isFile()) {
+        return res.sendFile(staticFile);
+      }
+      // Pass through shortcode resolution (/:code)
+      return next();
+    }
+
+    case 'qr.pokedb.site': {
+      if (req.path === '/' || req.path === '/index.html') {
+        return res.sendFile(path.join(__dirname, 'tools/qr/public/index.html'));
+      }
+      const staticFile = path.join(__dirname, 'tools/qr/public', req.path);
+      if (fs.existsSync(staticFile) && fs.statSync(staticFile).isFile()) {
+        return res.sendFile(staticFile);
+      }
+      return res.status(404).send('Not Found');
+    }
+
+    case 'drop.pokedb.site': {
+      if (req.path === '/' || req.path === '/index.html') {
+        return res.sendFile(path.join(__dirname, 'tools/drop/public/index.html'));
+      }
+      if (req.path.startsWith('/v/') || req.path.startsWith('/view/')) {
+        return res.sendFile(path.join(__dirname, 'tools/drop/public/view.html'));
+      }
+      const staticFile = path.join(__dirname, 'tools/drop/public', req.path);
+      if (fs.existsSync(staticFile) && fs.statSync(staticFile).isFile()) {
+        return res.sendFile(staticFile);
+      }
+      return res.status(404).send('Not Found');
+    }
+
+    // Localhost / Development fallback support
+    case 'localhost':
+    case '127.0.0.1':
+    case '::1': {
+      return next();
+    }
+
+    // Auto-extensible for future tools added under /tools/<name>/public
+    default: {
+      if (host.endsWith('.pokedb.site')) {
+        const toolName = host.replace('.pokedb.site', '');
+        const toolPublicDir = path.join(__dirname, 'tools', toolName, 'public');
+        if (fs.existsSync(toolPublicDir) && fs.statSync(toolPublicDir).isDirectory()) {
+          if (req.path === '/' || req.path === '/index.html') {
+            return res.sendFile(path.join(toolPublicDir, 'index.html'));
+          }
+          const staticFile = path.join(toolPublicDir, req.path);
+          if (fs.existsSync(staticFile) && fs.statSync(staticFile).isFile()) {
+            return res.sendFile(staticFile);
+          }
+        }
+      }
+      return res.status(404).send('Not Found');
     }
   }
-
-  // 3. drop.pokedb.site -> Drop Storage Gateway & File Viewer
-  if (host === 'drop.pokedb.site') {
-    if (req.path === '/' || req.path === '/index.html') {
-      return res.sendFile(path.join(__dirname, 'tools/drop/public/index.html'));
-    }
-    if (req.path.startsWith('/v/') || req.path.startsWith('/view/')) {
-      return res.sendFile(path.join(__dirname, 'tools/drop/public/view.html'));
-    }
-    const staticFile = path.join(__dirname, 'tools/drop/public', req.path);
-    if (fs.existsSync(staticFile) && fs.statSync(staticFile).isFile()) {
-      return res.sendFile(staticFile);
-    }
-  }
-
-  // 4. tools.pokedb.site -> Tools Hub Directory Index
-  if (host === 'tools.pokedb.site') {
-    if (req.path === '/' || req.path === '/index.html') {
-      return res.sendFile(path.join(__dirname, 'tools/index.html'));
-    }
-    if (req.path === '/tinyurl' || req.path === '/tinyurl/') return res.sendFile(path.join(__dirname, 'tools/tinyurl/public/index.html'));
-    if (req.path === '/qr' || req.path === '/qr/') return res.sendFile(path.join(__dirname, 'tools/qr/public/index.html'));
-    if (req.path === '/drop' || req.path === '/drop/') return res.sendFile(path.join(__dirname, 'tools/drop/public/index.html'));
-    if (req.path.startsWith('/v/')) return res.sendFile(path.join(__dirname, 'tools/drop/public/view.html'));
-  }
-
-  next();
 });
 
 // TinyURL Tool (/tools/tinyurl/ and /tools/tinyurl)
