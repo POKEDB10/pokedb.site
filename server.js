@@ -252,7 +252,36 @@ app.use((req, res, next) => {
     return next();
   }
 
-  const notFound = () => res.status(404).send('Not Found');
+  const notFound = (customToolName) => {
+    const requestedTool = typeof customToolName === 'string' ? customToolName : host.split('.')[0];
+    const acceptsHtml = (req.headers.accept || '').includes('text/html');
+    if (!acceptsHtml) return res.status(404).send('Not Found');
+
+    return res.status(404).send(`
+<!DOCTYPE html>
+<html lang="en" data-theme="oled-black">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>404 — Tool Not Found | pokedb.site</title>
+  <link rel="stylesheet" href="/shared/theme.css">
+  <script src="/shared/theme-switcher.js"></script>
+</head>
+<body class="container" style="padding-top: 5rem; text-align: center;">
+  <div class="term-window" style="max-width: 520px; margin: 0 auto; text-align: left;">
+    <div class="term-titlebar">~/404-tool-not-found.sh</div>
+    <div class="term-body" style="padding: 1.5rem;">
+      <div><span class="prompt">$</span> <span class="out">pokedb resolve --subdomain "${requestedTool}"</span></div>
+      <div class="out" style="color: #ff5555; margin-top: .75rem;">Error 404: Subdomain '${requestedTool}.pokedb.site' does not correspond to any active tool.</div>
+    </div>
+  </div>
+  <p style="margin-top: 2rem;">
+    <a class="btn btn-primary" href="https://tools.pokedb.site/">← Explore Tools Hub (tools.pokedb.site)</a>
+  </p>
+</body>
+</html>
+    `);
+  };
 
   switch (host) {
     case 'pokedb.site':
@@ -286,14 +315,14 @@ app.use((req, res, next) => {
       }
       if (!host.endsWith('.pokedb.site')) return notFound();
       const toolName = host.slice(0, -'.pokedb.site'.length);
-      if (!/^[a-z0-9-]+$/.test(toolName)) return notFound();
+      if (!/^[a-z0-9-]+$/.test(toolName)) return notFound(toolName);
 
       if (!dynamicToolHandlers[toolName]) {
         const dir = path.join(__dirname, 'tools', toolName, 'public');
-        if (!fs.existsSync(dir)) return notFound();
+        if (!fs.existsSync(dir)) return notFound(toolName);
         dynamicToolHandlers[toolName] = express.static(dir, { index: ['index.html'] });
       }
-      return dynamicToolHandlers[toolName](req, res, notFound);
+      return dynamicToolHandlers[toolName](req, res, () => notFound(toolName));
     }
   }
 });
