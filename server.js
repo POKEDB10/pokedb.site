@@ -201,9 +201,20 @@ function isValidTargetUrl(targetUrl, reqHost) {
 app.use('/tools/shared', express.static(path.join(__dirname, 'tools/shared')));
 app.use('/shared', express.static(path.join(__dirname, 'tools/shared')));
 
+// Pre-configured static handlers with built-in path traversal & dotfile security
+const staticHandlers = {
+  tools: express.static(path.join(__dirname, 'tools'), { index: ['index.html'] }),
+  tinyurl: express.static(path.join(__dirname, 'tools/tinyurl/public'), { index: ['index.html'] }),
+  qr: express.static(path.join(__dirname, 'tools/qr/public'), { index: ['index.html'] }),
+  drop: express.static(path.join(__dirname, 'tools/drop/public'), { index: ['index.html'] })
+};
+
+const dynamicToolHandlers = {};
+
 // ============================================================
 // DEDICATED HOST-BASED ROUTING MIDDLEWARE
 // Switches on (req.headers.host || '').split(':')[0].toLowerCase()
+// Uses express.static() handlers for 100% path traversal & dotfile protection
 // Internal file serving only, NO 301/302 redirects.
 // ============================================================
 app.use((req, res, next) => {
@@ -215,65 +226,35 @@ app.use((req, res, next) => {
     return next();
   }
 
+  const notFound = () => res.status(404).send('Not Found');
+
   switch (host) {
     case 'pokedb.site':
     case 'www.pokedb.site': {
       if (req.path === '/' || req.path === '/index.html') {
         return res.sendFile(path.join(__dirname, 'index.html'));
       }
-      const staticFile = path.join(__dirname, req.path);
-      if (fs.existsSync(staticFile) && fs.statSync(staticFile).isFile()) {
-        return res.sendFile(staticFile);
-      }
-      return res.status(404).send('Not Found');
+      return notFound();
     }
 
     case 'tools.pokedb.site': {
-      if (req.path === '/' || req.path === '/index.html') {
-        return res.sendFile(path.join(__dirname, 'tools/index.html'));
-      }
-      const staticFile = path.join(__dirname, 'tools', req.path);
-      if (fs.existsSync(staticFile) && fs.statSync(staticFile).isFile()) {
-        return res.sendFile(staticFile);
-      }
-      return res.status(404).send('Not Found');
+      return staticHandlers.tools(req, res, notFound);
     }
 
     case 'tinyurl.pokedb.site': {
-      if (req.path === '/' || req.path === '/index.html') {
-        return res.sendFile(path.join(__dirname, 'tools/tinyurl/public/index.html'));
-      }
-      const staticFile = path.join(__dirname, 'tools/tinyurl/public', req.path);
-      if (fs.existsSync(staticFile) && fs.statSync(staticFile).isFile()) {
-        return res.sendFile(staticFile);
-      }
-      // Pass through shortcode resolution (/:code)
-      return next();
+      // Passes through to next() (short link /:code handler) if no static file matches
+      return staticHandlers.tinyurl(req, res, next);
     }
 
     case 'qr.pokedb.site': {
-      if (req.path === '/' || req.path === '/index.html') {
-        return res.sendFile(path.join(__dirname, 'tools/qr/public/index.html'));
-      }
-      const staticFile = path.join(__dirname, 'tools/qr/public', req.path);
-      if (fs.existsSync(staticFile) && fs.statSync(staticFile).isFile()) {
-        return res.sendFile(staticFile);
-      }
-      return res.status(404).send('Not Found');
+      return staticHandlers.qr(req, res, notFound);
     }
 
     case 'drop.pokedb.site': {
-      if (req.path === '/' || req.path === '/index.html') {
-        return res.sendFile(path.join(__dirname, 'tools/drop/public/index.html'));
-      }
       if (req.path.startsWith('/v/') || req.path.startsWith('/view/')) {
         return res.sendFile(path.join(__dirname, 'tools/drop/public/view.html'));
       }
-      const staticFile = path.join(__dirname, 'tools/drop/public', req.path);
-      if (fs.existsSync(staticFile) && fs.statSync(staticFile).isFile()) {
-        return res.sendFile(staticFile);
-      }
-      return res.status(404).send('Not Found');
+      return staticHandlers.drop(req, res, notFound);
     }
 
     // Localhost / Development fallback support
@@ -285,20 +266,16 @@ app.use((req, res, next) => {
 
     // Auto-extensible for future tools added under /tools/<name>/public
     default: {
-      if (host.endsWith('.pokedb.site')) {
-        const toolName = host.replace('.pokedb.site', '');
-        const toolPublicDir = path.join(__dirname, 'tools', toolName, 'public');
-        if (fs.existsSync(toolPublicDir) && fs.statSync(toolPublicDir).isDirectory()) {
-          if (req.path === '/' || req.path === '/index.html') {
-            return res.sendFile(path.join(toolPublicDir, 'index.html'));
-          }
-          const staticFile = path.join(toolPublicDir, req.path);
-          if (fs.existsSync(staticFile) && fs.statSync(staticFile).isFile()) {
-            return res.sendFile(staticFile);
-          }
-        }
+      if (!host.endsWith('.pokedb.site')) return notFound();
+      const toolName = host.slice(0, -'.pokedb.site'.length);
+      if (!/^[a-z0-9-]+$/.test(toolName)) return notFound();
+
+      if (!dynamicToolHandlers[toolName]) {
+        const dir = path.join(__dirname, 'tools', toolName, 'public');
+        if (!fs.existsSync(dir)) return notFound();
+        dynamicToolHandlers[toolName] = express.static(dir, { index: ['index.html'] });
       }
-      return res.status(404).send('Not Found');
+      return dynamicToolHandlers[toolName](req, res, notFound);
     }
   }
 });
