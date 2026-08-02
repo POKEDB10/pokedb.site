@@ -979,8 +979,8 @@ app.get('/:code', async (req, res) => {
 });
 
 if (require.main === module) {
-  const server = app.listen(PORT, () => {
-    console.log(`Server running at http://localhost:${PORT}`);
+  const server = app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Server running on 0.0.0.0:${PORT}`);
     console.log(`Main Portfolio: http://localhost:${PORT}/`);
     console.log(`TinyURL Tool:   http://localhost:${PORT}/tools/tinyurl/`);
     console.log(`QR Studio Tool: http://localhost:${PORT}/tools/qr/`);
