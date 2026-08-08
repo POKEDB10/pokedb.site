@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="oled-black">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>System Health & Status | pokedb.site</title>
+  <meta name="description" content="Real-time system health, uptime monitoring, and status telemetry for pokedb.site services.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/shared/theme.css">
+  <style>
+    .status-pulse {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background-color: var(--color-success, #00ff88);
+      box-shadow: 0 0 10px var(--color-success, #00ff88);
+      animation: pulse-glow 2s infinite;
+      margin-right: 0.5rem;
+    }
+    @keyframes pulse-glow {
+      0% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(1.2); }
+      100% { opacity: 1; transform: scale(1); }
+    }
+    .status-card {
+      background: var(--bg-surface-elevated, #16181d);
+      border: 1px solid var(--border-color, #272a30);
+      border-radius: var(--radius-lg, 12px);
+      padding: 1.25rem;
+      transition: border-color 0.2s ease, transform 0.2s ease;
+    }
+    .status-card:hover {
+      border-color: var(--color-primary, #00d8ff);
+      transform: translateY(-2px);
+    }
+    .metric-val {
+      font-family: 'Fira Code', monospace;
+      font-size: 1.75rem;
+      font-weight: 700;
+      color: var(--text-primary, #ffffff);
+      margin-top: 0.25rem;
+    }
+    .metric-lbl {
+      font-size: 0.85rem;
+      color: var(--text-secondary, #94a3b8);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .svc-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.85rem 1rem;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--border-color, #272a30);
+      border-radius: var(--radius-md, 8px);
+      margin-bottom: 0.75rem;
+    }
+    .badge-ok {
+      background: rgba(0, 255, 136, 0.1);
+      color: #00ff88;
+      border: 1px solid rgba(0, 255, 136, 0.3);
+      padding: 0.25rem 0.65rem;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+    }
+    .ping-bar-container {
+      display: flex;
+      align-items: flex-end;
+      gap: 4px;
+      height: 48px;
+      margin-top: 1rem;
+      padding-top: 8px;
+      border-bottom: 1px solid var(--border-color, #272a30);
+    }
+    .ping-bar {
+      flex: 1;
+      background: var(--color-primary, #00d8ff);
+      border-radius: 2px 2px 0 0;
+      transition: height 0.3s ease, background-color 0.3s ease;
+      min-height: 4px;
+    }
+    .code-box {
+      background: #0d0f12;
+      border: 1px solid var(--border-color, #272a30);
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      font-family: 'Fira Code', monospace;
+      font-size: 0.85rem;
+      color: #00d8ff;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 0.5rem;
+    }
+    .copy-btn {
+      background: transparent;
+      border: 1px solid var(--border-color, #272a30);
+      color: var(--text-secondary, #94a3b8);
+      padding: 0.25rem 0.5rem;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.75rem;
+      transition: all 0.2s;
+    }
+    .copy-btn:hover {
+      color: #fff;
+      border-color: var(--color-primary, #00d8ff);
+    }
+  </style>
+</head>
+<body class="site-wrapper">
+  <!-- Header Navbar -->
+  <header class="header">
+    <div class="container header-container">
+      <a href="https://pokedb.site" class="logo-group" data-nav="main">
+        <span class="logo-icon">⚡</span>
+        <span class="logo-text">pokedb.site</span>
+      </a>
+      <nav class="nav-links">
+        <a href="https://tools.pokedb.site" class="nav-link" data-nav="tools">Tools Hub</a>
+        <a href="https://tinyurl.pokedb.site" class="nav-link" data-nav="tinyurl">TinyURL</a>
+        <a href="https://qr.pokedb.site" class="nav-link" data-nav="qr">QR Studio</a>
+        <a href="https://drop.pokedb.site" class="nav-link" data-nav="drop">Drop</a>
+        <a href="https://health.pokedb.site" class="nav-link active" data-nav="health">Health</a>
+      </nav>
+      <div class="theme-select-wrapper">
+        <select id="theme-select" class="theme-select" aria-label="Select Color Theme">
+          <option value="oled-black">OLED Black</option>
+          <option value="cyberpunk-neon">Cyberpunk Neon</option>
+          <option value="dracula-purple">Dracula Purple</option>
+          <option value="monokai-pro">Monokai Pro</option>
+          <option value="nord-dark">Nord Dark</option>
+          <option value="clean-light">Clean Light</option>
+        </select>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <main class="main-content">
+    <div class="container" style="max-width: 960px; padding-top: 2rem; padding-bottom: 4rem;">
+      <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; margin-bottom: 2rem;">
+        <div>
+          <div style="display: inline-flex; align-items: center; background: rgba(0, 255, 136, 0.08); border: 1px solid rgba(0, 255, 136, 0.2); padding: 0.35rem 0.85rem; border-radius: 20px; font-size: 0.85rem; font-weight: 600; color: #00ff88; margin-bottom: 0.75rem;">
+            <span class="status-pulse"></span>
+            <span id="system-status-title">ALL SYSTEMS OPERATIONAL</span>
+          </div>
+          <h1 style="font-size: 2.25rem; font-weight: 700; margin: 0; letter-spacing: -0.02em;">System Health & Telemetry</h1>
+          <p style="color: var(--text-secondary, #94a3b8); margin-top: 0.5rem;">Live uptime, latency metrics, and API health status for pokedb.site infrastructure.</p>
+        </div>
+        <div>
+          <button id="refresh-btn" class="btn btn-primary" onclick="runDiagnostics()">
+            🔄 Run Diagnostics
+          </button>
+        </div>
+      </div>
+
+      <!-- Top Metric Cards -->
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
+        <div class="status-card">
+          <div class="metric-lbl">API Latency</div>
+          <div class="metric-val" id="metric-ping">-- ms</div>
+          <div style="font-size: 0.75rem; color: #00ff88; margin-top: 0.25rem;">🟢 Responsive</div>
+        </div>
+        <div class="status-card">
+          <div class="metric-lbl">System Uptime</div>
+          <div class="metric-val" id="metric-uptime">--</div>
+          <div style="font-size: 0.75rem; color: var(--text-secondary, #94a3b8); margin-top: 0.25rem;">Node process uptime</div>
+        </div>
+        <div class="status-card">
+          <div class="metric-lbl">Memory Usage</div>
+          <div class="metric-val" id="metric-memory">-- MB</div>
+          <div style="font-size: 0.75rem; color: var(--text-secondary, #94a3b8); margin-top: 0.25rem;">RAM RSS Memory</div>
+        </div>
+        <div class="status-card">
+          <div class="metric-lbl">Storage Engine</div>
+          <div class="metric-val" id="metric-store" style="font-size: 1.2rem; margin-top: 0.55rem;">--</div>
+          <div style="font-size: 0.75rem; color: var(--text-secondary, #94a3b8); margin-top: 0.25rem;" id="metric-records">0 active records</div>
+        </div>
+      </div>
+
+      <!-- Live Latency Monitor Histogram -->
+      <div class="status-card" style="margin-bottom: 2rem;">
+        <div style="display: flex; align-items: center; justify-content: space-between;">
+          <div>
+            <h3 style="font-size: 1.1rem; font-weight: 600; margin: 0;">Live Response Latency (ms)</h3>
+            <p style="font-size: 0.8rem; color: var(--text-secondary, #94a3b8); margin-top: 0.2rem;">Auto-pings every 5s</p>
+          </div>
+          <div style="font-family: 'Fira Code', monospace; font-size: 0.85rem; color: var(--color-primary, #00d8ff);" id="latency-summary">
+            Min: -- ms | Avg: -- ms | Max: -- ms
+          </div>
+        </div>
+        <div class="ping-bar-container" id="ping-chart">
+          <!-- Live ping bars injected here -->
+        </div>
+      </div>
+
+      <!-- Services Breakdown -->
+      <div style="margin-bottom: 2.5rem;">
+        <h2 style="font-size: 1.3rem; font-weight: 700; margin-bottom: 1rem;">Service Components</h2>
+        
+        <div class="svc-row">
+          <div>
+            <strong style="display: block;">Core API Gateway</strong>
+            <span style="font-size: 0.8rem; color: var(--text-secondary, #94a3b8);">https://pokedb.site/api/</span>
+          </div>
+          <span class="badge-ok" id="svc-api">🟢 Operational</span>
+        </div>
+
+        <div class="svc-row">
+          <div>
+            <strong style="display: block;">TinyURL Link Engine</strong>
+            <span style="font-size: 0.8rem; color: var(--text-secondary, #94a3b8);">https://tinyurl.pokedb.site</span>
+          </div>
+          <span class="badge-ok" id="svc-tinyurl">🟢 Operational</span>
+        </div>
+
+        <div class="svc-row">
+          <div>
+            <strong style="display: block;">QR Code Studio Engine</strong>
+            <span style="font-size: 0.8rem; color: var(--text-secondary, #94a3b8);">https://qr.pokedb.site</span>
+          </div>
+          <span class="badge-ok" id="svc-qr">🟢 Operational</span>
+        </div>
+
+        <div class="svc-row">
+          <div>
+            <strong style="display: block;">Drop File Vault</strong>
+            <span style="font-size: 0.8rem; color: var(--text-secondary, #94a3b8);">https://drop.pokedb.site (Rootz Storage)</span>
+          </div>
+          <span class="badge-ok" id="svc-drop">🟢 Operational</span>
+        </div>
+      </div>
+
+      <!-- Monitoring Setup Guide for UptimeRobot / Better Stack -->
+      <div class="status-card">
+        <h3 style="font-size: 1.1rem; font-weight: 600; margin-top: 0;">External Uptime Monitors Setup</h3>
+        <p style="font-size: 0.85rem; color: var(--text-secondary, #94a3b8);">Use these endpoints to set up automated monitors in <strong>UptimeRobot</strong>, <strong>Better Stack</strong>, or <strong>Datadog</strong>:</p>
+
+        <div style="margin-top: 1rem;">
+          <label style="font-size: 0.8rem; font-weight: 600; text-transform: uppercase; color: var(--text-secondary, #94a3b8);">Lightweight Ping Endpoint (HTTP 200)</label>
+          <div class="code-box">
+            <span id="endpoint-ping">https://pokedb.site/api/health/ping</span>
+            <button class="copy-btn" onclick="copyToClipboard('endpoint-ping', this)">Copy</button>
+          </div>
+        </div>
+
+        <div style="margin-top: 1rem;">
+          <label style="font-size: 0.8rem; font-weight: 600; text-transform: uppercase; color: var(--text-secondary, #94a3b8);">Full JSON Status Telemetry Endpoint</label>
+          <div class="code-box">
+            <span id="endpoint-full">https://pokedb.site/api/health</span>
+            <button class="copy-btn" onclick="copyToClipboard('endpoint-full', this)">Copy</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container footer-container">
+      <p>&copy; 2026 pokedb.site. All systems operational.</p>
+    </div>
+  </footer>
+
+  <script src="/shared/theme-switcher.js"></script>
+  <script>
+    const pingHistory = [];
+    const maxHistory = 20;
+
+    async function fetchTelemetry() {
+      const startTime = performance.now();
+      try {
+        const res = await fetch('/api/health');
+        const duration = Math.round(performance.now() - startTime);
+
+        if (!res.ok) throw new Error('Health check failed');
+        const data = await res.json();
+
+        // Update metrics
+        document.getElementById('metric-ping').textContent = `${duration} ms`;
+        document.getElementById('metric-uptime').textContent = data.uptimeFormatted || `${data.uptimeSeconds}s`;
+        document.getElementById('metric-memory').textContent = `${data.memoryUsageMB} MB`;
+        document.getElementById('metric-store').textContent = data.storeMode || 'Online';
+        document.getElementById('metric-records').textContent = `${data.recordsCount || 0} active records`;
+
+        // Update ping history chart
+        addPingBar(duration);
+      } catch (err) {
+        document.getElementById('system-status-title').textContent = 'DEGRADED PERFORMANCE';
+        document.getElementById('system-status-title').style.color = '#ffaa00';
+        addPingBar(150, true);
+      }
+    }
+
+    function addPingBar(ms, isError = false) {
+      pingHistory.push({ ms, isError });
+      if (pingHistory.length > maxHistory) pingHistory.shift();
+
+      const container = document.getElementById('ping-chart');
+      container.innerHTML = '';
+
+      const validPings = pingHistory.map(p => p.ms);
+      const min = Math.min(...validPings);
+      const max = Math.max(...validPings);
+      const avg = Math.round(validPings.reduce((a, b) => a + b, 0) / validPings.length);
+
+      document.getElementById('latency-summary').textContent = `Min: ${min} ms | Avg: ${avg} ms | Max: ${max} ms`;
+
+      pingHistory.forEach(p => {
+        const bar = document.createElement('div');
+        bar.className = 'ping-bar';
+        const heightPct = Math.min(100, Math.max(15, (p.ms / Math.max(100, max)) * 100));
+        bar.style.height = `${heightPct}%`;
+        bar.title = `${p.ms} ms`;
+        if (p.isError) bar.style.backgroundColor = '#ff5555';
+        else if (p.ms > 100) bar.style.backgroundColor = '#ffaa00';
+        container.appendChild(bar);
+      });
+    }
+
+    function runDiagnostics() {
+      const btn = document.getElementById('refresh-btn');
+      btn.textContent = '🔄 Testing...';
+      btn.disabled = true;
+      fetchTelemetry().finally(() => {
+        btn.textContent = '🔄 Run Diagnostics';
+        btn.disabled = false;
+      });
+    }
+
+    function copyToClipboard(elementId, btn) {
+      const text = document.getElementById(elementId).textContent;
+      navigator.clipboard.writeText(text).then(() => {
+        const orig = btn.textContent;
+        btn.textContent = 'Copied!';
+        setTimeout(() => btn.textContent = orig, 2000);
+      });
+    }
+
+    // Auto-refresh telemetry every 5 seconds
+    fetchTelemetry();
+    setInterval(fetchTelemetry, 5000);
+  </script>
+</body>
+</html>

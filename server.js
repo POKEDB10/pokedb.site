@@ -215,7 +215,8 @@ const staticHandlers = {
   tools: express.static(path.join(__dirname, 'tools/public'), { index: ['index.html'] }),
   tinyurl: express.static(path.join(__dirname, 'tools/tinyurl/public'), { index: ['index.html'] }),
   qr: express.static(path.join(__dirname, 'tools/qr/public'), { index: ['index.html'] }),
-  drop: express.static(path.join(__dirname, 'tools/drop/public'), { index: ['index.html'] })
+  drop: express.static(path.join(__dirname, 'tools/drop/public'), { index: ['index.html'] }),
+  health: express.static(path.join(__dirname, 'tools/health/public'), { index: ['index.html'] })
 };
 
 const dynamicToolHandlers = {};
@@ -315,6 +316,9 @@ app.use((req, res, next) => {
       }
       return staticHandlers.drop(req, res, notFound);
 
+    case 'health.pokedb.site':
+      return staticHandlers.health(req, res, notFound);
+
     case 'localhost':
     case '127.0.0.1':
     case '::1':
@@ -338,17 +342,39 @@ app.use((req, res, next) => {
   }
 });
 
-// Health check endpoint with DX telemetry
-app.get('/health', (req, res) => {
-  res.status(200).json({
+// Health check endpoints with DX telemetry
+const getHealthStatus = () => {
+  const uptime = Math.floor(process.uptime());
+  const hours = Math.floor(uptime / 3600);
+  const mins = Math.floor((uptime % 3600) / 60);
+  const secs = uptime % 60;
+  const uptimeFormatted = `${hours > 0 ? hours + 'h ' : ''}${mins > 0 ? mins + 'm ' : ''}${secs}s`;
+
+  return {
     status: 'healthy',
-    uptimeSeconds: Math.floor(process.uptime()),
+    uptimeSeconds: uptime,
+    uptimeFormatted,
     memoryUsageMB: Math.round(process.memoryUsage().rss / 1024 / 1024),
     storeMode: isInMemory ? 'File-backed JSON Store' : 'Redis Cluster',
     recordsCount: inMemoryStore.size,
     nodeVersion: process.version,
+    services: {
+      api: 'operational',
+      database: isInMemory ? 'file_fallback' : 'redis_active',
+      tinyurl: 'operational',
+      qr: 'operational',
+      drop: 'operational'
+    },
     timestamp: new Date().toISOString()
-  });
+  };
+};
+
+app.get(['/health', '/api/health'], (req, res) => {
+  res.status(200).json(getHealthStatus());
+});
+
+app.get('/api/health/ping', (req, res) => {
+  res.status(200).json({ status: 'ok', pong: true, timestamp: Date.now() });
 });
 
 // ============================================================
