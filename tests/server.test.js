@@ -1,6 +1,7 @@
 process.env.NODE_ENV = 'test';
 const fs = require('fs');
 const path = require('path');
+const { spawnSync } = require('child_process');
 const request = require('supertest');
 const app = require('../server');
 
@@ -266,6 +267,22 @@ describe('URL Shortener API Suite', () => {
     const rateLimitedResponse = responses.find(r => r.status === 429);
     expect(rateLimitedResponse).toBeDefined();
     expect(rateLimitedResponse.body.error).toMatch(/too many .*requests/i);
+  });
+
+  test('16. Start cleanly when Redis is unavailable during production boot', () => {
+    const rootDir = path.join(__dirname, '..');
+    const result = spawnSync(process.execPath, [
+      '-e',
+      "require('./server'); setTimeout(() => process.exit(0), 1500);"
+    ], {
+      cwd: rootDir,
+      env: { ...process.env, NODE_ENV: 'production', REDIS_URL: 'redis://127.0.0.1:1' },
+      encoding: 'utf8',
+      timeout: 5000
+    });
+
+    expect(result.status).toBe(0);
+    expect(result.stderr).not.toContain('Stream isn\'t writeable');
   });
 
 });

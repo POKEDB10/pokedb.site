@@ -8,7 +8,7 @@ const net = require('node:net');
 const dns = require('node:dns/promises');
 const { Readable } = require('node:stream');
 const { nanoid, customAlphabet } = require('nanoid');
-const { rateLimit } = require('express-rate-limit');
+const { rateLimit, MemoryStore } = require('express-rate-limit');
 const { RedisStore } = require('rate-limit-redis');
 const Redis = require('ioredis');
 const QRCodeServer = require('qrcode');
@@ -180,7 +180,78 @@ function savePersistentStore() {
 // Redis Client Setup (with file-backed persistent fallback)
 let redis;
 let isInMemory = false;
-let createRateLimitStore = () => undefined;
+const rateLimitStores = [];
+
+class ResilientRateLimitStore {
+  constructor(prefix) {
+    this.prefix = `pokedb:rate-limit:${prefix}:`;
+    this.memoryStore = new MemoryStore();
+    this.redisStore = null;
+    rateLimitStores.push(this);
+  }
+
+  init(options) {
+    this.options = options;
+    this.memoryStore.init(options);
+  }
+
+  useRedis(client) {
+    if (!this.options || this.redisStore) return;
+
+    const store = new RedisStore({
+      sendCommand: (...args) => client.call(...args),
+      prefix: this.prefix
+    });
+    store.init(this.options);
+    this.redisStore = store;
+
+    Promise.all([store.incrementScriptSha, store.getScriptSha]).catch((err) => {
+      if (this.redisStore === store) {
+        console.warn('Redis rate-limit store unavailable; using in-memory limits.', err.message);
+        this.redisStore = null;
+      }
+    });
+  }
+
+  useMemory() {
+    this.redisStore = null;
+  }
+
+  async increment(key) {
+    if (this.redisStore) {
+      try {
+        return await this.redisStore.increment(key);
+      } catch (err) {
+        console.warn('Redis rate-limit increment failed; using in-memory limits.', err.message);
+        this.useMemory();
+      }
+    }
+    return this.memoryStore.increment(key);
+  }
+
+  async decrement(key) {
+    if (this.redisStore) {
+      try { return await this.redisStore.decrement(key); } catch (err) { this.useMemory(); }
+    }
+    return this.memoryStore.decrement(key);
+  }
+
+  async resetKey(key) {
+    if (this.redisStore) {
+      try { return await this.redisStore.resetKey(key); } catch (err) { this.useMemory(); }
+    }
+    return this.memoryStore.resetKey(key);
+  }
+
+  async get(key) {
+    if (this.redisStore) {
+      try { return await this.redisStore.get(key); } catch (err) { this.useMemory(); }
+    }
+    return this.memoryStore.get(key);
+  }
+}
+
+const createRateLimitStore = (prefix) => new ResilientRateLimitStore(prefix);
 
 function cleanupInMemoryStore() {
   const now = Date.now();
@@ -244,13 +315,16 @@ if (process.env.NODE_ENV === 'test') {
   }
 
   redis = new Redis(REDIS_URL, redisOptions);
+  const realRedis = redis;
   redis.on('error', (err) => {
     if (!isInMemory) {
       console.warn('Redis unavailable, switching to persistent file-backed store.');
       isInMemory = true;
     }
+    rateLimitStores.forEach((store) => store.useMemory());
   });
   redis.on('ready', () => {
+    rateLimitStores.forEach((store) => store.useRedis(realRedis));
     if (isInMemory) {
       console.info('Redis reconnected; resuming Redis-backed storage.');
       isInMemory = false;
@@ -262,11 +336,6 @@ if (process.env.NODE_ENV === 'test') {
   });
 
   // Proxy object to seamlessly route to file-backed persistent store if Redis connection fails
-  const realRedis = redis;
-  createRateLimitStore = (prefix) => new RedisStore({
-    sendCommand: (...args) => realRedis.call(...args),
-    prefix: `pokedb:rate-limit:${prefix}:`
-  });
   redis = {
     get: async (key) => {
       if (isInMemory) return inMemoryStore.get(key) || null;
