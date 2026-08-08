@@ -25,10 +25,35 @@ if (fs.existsSync(CONFIG_FILE)) {
   }
 }
 
+function resolveHost(req) {
+  if (!req) return '';
+  const candidates = [];
+
+  const xfh = req.headers['x-forwarded-host'];
+  if (Array.isArray(xfh)) candidates.push(...xfh);
+  else if (typeof xfh === 'string') candidates.push(...xfh.split(','));
+
+  const xhost = req.headers['x-host'];
+  if (Array.isArray(xhost)) candidates.push(...xhost);
+  else if (typeof xhost === 'string') candidates.push(...xhost.split(','));
+
+  const hostHeader = req.headers.host || req.get('host');
+  if (typeof hostHeader === 'string') candidates.push(...hostHeader.split(','));
+
+  const hosts = candidates
+    .map(h => String(h).trim().split(':')[0].toLowerCase())
+    .filter(Boolean);
+
+  const pokedbHost = hosts.find(h => h.endsWith('.pokedb.site') || h === 'pokedb.site');
+  if (pokedbHost) return pokedbHost;
+
+  return hosts[0] || '';
+}
+
 const getBaseUrl = (req) => {
   if (req) {
     const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'https';
-    const host = req.headers['x-forwarded-host'] || req.get('host');
+    const host = resolveHost(req);
     if (host) return `${protocol}://${host}`;
   }
   const envBase = process.env.BASE_URL || CONFIG.BASE_URL;
@@ -224,8 +249,7 @@ const dynamicToolHandlers = {};
 // Helper middleware to validate API host access per subdomain
 const checkApiHost = (allowedHosts) => {
   return (req, res, next) => {
-    const rawHost = (req.headers['x-forwarded-host'] || req.headers.host || req.get('host') || '').split(',')[0].trim();
-    const host = rawHost.split(':')[0].toLowerCase();
+    const host = resolveHost(req);
 
     if (['localhost', '127.0.0.1', '::1'].includes(host) || process.env.NODE_ENV === 'test') {
       return next();
@@ -242,13 +266,11 @@ const checkApiHost = (allowedHosts) => {
 
 // ============================================================
 // DEDICATED HOST-BASED ROUTING MIDDLEWARE
-// Switches on (req.headers.host || '').split(':')[0].toLowerCase()
-// Uses express.static() handlers for 100% path traversal & dotfile protection
+// Uses resolveHost(req) to switch target subdomains with 100% path traversal & dotfile security
 // Internal file serving only, NO 301/302 redirects.
 // ============================================================
 app.use((req, res, next) => {
-  const rawHost = (req.headers['x-forwarded-host'] || req.headers.host || req.get('host') || '').split(',')[0].trim();
-  const host = rawHost.split(':')[0].toLowerCase();
+  const host = resolveHost(req);
 
   // Allow API endpoints and health checks to pass through directly
   if (req.path.startsWith('/api/') || req.path === '/health') {
