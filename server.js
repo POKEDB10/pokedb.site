@@ -455,6 +455,16 @@ const uploadLimiter = rateLimit({
   message: { error: 'Too many upload requests, please try again after 15 minutes.' }
 });
 
+// Multipart chunk/control calls are high-frequency per upload session;
+// allow up to 2 000 calls per 15 min per IP (roughly 10 parallel large file uploads).
+const multipartLimiter = rateLimit({
+  ...sharedRateLimitOptions,
+  store: createRateLimitStore('multipart'),
+  windowMs: 15 * 60 * 1000,
+  max: 2000,
+  message: { error: 'Too many multipart upload requests, please try again after 15 minutes.' }
+});
+
 const shortenLimiter = rateLimit({
   ...sharedRateLimitOptions,
   store: createRateLimitStore('shorten'),
@@ -806,13 +816,87 @@ const ROOTZ_TIMEOUT_MS = Number.isFinite(configuredRootzTimeout) && configuredRo
   ? Math.min(configuredRootzTimeout, 3600000)
   : 1200000;
 const ONE_GB = 1073741824; // 1 GB limit in bytes
+const ROOTZ_FOLDER_CACHE_MS = 5 * 60 * 1000;
+const ROOTZ_FOLDER_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+let cachedRootzFolder = { id: null, expiresAt: 0 };
 
-app.get('/api/drop/status', (req, res) => {
-  const defaultFolder = process.env.ROOTZ_FOLDER_ID || CONFIG.ROOTZ_FOLDER_ID || process.env.ROOTZ_FOLDER_NAME || CONFIG.ROOTZ_FOLDER_NAME || '';
-  return res.status(200).json({
-    storageConfigured: Boolean(SERVER_ROOTZ_KEY),
-    defaultFolderConfigured: Boolean(defaultFolder)
+const rootzHeaders = (additionalHeaders = {}) => ({
+  ...additionalHeaders,
+  ...(SERVER_ROOTZ_KEY
+    ? { Authorization: SERVER_ROOTZ_KEY.startsWith('Bearer ') ? SERVER_ROOTZ_KEY : `Bearer ${SERVER_ROOTZ_KEY}` }
+    : {})
+});
+
+const configuredRootzFolderName = () => (
+  process.env.ROOTZ_FOLDER_NAME || CONFIG.ROOTZ_FOLDER_NAME || 'pokedb.site'
+).trim();
+
+// Rootz uses UUIDs as folderId. Public folder URLs use a short share code
+// (for example, YkGAJ), which cannot be submitted as a folderId on upload.
+// Resolve the configured account folder once and cache the UUID for uploads.
+async function resolveRootzFolderId(requestedFolderId = '') {
+  const requested = String(requestedFolderId || '').trim();
+  if (requested && ROOTZ_FOLDER_ID_PATTERN.test(requested)) return requested;
+
+  const configuredId = String(process.env.ROOTZ_FOLDER_ID || CONFIG.ROOTZ_FOLDER_ID || '').trim();
+  if (configuredId && ROOTZ_FOLDER_ID_PATTERN.test(configuredId)) return configuredId;
+
+  if (cachedRootzFolder.id && cachedRootzFolder.expiresAt > Date.now()) {
+    return cachedRootzFolder.id;
+  }
+
+  const folderName = configuredRootzFolderName();
+  const folderUrl = new URL('https://rootz.so/api/folders/list');
+  folderUrl.searchParams.set('parentId', 'null');
+  folderUrl.searchParams.set('page', '1');
+  folderUrl.searchParams.set('limit', '200');
+  folderUrl.searchParams.set('search', folderName);
+
+  const folderResponse = await fetch(folderUrl, {
+    headers: rootzHeaders(),
+    signal: AbortSignal.timeout(30000)
   });
+  let folderPayload = {};
+  try {
+    folderPayload = await folderResponse.json();
+  } catch (err) {
+    throw new Error('Rootz returned an invalid folder-list response.');
+  }
+
+  if (!folderResponse.ok || !folderPayload.success) {
+    throw new Error(folderPayload.error || `Rootz could not list folders (HTTP ${folderResponse.status}).`);
+  }
+
+  const folders = Array.isArray(folderPayload.data) ? folderPayload.data : [];
+  const normalizedName = folderName.toLocaleLowerCase();
+  const matchedFolder = folders.find((folder) => (
+    ROOTZ_FOLDER_ID_PATTERN.test(String(folder.id || '')) &&
+    String(folder.name || '').trim().toLocaleLowerCase() === normalizedName
+  ));
+
+  if (!matchedFolder) {
+    throw new Error(`Rootz folder "${folderName}" was not found in your account. Create it or set ROOTZ_FOLDER_ID to its UUID.`);
+  }
+
+  cachedRootzFolder = { id: matchedFolder.id, expiresAt: Date.now() + ROOTZ_FOLDER_CACHE_MS };
+  return matchedFolder.id;
+}
+
+app.get('/api/drop/status', async (req, res) => {
+  if (!SERVER_ROOTZ_KEY) {
+    return res.status(200).json({ storageConfigured: false, defaultFolderConfigured: false });
+  }
+
+  try {
+    const folderId = await resolveRootzFolderId();
+    return res.status(200).json({ storageConfigured: true, defaultFolderConfigured: true, folderId });
+  } catch (err) {
+    return res.status(200).json({
+      storageConfigured: true,
+      defaultFolderConfigured: false,
+      folderError: err.message
+    });
+  }
 });
 
 const verifyLargeFilePassword = (req, fileSize) => {
@@ -917,18 +1001,23 @@ app.post('/api/drop/upload', uploadLimiter, uploadMulter.single('file'), async (
       return res.status(400).json({ error: 'expiresInDays must be an integer between 0 and 365.' });
     }
 
+    // Resolve the Rootz folder UUID (documented folderId field only — share codes / names are rejected by Rootz).
+    let resolvedFolderId = null;
+    try {
+      resolvedFolderId = await resolveRootzFolderId(req.body.folderId || '');
+    } catch (folderErr) {
+      console.warn('Could not resolve Rootz folder; uploading without folder assignment:', folderErr.message);
+    }
+
     // Build multipart FormData for Rootz API from the temporary staged file.
     const formData = new FormData();
     const fileBlob = await fs.openAsBlob(req.file.path, { type: req.file.mimetype || 'application/octet-stream' });
     formData.append('file', fileBlob, req.file.originalname);
     formData.append('expiresInDays', String(expDays));
 
-    const targetFolder = req.body.folderId || process.env.ROOTZ_FOLDER_ID || CONFIG.ROOTZ_FOLDER_ID || process.env.ROOTZ_FOLDER_NAME || CONFIG.ROOTZ_FOLDER_NAME || 'pokedb.site';
-    if (targetFolder) {
-      formData.append('folderId', String(targetFolder));
-      formData.append('folder_id', String(targetFolder));
-      formData.append('folder_name', String(targetFolder));
-      formData.append('folder', String(targetFolder));
+    // Only append the documented folderId field (UUID) — Rootz ignores everything else.
+    if (resolvedFolderId) {
+      formData.append('folderId', resolvedFolderId);
     }
 
     const headers = {};
@@ -1029,18 +1118,21 @@ app.post('/api/drop/remote-upload', uploadLimiter, async (req, res) => {
       headers['Authorization'] = SERVER_ROOTZ_KEY.startsWith('Bearer ') ? SERVER_ROOTZ_KEY : `Bearer ${SERVER_ROOTZ_KEY}`;
     }
 
-    const targetFolder = folderId || process.env.ROOTZ_FOLDER_ID || CONFIG.ROOTZ_FOLDER_ID || process.env.ROOTZ_FOLDER_NAME || CONFIG.ROOTZ_FOLDER_NAME || 'pokedb.site';
+    // Resolve to UUID — Rootz documented field is folderId (UUID only).
+    let remoteResolvedFolderId = null;
+    try {
+      remoteResolvedFolderId = await resolveRootzFolderId(folderId || '');
+    } catch (folderErr) {
+      console.warn('Could not resolve Rootz folder for remote upload; proceeding without folder:', folderErr.message);
+    }
+
+    const remoteBody = { url: url.trim() };
+    if (remoteResolvedFolderId) remoteBody.folderId = remoteResolvedFolderId;
 
     const rootzRes = await fetch('https://rootz.so/api/files/remote-upload', {
       method: 'POST',
       headers: headers,
-      body: JSON.stringify({
-        url: url.trim(),
-        folderId: targetFolder ? String(targetFolder).trim() : null,
-        folder_id: targetFolder ? String(targetFolder).trim() : null,
-        folder_name: targetFolder ? String(targetFolder).trim() : null,
-        folder: targetFolder ? String(targetFolder).trim() : null
-      }),
+      body: JSON.stringify(remoteBody),
       signal: AbortSignal.timeout(ROOTZ_TIMEOUT_MS)
     });
 
@@ -1138,6 +1230,174 @@ app.delete('/api/drop/delete', async (req, res) => {
   }
 });
 
+// ============================================================
+// MULTIPART UPLOAD PROXY ENDPOINTS (Rootz Parallel Upload API)
+// Docs: https://rootz.so/docs → Upload a file → Parallel Upload
+// ============================================================
+
+// 4a. Initialize a multipart upload session
+app.post('/api/drop/multipart/init', multipartLimiter, async (req, res) => {
+  try {
+    if (!SERVER_ROOTZ_KEY) {
+      return res.status(503).json({ error: 'File storage is not configured.' });
+    }
+
+    const { fileName, fileSize, fileType, folderId: reqFolderId } = req.body;
+    if (!fileName || !fileSize) {
+      return res.status(400).json({ error: 'fileName and fileSize are required.' });
+    }
+
+    // Password check for files over 1 GB.
+    if (Number(fileSize) > ONE_GB && !verifyLargeFilePassword(req, Number(fileSize))) {
+      return res.status(401).json({ error: 'Invalid or missing owner password for files over 1 GB.' });
+    }
+
+    let resolvedFolderId = null;
+    try {
+      resolvedFolderId = await resolveRootzFolderId(reqFolderId || '');
+    } catch (folderErr) {
+      console.warn('Multipart init: could not resolve folder:', folderErr.message);
+    }
+
+    const body = {
+      fileName,
+      fileSize: Number(fileSize),
+      fileType: fileType || 'application/octet-stream'
+    };
+    if (resolvedFolderId) body.folderId = resolvedFolderId;
+
+    const rootzRes = await fetch('https://rootz.so/api/files/multipart/init', {
+      method: 'POST',
+      headers: rootzHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(30000)
+    });
+
+    let data;
+    try { data = await rootzRes.json(); } catch (e) {
+      return res.status(502).json({ error: 'Rootz returned an invalid response for multipart init.' });
+    }
+
+    if (!rootzRes.ok) {
+      return res.status(rootzRes.status).json({ error: data?.error || 'Rootz rejected multipart init.', providerStatus: rootzRes.status });
+    }
+
+    return res.status(200).json(data);
+  } catch (err) {
+    console.error('Multipart init error:', err);
+    return res.status(502).json({ error: 'Failed to initialize multipart upload.' });
+  }
+});
+
+// 4b. Get batch presigned URLs for all parts
+app.post('/api/drop/multipart/batch-urls', multipartLimiter, async (req, res) => {
+  try {
+    if (!SERVER_ROOTZ_KEY) {
+      return res.status(503).json({ error: 'File storage is not configured.' });
+    }
+
+    const { key, uploadId, totalParts } = req.body;
+    if (!key || !uploadId || !totalParts) {
+      return res.status(400).json({ error: 'key, uploadId, and totalParts are required.' });
+    }
+
+    const rootzRes = await fetch('https://rootz.so/api/files/multipart/batch-urls', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key, uploadId, totalParts: Number(totalParts) }),
+      signal: AbortSignal.timeout(30000)
+    });
+
+    let data;
+    try { data = await rootzRes.json(); } catch (e) {
+      return res.status(502).json({ error: 'Rootz returned an invalid response for batch-urls.' });
+    }
+
+    if (!rootzRes.ok || !data?.success) {
+      return res.status(rootzRes.status).json({ error: data?.error || 'Failed to get presigned URLs.', providerStatus: rootzRes.status });
+    }
+
+    return res.status(200).json(data);
+  } catch (err) {
+    console.error('Multipart batch-urls error:', err);
+    return res.status(502).json({ error: 'Failed to retrieve presigned upload URLs.' });
+  }
+});
+
+// 4c. Complete a multipart upload and save file record
+app.post('/api/drop/multipart/complete', multipartLimiter, async (req, res) => {
+  try {
+    if (!SERVER_ROOTZ_KEY) {
+      return res.status(503).json({ error: 'File storage is not configured.' });
+    }
+
+    const { key, uploadId, parts, fileName, fileSize, contentType, folderId: reqFolderId } = req.body;
+    if (!key || !uploadId || !parts) {
+      return res.status(400).json({ error: 'key, uploadId, and parts are required.' });
+    }
+
+    let resolvedFolderId = null;
+    try {
+      resolvedFolderId = await resolveRootzFolderId(reqFolderId || '');
+    } catch (folderErr) {
+      console.warn('Multipart complete: could not resolve folder:', folderErr.message);
+    }
+
+    const body = {
+      key,
+      uploadId,
+      parts,
+      fileName,
+      fileSize: fileSize ? Number(fileSize) : undefined,
+      contentType: contentType || 'application/octet-stream'
+    };
+    if (resolvedFolderId) body.folderId = resolvedFolderId;
+
+    const rootzRes = await fetch('https://rootz.so/api/files/multipart/complete', {
+      method: 'POST',
+      headers: rootzHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(60000)
+    });
+
+    let data;
+    try { data = await rootzRes.json(); } catch (e) {
+      return res.status(502).json({ error: 'Rootz returned an invalid response for multipart complete.' });
+    }
+
+    if (!rootzRes.ok || !data?.success) {
+      return res.status(rootzRes.status).json({ error: data?.error || 'Failed to complete multipart upload.', providerStatus: rootzRes.status });
+    }
+
+    // Persist the file record locally (mirrors what direct upload does).
+    const resultObj = data.file || data.data || {};
+    const fileCode = resultObj.shortId || resultObj.short_id || resultObj.id || nanoid();
+    const dropRecord = {
+      id: fileCode,
+      name: resultObj.name || fileName || 'file',
+      size: resultObj.size || Number(fileSize) || 0,
+      mimeType: contentType || 'application/octet-stream',
+      downloads: 0,
+      createdAt: new Date().toISOString(),
+      expiresAt: resultObj.expiresAt || resultObj.expires_at || null,
+      deletionToken: nanoid(32)
+    };
+    inMemoryStore.set(`drop:${fileCode}`, JSON.stringify(dropRecord));
+    savePersistentStore();
+
+    if (!data.file) data.file = {};
+    data.file.shortId = fileCode;
+    data.file.deletionToken = dropRecord.deletionToken;
+    data.file.url = `https://rootz.so/d/${fileCode}`;
+    data.file.viewUrl = `${getBaseUrl(req)}/v/${fileCode}`;
+
+    return res.status(200).json(data);
+  } catch (err) {
+    console.error('Multipart complete error:', err);
+    return res.status(502).json({ error: 'Failed to finalize multipart upload.' });
+  }
+});
+
 // 4. List Account Files & Folders Endpoint (Rootz API)
 app.get('/api/drop/list', async (req, res) => {
   try {
@@ -1204,7 +1464,8 @@ app.get('/api/drop/info', async (req, res) => {
       });
     }
 
-    let url = `https://rootz.so/api/files/info?file_code=${encodeURIComponent(fileCode)}`;
+    // Rootz get-file-info endpoint — try shortId (documented) then legacy file_code param.
+    let url = `https://rootz.so/api/files/info?id=${encodeURIComponent(fileCode)}`;
     const headers = {};
     if (SERVER_ROOTZ_KEY) {
       headers['Authorization'] = SERVER_ROOTZ_KEY.startsWith('Bearer ') ? SERVER_ROOTZ_KEY : `Bearer ${SERVER_ROOTZ_KEY}`;
