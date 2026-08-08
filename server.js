@@ -85,6 +85,20 @@ function resolveApiHost(req) {
   return directHost;
 }
 
+function resolveBrowserOriginHost(req) {
+  const candidates = [req.get('origin'), req.get('referer')];
+  for (const candidate of candidates) {
+    if (!candidate) continue;
+    try {
+      const host = new URL(candidate).hostname.toLowerCase();
+      if (host.endsWith('.pokedb.site') || host === 'pokedb.site') return host;
+    } catch (err) {
+      // Ignore malformed browser-provided URL headers.
+    }
+  }
+  return '';
+}
+
 function htmlEscape(value) {
   return String(value ?? '').replace(/[&<>"']/g, (character) => ({
     '&': '&amp;',
@@ -502,12 +516,12 @@ const staticHandlers = {
 // Helper middleware to validate API host access per subdomain
 const checkApiHost = (allowedHosts) => {
   return (req, res, next) => {
-    const host = resolveApiHost(req);
+    const hosts = [resolveApiHost(req), resolveBrowserOriginHost(req)];
 
-    if (['localhost', '127.0.0.1', '::1'].includes(host)) {
+    if (hosts.some((host) => ['localhost', '127.0.0.1', '::1'].includes(host))) {
       return next();
     }
-    if (allowedHosts.includes(host)) {
+    if (hosts.some((host) => allowedHosts.includes(host))) {
       return next();
     }
     return res.status(404).json({ error: 'API endpoint not available on this subdomain' });

@@ -128,6 +128,22 @@ describe('URL Shortener API Suite', () => {
     expect(res.body.shortUrl).toContain('tinyurl.pokedb.site');
   });
 
+  test('7c. Accept a tool API request using the browser origin when Render omits the custom host', async () => {
+    const shortenRes = await request(app)
+      .post('/api/shorten')
+      .set('Host', 'pokedb-site.onrender.com')
+      .set('Origin', 'https://tinyurl.pokedb.site')
+      .send({ url: 'https://example.com/browser-origin-routing-test' });
+    const qrRes = await request(app)
+      .get('/api/qr?format=svg&text=browser-origin-routing-test')
+      .set('Host', 'pokedb-site.onrender.com')
+      .set('Referer', 'https://qr.pokedb.site/');
+
+    expect(shortenRes.status).toBe(200);
+    expect(qrRes.status).toBe(200);
+    expect(qrRes.headers['content-type']).toContain('image/svg+xml');
+  });
+
   test('8. Escape redirect data and authorize the inline script with a CSP nonce', async () => {
     const targetUrl = 'https://example.com/</script><script>window.injected=true</script>';
     const createRes = await request(app)
