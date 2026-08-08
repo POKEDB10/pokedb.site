@@ -4,25 +4,8 @@
   var currentResultData = null;
 
   var ONE_GB = 1073741824; // 1 GB in bytes
-
-  function formatBytes(bytes) {
-    if (!bytes || isNaN(bytes)) return '0 B';
-    var k = 1024;
-    var sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
-    var i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-  }
-
-  function getFileIcon(filename) {
-    var ext = (filename || '').split('.').pop().toLowerCase();
-    if (['mp4', 'mkv', 'avi', 'mov', 'webm'].includes(ext)) return '🎥';
-    if (['mp3', 'wav', 'flac', 'ogg', 'm4a'].includes(ext)) return '🎵';
-    if (['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp'].includes(ext)) return '🖼️';
-    if (['pdf', 'doc', 'docx', 'txt', 'md'].includes(ext)) return '📄';
-    if (['zip', 'tar', 'gz', '7z', 'rar'].includes(ext)) return '📦';
-    if (['js', 'ts', 'py', 'json', 'html', 'css', 'rs', 'go'].includes(ext)) return '💻';
-    return '📁';
-  }
+  var formatBytes = window.PokeDbUtils.formatBytes;
+  var getFileIcon = window.PokeDbUtils.getFileIcon;
 
   function showProgress(percent, text) {
     var container = document.getElementById('progress-container');
@@ -107,74 +90,86 @@
     }
   }
 
+  function setFileListMessage(container, message, color, padding) {
+    var item = document.createElement('div');
+    item.style.cssText = 'color:' + color + '; text-align:center; padding:' + padding + '; font-family:"IBM Plex Mono",monospace;';
+    item.textContent = message;
+    container.replaceChildren(item);
+  }
+
+  function addFileListItem(container, file) {
+    var fileCard = document.createElement('div');
+    fileCard.style.cssText = 'background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:1rem; display:flex; align-items:center; justify-content:space-between; gap:1rem; flex-wrap:wrap;';
+
+    var details = document.createElement('div');
+    details.style.cssText = 'display:flex; align-items:center; gap:.85rem; flex:1; min-width:200px;';
+    var icon = document.createElement('span');
+    icon.style.fontSize = '1.4rem';
+    icon.textContent = getFileIcon(file.name);
+    var textWrap = document.createElement('div');
+    textWrap.style.overflow = 'hidden';
+    var name = document.createElement('div');
+    name.style.cssText = 'font-weight:600; font-size:.95rem; word-break:break-all;';
+    name.textContent = file.name || 'File';
+    var metadata = document.createElement('div');
+    metadata.style.cssText = 'font-size:.78rem; color:var(--muted); font-family:"IBM Plex Mono",monospace; margin-top:.2rem;';
+    metadata.textContent = formatBytes(file.size) + ' · 👁️ ' + (file.download_count || 0) + ' downloads · ' + (file.expires_at ? '⏱ ' + new Date(file.expires_at).toLocaleDateString() : '🔒 Permanent');
+    textWrap.append(name, metadata);
+    details.append(icon, textWrap);
+
+    var actions = document.createElement('div');
+    actions.style.cssText = 'display:flex; gap:.5rem; align-items:center;';
+    var shareLink = file.short_id ? 'https://rootz.so/d/' + file.short_id : (window.location.origin + '/api/drop/file/' + file.id);
+    var copyButton = document.createElement('button');
+    copyButton.className = 'btn';
+    copyButton.style.fontSize = '.78rem';
+    copyButton.textContent = '$ copy';
+    copyButton.addEventListener('click', function () {
+      navigator.clipboard.writeText(shareLink);
+      copyButton.textContent = '$ copied!';
+      setTimeout(function () { copyButton.textContent = '$ copy'; }, 2000);
+    });
+    var openLink = document.createElement('a');
+    openLink.className = 'btn';
+    openLink.href = shareLink;
+    openLink.target = '_blank';
+    openLink.rel = 'noopener';
+    openLink.style.fontSize = '.78rem';
+    openLink.textContent = '$ open ↗';
+    var deleteButton = document.createElement('button');
+    deleteButton.className = 'btn';
+    deleteButton.style.cssText = 'border-color:#ef4444; color:#ef4444; font-size:.78rem;';
+    deleteButton.textContent = '🗑️ Delete';
+    deleteButton.addEventListener('click', function () { deleteFile(file.id, null, false); });
+    actions.append(copyButton, openLink, deleteButton);
+    fileCard.append(details, actions);
+    container.appendChild(fileCard);
+  }
+
   async function loadFileList() {
     var container = document.getElementById('file-list-container');
-    container.innerHTML = '<div style="color:var(--muted); text-align:center; padding:1rem; font-family:\'IBM Plex Mono\',monospace;">Loading files...</div>';
+    setFileListMessage(container, 'Loading files...', 'var(--muted)', '1rem');
 
     try {
       var res = await fetch('/api/drop/list');
       var json = await res.json();
 
       if (!res.ok || !json.success) {
-        container.innerHTML = '<div style="color:red; text-align:center; padding:1rem; font-family:\'IBM Plex Mono\',monospace;">' + (json.error || 'Failed to load file list') + '</div>';
+        setFileListMessage(container, json.error || 'Failed to load file list', 'red', '1rem');
         return;
       }
 
       var files = json.data || [];
       if (files.length === 0) {
-        container.innerHTML = '<div style="color:var(--muted); text-align:center; padding:1.5rem; font-family:\'IBM Plex Mono\',monospace;">No uploaded files found in your Rootz account.</div>';
+        setFileListMessage(container, 'No uploaded files found in your Rootz account.', 'var(--muted)', '1.5rem');
         return;
       }
 
-      container.innerHTML = '';
-      files.forEach(function (file) {
-        var fileCard = document.createElement('div');
-        fileCard.style.cssText = 'background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:1rem; display:flex; align-items:center; justify-content:space-between; gap:1rem; flex-wrap:wrap;';
-
-        var icon = getFileIcon(file.name);
-        var sizeStr = formatBytes(file.size);
-        var downloads = file.download_count || 0;
-        var expStr = file.expires_at ? '⏱ ' + new Date(file.expires_at).toLocaleDateString() : '🔒 Permanent';
-        var shareLink = file.short_id ? 'https://rootz.so/d/' + file.short_id : (window.location.origin + '/api/drop/file/' + file.id);
-
-        fileCard.innerHTML =
-          '<div style="display:flex; align-items:center; gap:.85rem; flex:1; min-width:200px;">' +
-            '<span style="font-size:1.4rem;">' + icon + '</span>' +
-            '<div style="overflow:hidden;">' +
-              '<div style="font-weight:600; font-size:.95rem; word-break:break-all;">' + (file.name || 'File') + '</div>' +
-              '<div style="font-size:.78rem; color:var(--muted); font-family:\'IBM Plex Mono\',monospace; margin-top:.2rem;">' +
-                sizeStr + ' · 👁️ ' + downloads + ' downloads · ' + expStr +
-              '</div>' +
-            '</div>' +
-          '</div>' +
-          '<div style="display:flex; gap:.5rem; align-items:center;">' +
-            '<button class="btn copy-item-btn" data-link="' + shareLink + '" style="font-size:.78rem;">$ copy</button>' +
-            '<a class="btn" href="' + shareLink + '" target="_blank" style="font-size:.78rem;">$ open ↗</a>' +
-            '<button class="btn delete-item-btn" data-id="' + file.id + '" style="border-color:#ef4444; color:#ef4444; font-size:.78rem;">🗑️ Delete</button>' +
-          '</div>';
-
-        container.appendChild(fileCard);
-      });
-
-      // Event handlers for dynamically created items
-      container.querySelectorAll('.copy-item-btn').forEach(function (btn) {
-        btn.addEventListener('click', function () {
-          var link = btn.getAttribute('data-link');
-          navigator.clipboard.writeText(link);
-          btn.textContent = '$ copied!';
-          setTimeout(function () { btn.textContent = '$ copy'; }, 2000);
-        });
-      });
-
-      container.querySelectorAll('.delete-item-btn').forEach(function (btn) {
-        btn.addEventListener('click', function () {
-          var id = btn.getAttribute('data-id');
-          deleteFile(id, null, false);
-        });
-      });
+      container.replaceChildren();
+      files.forEach(function (file) { addFileListItem(container, file); });
 
     } catch (err) {
-      container.innerHTML = '<div style="color:red; text-align:center; padding:1rem; font-family:\'IBM Plex Mono\',monospace;">Error loading file list from server.</div>';
+      setFileListMessage(container, 'Error loading file list from server.', 'red', '1rem');
     }
   }
 

@@ -3,8 +3,13 @@ const path = require('path');
 const fs = require('fs');
 const cors = require('cors');
 const helmet = require('helmet');
-const { customAlphabet } = require('nanoid');
+const crypto = require('crypto');
+const net = require('node:net');
+const dns = require('node:dns/promises');
+const { Readable } = require('node:stream');
+const { nanoid, customAlphabet } = require('nanoid');
 const { rateLimit } = require('express-rate-limit');
+const { RedisStore } = require('rate-limit-redis');
 const Redis = require('ioredis');
 const QRCodeServer = require('qrcode');
 const multer = require('multer');
@@ -14,6 +19,7 @@ const PORT = process.env.PORT || 5050;
 const REDIS_URL = process.env.REDIS_URL || 'redis://127.0.0.1:6379';
 
 const CONFIG_FILE = path.join(__dirname, 'data', 'config.json');
+const TEMPLATES_DIR = path.join(__dirname, 'templates');
 let CONFIG = {};
 
 if (fs.existsSync(CONFIG_FILE)) {
@@ -57,9 +63,40 @@ function resolveHost(req) {
   return hosts[0] || '';
 }
 
+function htmlEscape(value) {
+  return String(value ?? '').replace(/[&<>"']/g, (character) => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+  }[character]));
+}
+
+function renderTemplate(templateName, values) {
+  const template = fs.readFileSync(path.join(TEMPLATES_DIR, templateName), 'utf8');
+  return template.replace(/{{(\w+)}}/g, (match, key) => values[key] ?? '');
+}
+
+function serializeForInlineScript(value) {
+  return JSON.stringify(value)
+    .replace(/<\/script/gi, '<\\/script')
+    .replace(/</g, '\\u003c')
+    .replace(/>/g, '\\u003e')
+    .replace(/&/g, '\\u0026')
+    .replace(/\u2028/g, '\\u2028')
+    .replace(/\u2029/g, '\\u2029');
+}
+
+function tokensMatch(provided, expected) {
+  if (typeof provided !== 'string' || typeof expected !== 'string') return false;
+  if (Buffer.byteLength(provided) !== Buffer.byteLength(expected)) return false;
+  return crypto.timingSafeEqual(Buffer.from(provided), Buffer.from(expected));
+}
+
 const getBaseUrl = (req) => {
   if (req) {
-    const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'https';
+    const protocol = req.protocol || 'https';
     const host = resolveHost(req);
     if (host) return `${protocol}://${host}`;
   }
@@ -72,9 +109,28 @@ const getBaseUrl = (req) => {
 app.set('trust proxy', 1);
 
 // Security Middleware
-app.use(cors());
+const allowedCorsOrigin = /^(?:https:\/\/)(?:[a-z0-9-]+\.)*pokedb\.site$/i;
+app.use(cors({
+  origin(origin, callback) {
+    if (!origin || allowedCorsOrigin.test(origin) || /^http:\/\/(?:localhost|127\.0\.0\.1)(?::\d+)?$/i.test(origin)) {
+      return callback(null, true);
+    }
+    return callback(new Error('Origin is not allowed by CORS'));
+  }
+}));
+app.use((req, res, next) => {
+  res.locals.cspNonce = crypto.randomBytes(16).toString('base64');
+  next();
+});
 app.use(helmet({
-  contentSecurityPolicy: false,
+  contentSecurityPolicy: {
+    directives: {
+      scriptSrc: ["'self'", (req, res) => `'nonce-${res.locals.cspNonce}'`],
+      styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+      fontSrc: ["'self'", 'https://fonts.gstatic.com'],
+      upgradeInsecureRequests: null
+    }
+  },
   xPoweredBy: false,
   frameguard: { action: 'sameorigin' },
   noSniff: true,
@@ -124,16 +180,55 @@ function savePersistentStore() {
 // Redis Client Setup (with file-backed persistent fallback)
 let redis;
 let isInMemory = false;
+let createRateLimitStore = () => undefined;
+
+function cleanupInMemoryStore() {
+  const now = Date.now();
+  let changed = false;
+
+  for (const [key, value] of inMemoryStore.entries()) {
+    if (key.endsWith(':clicks')) {
+      const recordKey = key.slice(0, -':clicks'.length);
+      if (!inMemoryStore.has(recordKey)) {
+        inMemoryStore.delete(key);
+        changed = true;
+      }
+      continue;
+    }
+
+    try {
+      const record = JSON.parse(value);
+      if (record.expiresAt && Date.parse(record.expiresAt) <= now) {
+        inMemoryStore.delete(key);
+        inMemoryStore.delete(`${key}:clicks`);
+        changed = true;
+      }
+    } catch (err) {
+      // Entries that are not JSON records have no expiration metadata to clean up.
+    }
+  }
+
+  if (changed) savePersistentStore();
+}
+
+const cleanupTimer = setInterval(cleanupInMemoryStore, 60 * 60 * 1000);
+cleanupTimer.unref();
 
 if (process.env.NODE_ENV === 'test') {
   isInMemory = true;
   redis = {
     get: async (key) => inMemoryStore.get(key) || null,
-    set: async (key, val, mode, option, ttl) => {
-      if (mode === 'NX' && inMemoryStore.has(key)) return null;
+    set: async (key, val, options = {}) => {
+      if (options.nx && inMemoryStore.has(key)) return null;
       inMemoryStore.set(key, val);
       return 'OK';
     },
+    incr: async (key) => {
+      const value = Number(inMemoryStore.get(key) || 0) + 1;
+      inMemoryStore.set(key, String(value));
+      return value;
+    },
+    expire: async () => 1,
     ttl: async (key) => -1,
     quit: async () => {}
   };
@@ -155,34 +250,66 @@ if (process.env.NODE_ENV === 'test') {
       isInMemory = true;
     }
   });
+  redis.on('ready', () => {
+    if (isInMemory) {
+      console.info('Redis reconnected; resuming Redis-backed storage.');
+      isInMemory = false;
+    }
+  });
   redis.connect().catch((err) => {
     isInMemory = true;
+    console.error('Unable to connect to Redis:', err.message);
   });
 
   // Proxy object to seamlessly route to file-backed persistent store if Redis connection fails
   const realRedis = redis;
+  createRateLimitStore = (prefix) => new RedisStore({
+    sendCommand: (...args) => realRedis.call(...args),
+    prefix: `pokedb:rate-limit:${prefix}:`
+  });
   redis = {
     get: async (key) => {
       if (isInMemory) return inMemoryStore.get(key) || null;
       try { return await realRedis.get(key); } catch(e) { isInMemory = true; return inMemoryStore.get(key) || null; }
     },
-    set: async (key, val, mode, option, ttl) => {
+    set: async (key, val, options = {}) => {
       if (isInMemory) {
-        if (mode === 'NX' && inMemoryStore.has(key)) return null;
+        if (options.nx && inMemoryStore.has(key)) return null;
         inMemoryStore.set(key, val);
         savePersistentStore();
         return 'OK';
       }
       try {
-        if (ttl) return await realRedis.set(key, val, mode, option, ttl);
-        return await realRedis.set(key, val, mode);
+        const setArgs = [];
+        if (options.ex) setArgs.push('EX', String(options.ex));
+        if (options.nx) setArgs.push('NX');
+        return await realRedis.set(key, val, ...setArgs);
       } catch(e) {
         isInMemory = true;
-        if (mode === 'NX' && inMemoryStore.has(key)) return null;
+        if (options.nx && inMemoryStore.has(key)) return null;
         inMemoryStore.set(key, val);
         savePersistentStore();
         return 'OK';
       }
+    },
+    incr: async (key) => {
+      if (isInMemory) {
+        const value = Number(inMemoryStore.get(key) || 0) + 1;
+        inMemoryStore.set(key, String(value));
+        savePersistentStore();
+        return value;
+      }
+      try { return await realRedis.incr(key); } catch (e) {
+        isInMemory = true;
+        const value = Number(inMemoryStore.get(key) || 0) + 1;
+        inMemoryStore.set(key, String(value));
+        savePersistentStore();
+        return value;
+      }
+    },
+    expire: async (key, seconds) => {
+      if (isInMemory) return 1;
+      try { return await realRedis.expire(key, seconds); } catch (e) { isInMemory = true; return 0; }
     },
     ttl: async (key) => {
       if (isInMemory) return -1;
@@ -194,7 +321,7 @@ if (process.env.NODE_ENV === 'test') {
   };
 }
 
-const nanoid = customAlphabet('0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ', 6);
+const generateShortCode = customAlphabet('0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ', 6);
 
 const RESERVED_BLOCKLIST = new Set([
   'api', 'tools', 'shared', 'favicon.ico', 'static', 'public',
@@ -202,13 +329,43 @@ const RESERVED_BLOCKLIST = new Set([
   'v', 'drop', 'tinyurl', 'qr'
 ]);
 
+const sharedRateLimitOptions = {
+  standardHeaders: true,
+  legacyHeaders: false
+};
+
+const apiLimiter = rateLimit({
+  ...sharedRateLimitOptions,
+  store: createRateLimitStore('api'),
+  windowMs: 15 * 60 * 1000,
+  max: 120,
+  message: { error: 'Too many API requests, please try again after 15 minutes.' }
+});
+
+const uploadLimiter = rateLimit({
+  ...sharedRateLimitOptions,
+  store: createRateLimitStore('upload'),
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  message: { error: 'Too many upload requests, please try again after 15 minutes.' }
+});
+
 const shortenLimiter = rateLimit({
+  ...sharedRateLimitOptions,
+  store: createRateLimitStore('shorten'),
   windowMs: 15 * 60 * 1000,
   max: 30,
-  standardHeaders: true,
-  legacyHeaders: false,
   message: { error: 'Too many requests, please try again after 15 minutes.' }
 });
+
+function parseExpiresInDays(value, defaultValue = 30) {
+  if (value === undefined || value === null) return defaultValue;
+  if (typeof value === 'string' && value.trim() === '') return null;
+
+  const days = Number(value);
+  if (!Number.isInteger(days) || days < 0 || days > 365) return null;
+  return days;
+}
 
 function isValidTargetUrl(targetUrl, reqHost) {
   if (!targetUrl || typeof targetUrl !== 'string') return false;
@@ -251,17 +408,12 @@ const staticHandlers = {
   health: express.static(path.join(__dirname, 'tools/health/public'), { index: ['index.html'] })
 };
 
-const dynamicToolHandlers = {};
-
 // Helper middleware to validate API host access per subdomain
 const checkApiHost = (allowedHosts) => {
   return (req, res, next) => {
-    const host = resolveHost(req);
+    const host = (req.hostname || '').toLowerCase();
 
-    if (['localhost', '127.0.0.1', '::1'].includes(host) || process.env.NODE_ENV === 'test') {
-      return next();
-    }
-    if (['pokedb.site', 'www.pokedb.site', 'tools.pokedb.site', 'origin.pokedb.site', 'pokedb-site.onrender.com'].includes(host)) {
+    if (['localhost', '127.0.0.1', '::1'].includes(host)) {
       return next();
     }
     if (allowedHosts.includes(host)) {
@@ -290,38 +442,24 @@ app.use((req, res, next) => {
     const acceptsHtml = (req.headers.accept || '').includes('text/html');
     if (!acceptsHtml) return res.status(404).send('Not Found');
 
+    const safePath = htmlEscape(req.path);
+    const safeRequestedTool = htmlEscape(requestedTool);
+
     const errMessage = isPrimaryHost
-      ? `Error 404: Page '${req.path}' not found on pokedb.site.`
-      : `Error 404: Subdomain '${requestedTool}.pokedb.site' does not correspond to any active tool.`;
+      ? `Error 404: Page '${safePath}' not found on pokedb.site.`
+      : `Error 404: Subdomain '${safeRequestedTool}.pokedb.site' does not correspond to any active tool.`;
 
     const cmdMessage = isPrimaryHost
-      ? `pokedb resolve --path "${req.path}"`
-      : `pokedb resolve --subdomain "${requestedTool}"`;
+      ? `pokedb resolve --path "${safePath}"`
+      : `pokedb resolve --subdomain "${safeRequestedTool}"`;
 
-    return res.status(404).send(`
-<!DOCTYPE html>
-<html lang="en" data-theme="oled-black">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>404 — Not Found | pokedb.site</title>
-  <link rel="stylesheet" href="/shared/theme.css">
-  <script src="/shared/theme-switcher.js"></script>
-</head>
-<body class="container" style="padding-top: 5rem; text-align: center;">
-  <div class="term-window" style="max-width: 520px; margin: 0 auto; text-align: left;">
-    <div class="term-titlebar">~/404-not-found.sh</div>
-    <div class="term-body" style="padding: 1.5rem;">
-      <div><span class="prompt">$</span> <span class="out">${cmdMessage}</span></div>
-      <div class="out" style="color: #ff5555; margin-top: .75rem;">${errMessage}</div>
-    </div>
-  </div>
-  <p style="margin-top: 2rem;">
-    <a class="btn btn-primary" href="https://tools.pokedb.site/">← Explore Tools Hub (tools.pokedb.site)</a>
-  </p>
-</body>
-</html>
-    `);
+    return res.status(404).send(renderTemplate('404.html', {
+      title: '404 — Not Found | pokedb.site',
+      command: cmdMessage,
+      message: errMessage,
+      returnUrl: 'https://tools.pokedb.site/',
+      returnLabel: '← Explore Tools Hub (tools.pokedb.site)'
+    }));
   };
 
   switch (host) {
@@ -359,17 +497,12 @@ app.use((req, res, next) => {
       }
       if (!host.endsWith('.pokedb.site')) return notFound();
       const toolName = host.slice(0, -'.pokedb.site'.length);
-      if (!/^[a-z0-9-]+$/.test(toolName)) return notFound(toolName);
-
-      if (!dynamicToolHandlers[toolName]) {
-        const dir = path.join(__dirname, 'tools', toolName, 'public');
-        if (!fs.existsSync(dir)) return notFound(toolName);
-        dynamicToolHandlers[toolName] = express.static(dir, { index: ['index.html'] });
-      }
-      return dynamicToolHandlers[toolName](req, res, () => notFound(toolName));
+      return notFound(toolName);
     }
   }
 });
+
+app.use('/api/', apiLimiter);
 
 // Health check endpoints with DX telemetry
 const getHealthStatus = () => {
@@ -433,14 +566,16 @@ app.post('/api/shorten', shortenLimiter, checkApiHost(['tinyurl.pokedb.site']), 
       code = alias;
     } else {
       do {
-        code = nanoid();
+        code = generateShortCode();
       } while (RESERVED_BLOCKLIST.has(code.toLowerCase()));
     }
 
     const redisKey = `url:${code}`;
     const now = new Date().toISOString();
-    // Default expiration to 30 Days (1 Month) if not explicitly set to 0 (never)
-    const days = (expiresInDays !== undefined && expiresInDays !== null && !isNaN(Number(expiresInDays))) ? Number(expiresInDays) : 30;
+    const days = parseExpiresInDays(expiresInDays);
+    if (days === null) {
+      return res.status(400).json({ error: 'expiresInDays must be an integer between 0 and 365.' });
+    }
     let expiresAt = null;
     let ttlSeconds = null;
 
@@ -458,14 +593,16 @@ app.post('/api/shorten', shortenLimiter, checkApiHost(['tinyurl.pokedb.site']), 
 
     let result;
     if (ttlSeconds) {
-      result = await redis.set(redisKey, payload, 'NX', 'EX', ttlSeconds);
+      result = await redis.set(redisKey, payload, { nx: true, ex: ttlSeconds });
     } else {
-      result = await redis.set(redisKey, payload, 'NX');
+      result = await redis.set(redisKey, payload, { nx: true });
     }
 
     if (!result) {
       return res.status(409).json({ error: 'Alias is already taken.' });
     }
+
+    await redis.set(`${redisKey}:clicks`, '0', ttlSeconds ? { ex: ttlSeconds } : {});
 
     const shortUrl = `${getBaseUrl(req)}/${code}`;
     return res.status(200).json({ code, shortUrl, longUrl: url.trim(), expiresAt });
@@ -534,7 +671,10 @@ if (!fs.existsSync(UPLOADS_DIR)) {
 }
 
 const uploadMulter = multer({
-  storage: multer.memoryStorage(),
+  storage: multer.diskStorage({
+    destination: UPLOADS_DIR,
+    filename: (req, file, callback) => callback(null, `${nanoid()}${path.extname(file.originalname)}`)
+  }),
   limits: { fileSize: 25 * 1024 * 1024 * 1024 } // 25 GB limit supported by Rootz
 });
 
@@ -546,31 +686,85 @@ const verifyLargeFilePassword = (req, fileSize) => {
   if (!fileSize || fileSize <= ONE_GB) return true;
   if (!LARGE_FILE_PASSWORD) return false;
   const provided = req.headers['x-upload-password'] || req.body?.password;
-  return Boolean(provided && provided === LARGE_FILE_PASSWORD);
+  return tokensMatch(provided, LARGE_FILE_PASSWORD);
 };
 
-const isPrivateHost = (host) => {
+function isPrivateIpv4(address) {
+  const octets = address.split('.').map(Number);
+  return octets[0] === 0 || octets[0] === 10 || octets[0] === 127 ||
+    (octets[0] === 100 && octets[1] >= 64 && octets[1] <= 127) ||
+    (octets[0] === 169 && octets[1] === 254) ||
+    (octets[0] === 172 && octets[1] >= 16 && octets[1] <= 31) ||
+    (octets[0] === 192 && octets[1] === 168);
+}
+
+function ipv6Groups(address) {
+  const normalized = address.toLowerCase().replace(/^\[|\]$/g, '').split('%')[0];
+  const parts = normalized.split('::');
+  const expandPart = (part) => part ? part.split(':').filter(Boolean) : [];
+  let left = expandPart(parts[0]);
+  let right = expandPart(parts[1]);
+
+  const convertEmbeddedIpv4 = (groups) => {
+    const last = groups.at(-1);
+    if (!last || !last.includes('.')) return groups;
+    const octets = last.split('.').map(Number);
+    return [...groups.slice(0, -1), ((octets[0] << 8) | octets[1]).toString(16), ((octets[2] << 8) | octets[3]).toString(16)];
+  };
+
+  left = convertEmbeddedIpv4(left);
+  right = convertEmbeddedIpv4(right);
+  const missing = 8 - left.length - right.length;
+  return [...left, ...Array(Math.max(0, missing)).fill('0'), ...right].map((group) => Number.parseInt(group, 16));
+}
+
+function isPrivateIpAddress(address) {
+  const version = net.isIP(address);
+  if (version === 4) return isPrivateIpv4(address);
+  if (version !== 6) return true;
+
+  const groups = ipv6Groups(address);
+  if (groups.length !== 8 || groups.some(Number.isNaN)) return true;
+  const isAllZero = groups.every((group) => group === 0);
+  const isLoopback = groups.slice(0, 7).every((group) => group === 0) && groups[7] === 1;
+  const isMappedIpv4 = groups.slice(0, 5).every((group) => group === 0) && groups[5] === 0xffff;
+  const isCompatibleIpv4 = groups.slice(0, 6).every((group) => group === 0);
+
+  if (isMappedIpv4 || isCompatibleIpv4) {
+    const ipv4 = `${groups[6] >> 8}.${groups[6] & 0xff}.${groups[7] >> 8}.${groups[7] & 0xff}`;
+    return isPrivateIpv4(ipv4);
+  }
+
+  return isAllZero || isLoopback || (groups[0] & 0xfe00) === 0xfc00 ||
+    (groups[0] & 0xffc0) === 0xfe80 || (groups[0] & 0xff00) === 0xff00;
+}
+
+const isPrivateHost = async (host) => {
   if (!host) return true;
-  const h = host.toLowerCase();
-  if (h === 'localhost' || h === '127.0.0.1' || h === '::1' || h === '0.0.0.0') return true;
-  if (h.startsWith('10.') || h.startsWith('192.168.') || h.startsWith('169.254.')) return true;
-  if (/^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(h)) return true;
-  return false;
+  const hostname = host.toLowerCase().replace(/^\[|\]$/g, '');
+  if (hostname === 'localhost') return true;
+  if (net.isIP(hostname)) return isPrivateIpAddress(hostname);
+
+  try {
+    const addresses = await dns.lookup(hostname, { all: true, verbatim: true });
+    return addresses.length === 0 || addresses.some(({ address }) => isPrivateIpAddress(address));
+  } catch (err) {
+    return true;
+  }
 };
 
-const isValidRemoteUrl = (rawUrl) => {
+const isValidRemoteUrl = async (rawUrl) => {
   try {
     const parsed = new URL(rawUrl);
     if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return false;
-    if (isPrivateHost(parsed.hostname)) return false;
-    return true;
+    return !(await isPrivateHost(parsed.hostname));
   } catch (err) {
     return false;
   }
 };
 
 // 1. Direct File Upload Endpoint (100% Proxied to Rootz API)
-app.post('/api/drop/upload', uploadMulter.single('file'), async (req, res) => {
+app.post('/api/drop/upload', uploadLimiter, uploadMulter.single('file'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'No file provided in upload request.' });
@@ -581,12 +775,15 @@ app.post('/api/drop/upload', uploadMulter.single('file'), async (req, res) => {
       return res.status(401).json({ error: 'Invalid or missing owner password for files over 1 GB.' });
     }
 
-    // Build multipart FormData for Rootz API
-    const formData = new FormData();
-    const fileBlob = new Blob([req.file.buffer], { type: req.file.mimetype || 'application/octet-stream' });
-    formData.append('file', fileBlob, req.file.originalname);
+    const expDays = parseExpiresInDays(req.body.expiresInDays);
+    if (expDays === null) {
+      return res.status(400).json({ error: 'expiresInDays must be an integer between 0 and 365.' });
+    }
 
-    const expDays = req.body.expiresInDays !== undefined ? req.body.expiresInDays : '30';
+    // Build multipart FormData for Rootz API from the temporary staged file.
+    const formData = new FormData();
+    const fileBlob = await fs.openAsBlob(req.file.path, { type: req.file.mimetype || 'application/octet-stream' });
+    formData.append('file', fileBlob, req.file.originalname);
     formData.append('expiresInDays', String(expDays));
 
     const targetFolder = req.body.folderId || process.env.ROOTZ_FOLDER_ID || CONFIG.ROOTZ_FOLDER_ID || process.env.ROOTZ_FOLDER_NAME || CONFIG.ROOTZ_FOLDER_NAME || 'pokedb.site';
@@ -602,30 +799,27 @@ app.post('/api/drop/upload', uploadMulter.single('file'), async (req, res) => {
       headers['Authorization'] = SERVER_ROOTZ_KEY.startsWith('Bearer ') ? SERVER_ROOTZ_KEY : `Bearer ${SERVER_ROOTZ_KEY}`;
     }
 
-    let rootzRes;
+    const rootzRes = await fetch('https://rootz.so/api/files/upload', {
+      method: 'POST',
+      headers: headers,
+      body: formData,
+      signal: AbortSignal.timeout(15000)
+    });
+
+    let rootzData;
     try {
-      rootzRes = await fetch('https://rootz.so/api/files/upload', {
-        method: 'POST',
-        headers: headers,
-        body: formData,
-        signal: AbortSignal.timeout(15000)
-      });
-    } catch (fetchErr) {
-      console.error('Fetch error or timeout uploading to Rootz API:', fetchErr.message);
+      rootzData = await rootzRes.json();
+    } catch (jsonErr) {
+      return res.status(502).json({ error: 'Rootz returned an invalid upload response.' });
     }
 
-    let rootzData = {};
-    if (rootzRes) {
-      try {
-        rootzData = await rootzRes.json();
-      } catch (jsonErr) {
-        console.error('Non-JSON response from Rootz API:', jsonErr);
-      }
+    if (!rootzRes.ok) {
+      return res.status(rootzRes.status).json(rootzData);
     }
 
     // Return unified file metadata
     const resultObj = rootzData.data || rootzData.result || rootzData;
-    const fileCode = resultObj.short_id || resultObj.shortId || resultObj.filecode || resultObj.file_code || resultObj.id || generateShortCode(10);
+    const fileCode = resultObj.short_id || resultObj.shortId || resultObj.filecode || resultObj.file_code || resultObj.id || nanoid();
 
     const dropRecord = {
       id: fileCode,
@@ -634,7 +828,8 @@ app.post('/api/drop/upload', uploadMulter.single('file'), async (req, res) => {
       mimeType: req.file.mimetype,
       downloads: 0,
       createdAt: new Date().toISOString(),
-      expiresAt: resultObj.expires_at || resultObj.expiresAt || null
+      expiresAt: resultObj.expires_at || resultObj.expiresAt || null,
+      deletionToken: nanoid(32)
     };
 
     inMemoryStore.set(`drop:${fileCode}`, JSON.stringify(dropRecord));
@@ -651,20 +846,27 @@ app.post('/api/drop/upload', uploadMulter.single('file'), async (req, res) => {
       viewUrl: `${getBaseUrl(req)}/v/${fileCode}`,
       expiresAt: dropRecord.expiresAt,
       provider: 'rootz',
-      createdAt: dropRecord.createdAt
+      createdAt: dropRecord.createdAt,
+      deletionToken: dropRecord.deletionToken
     });
   } catch (err) {
     console.error('Error proxying direct upload to Rootz:', err);
     return res.status(500).json({ error: 'Failed to process file upload to Rootz.' });
+  } finally {
+    if (req.file?.path) {
+      await fs.promises.unlink(req.file.path).catch((err) => {
+        if (err.code !== 'ENOENT') console.error('Failed to remove temporary upload:', err);
+      });
+    }
   }
 });
 
 // 2. Remote URL Upload Endpoint (Proxied securely to Rootz API)
-app.post('/api/drop/remote-upload', async (req, res) => {
+app.post('/api/drop/remote-upload', uploadLimiter, async (req, res) => {
   try {
     const { url, folderId, fileSize } = req.body;
 
-    if (!url || typeof url !== 'string' || !isValidRemoteUrl(url)) {
+    if (!url || typeof url !== 'string' || !(await isValidRemoteUrl(url))) {
       return res.status(400).json({
         success: false,
         error: 'Invalid or unsafe remote URL provided. Only public HTTP/HTTPS URLs are allowed.'
@@ -710,10 +912,12 @@ app.post('/api/drop/remote-upload', async (req, res) => {
           mimeType: resultObj.mime_type || '',
           downloads: 0,
           createdAt: new Date().toISOString(),
-          expiresAt: resultObj.expires_at || null
+          expiresAt: resultObj.expires_at || null,
+          deletionToken: nanoid(32)
         };
         inMemoryStore.set(`drop:${fileCode}`, JSON.stringify(dropRecord));
         savePersistentStore();
+        rootzData.data.deletionToken = dropRecord.deletionToken;
       }
       rootzData.data.provider = 'rootz';
     }
@@ -733,6 +937,26 @@ app.delete('/api/drop/delete', async (req, res) => {
 
     if (!fileId) {
       return res.status(400).json({ success: false, error: 'File ID is required for deletion.' });
+    }
+
+    const storedDropRecord = inMemoryStore.get(`drop:${fileId}`);
+    if (!storedDropRecord) {
+      return res.status(403).json({ success: false, error: 'Deletion requires an active upload record and its deletion token.' });
+    }
+
+    let dropRecord;
+    try {
+      dropRecord = JSON.parse(storedDropRecord);
+    } catch (err) {
+      return res.status(403).json({ success: false, error: 'Deletion token is unavailable for this upload.' });
+    }
+
+    if (!dropRecord.deletionToken) {
+      return res.status(403).json({ success: false, error: 'This upload predates deletion-token protection and cannot be deleted through this endpoint.' });
+    }
+
+    if (!tokensMatch(token, dropRecord.deletionToken)) {
+      return res.status(403).json({ success: false, error: 'A valid deletion token is required.' });
     }
 
     inMemoryStore.delete(`drop:${fileId}`);
@@ -764,6 +988,17 @@ app.delete('/api/drop/delete', async (req, res) => {
 // 4. List Account Files & Folders Endpoint (Rootz API)
 app.get('/api/drop/list', async (req, res) => {
   try {
+    const adminToken = process.env.ADMIN_TOKEN || CONFIG.ADMIN_TOKEN;
+    const providedToken = req.get('x-admin-token') || req.query.token;
+
+    if (!adminToken) {
+      return res.status(503).json({ success: false, error: 'File listing is unavailable until ADMIN_TOKEN is configured.' });
+    }
+
+    if (!tokensMatch(providedToken, adminToken)) {
+      return res.status(403).json({ success: false, error: 'A valid admin token is required to list files.' });
+    }
+
     const page = req.query.page || 1;
     const limit = req.query.limit || 50;
     const folderId = req.query.folderId || '';
@@ -882,8 +1117,18 @@ app.get(['/api/drop/file/:filename', '/api/drop/stream/:filename'], async (req, 
       res.setHeader('accept-ranges', 'bytes');
     }
 
-    const arrayBuffer = await rootzRes.arrayBuffer();
-    return res.send(Buffer.from(arrayBuffer));
+    if (!rootzRes.body) {
+      return res.status(502).json({ error: 'Rootz returned an empty download stream.' });
+    }
+
+    const stream = Readable.fromWeb(rootzRes.body);
+    stream.on('error', (err) => {
+      console.error('Error streaming Rootz file response:', err);
+      if (!res.headersSent) res.status(502).end();
+      else res.destroy(err);
+    });
+    stream.pipe(res);
+    return undefined;
   } catch (err) {
     console.error('Error streaming file from Rootz:', err);
     return res.redirect(302, `https://rootz.so/d/${encodeURIComponent(req.params.filename.split('-')[0])}`);
@@ -901,10 +1146,11 @@ app.get('/api/stats/:code', checkApiHost(['tinyurl.pokedb.site']), async (req, r
     }
 
     const record = JSON.parse(dataStr);
+    const clickCount = await redis.get(`${redisKey}:clicks`);
     return res.status(200).json({
       code: code,
       longUrl: record.longUrl,
-      clicks: record.clicks || 0,
+      clicks: Number(clickCount ?? record.clicks ?? 0),
       createdAt: record.createdAt,
       expiresAt: record.expiresAt
     });
@@ -920,6 +1166,7 @@ app.get('/api/stats/:code', checkApiHost(['tinyurl.pokedb.site']), async (req, r
 app.get('/:code', async (req, res) => {
   try {
     const code = req.params.code;
+    const safeCode = htmlEscape(code);
 
     if (RESERVED_BLOCKLIST.has(code.toLowerCase())) {
       return res.status(404).send('Not Found');
@@ -929,37 +1176,17 @@ app.get('/:code', async (req, res) => {
     const dataStr = await redis.get(redisKey);
 
     if (!dataStr) {
-      return res.status(404).send(`
-        <!DOCTYPE html>
-        <html lang="en" data-theme="oled-black">
-        <head>
-          <meta charset="UTF-8">
-          <title>404 — Short Link Not Found</title>
-          <link rel="stylesheet" href="/tools/shared/theme.css">
-        </head>
-        <body class="container" style="padding-top: 5rem; text-align: center;">
-          <div class="term-window" style="max-width: 500px; margin: 0 auto;">
-            <div class="term-titlebar">~/404.txt</div>
-            <div class="term-body">
-              <div><span class="prompt">$</span> <span class="out">get /${code}</span></div>
-              <div class="out" style="color: var(--accent); margin-top: .5rem;">Error 404: Link not found or expired.</div>
-            </div>
-          </div>
-          <p style="margin-top: 2rem;"><a class="btn" href="/tools/shorten/">← Return to Shortener</a></p>
-        </body>
-        </html>
-      `);
+      return res.status(404).send(renderTemplate('404.html', {
+        title: '404 — Short Link Not Found',
+        command: `get /${safeCode}`,
+        message: 'Error 404: Link not found or expired.',
+        returnUrl: '/tools/shorten/',
+        returnLabel: '← Return to Shortener'
+      }));
     }
 
     const record = JSON.parse(dataStr);
-    record.clicks = (record.clicks || 0) + 1;
-
-    const ttlSeconds = await redis.ttl(redisKey);
-    if (ttlSeconds && ttlSeconds > 0) {
-      await redis.set(redisKey, JSON.stringify(record), 'EX', ttlSeconds);
-    } else {
-      await redis.set(redisKey, JSON.stringify(record));
-    }
+    const clickCount = await redis.incr(`${redisKey}:clicks`);
 
     // Direct redirect if explicitly requested via query parameter, non-browser request, or test mode
     const isDirect = req.query.direct === '1' || req.query.direct === 'true';
@@ -971,106 +1198,14 @@ app.get('/:code', async (req, res) => {
     }
 
     // Serve Intermediary Redirect Landing Page with 5s countdown
-    const safeUrl = record.longUrl.replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    return res.status(200).send(`
-<!DOCTYPE html>
-<html lang="en" data-theme="oled-black">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Redirecting — pokedb.site</title>
-  <meta http-equiv="refresh" content="5;url=${safeUrl}">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/tools/shared/theme.css">
-  <script src="/tools/shared/theme-switcher.js"></script>
-</head>
-<body>
-
-<header class="site-nav">
-  <div class="logo">
-    <a class="logo" href="/">root<span>@</span>pokedb</a>
-    <div class="nav-links">
-      <a class="nav-link" href="/tools/">← Tools Hub</a>
-    </div>
-  </div>
-  <div class="theme-switcher">
-    <span class="theme-swatch" id="theme-swatch"></span>
-    <select id="theme-select" aria-label="Choose a color theme">
-      <option value="paper">Paper — Editorial Light</option>
-      <option value="matrix">Matrix — Phosphor Green</option>
-      <option value="cyberpunk">Cyberpunk — Neon Cyan</option>
-      <option value="synthwave">Synthwave — 80s Magenta</option>
-      <option value="nordic-ice">Nordic — Glacier Blue</option>
-      <option value="dracula-neon">Dracula — Electric Violet</option>
-      <option value="gruvbox-retro">Gruvbox — Warm Retro</option>
-      <option value="emerald-forest">Emerald — Deep Woods</option>
-      <option value="sunset-amber">Sunset — Rose Amber</option>
-      <option value="solarized-gold">Solarized — Solar Gold</option>
-      <option value="oled-black">OLED — Pitch Indigo</option>
-      <option value="tokyo-neon">Tokyo — Neon Coral</option>
-    </select>
-  </div>
-</header>
-
-<main class="container" style="padding-top: 3rem; padding-bottom: 4rem;">
-  <div class="term-window" style="max-width: 680px; margin: 0 auto; box-shadow: 0 4px 24px rgba(0,0,0,0.25);">
-    <div class="term-titlebar mono">~/redirect.sh — pokedb.site</div>
-    <div class="term-body">
-      <div><span class="prompt">$</span> <span class="out">tinyurl --resolve /${code}</span></div>
-      <div style="margin-top: .75rem;"><span class="prompt">[+]</span> Destination URL:</div>
-      <div class="out" style="word-break: break-all; font-weight: 600; color: var(--accent); font-size: 1.05rem; margin: .3rem 0 .9rem 1rem;">
-        ${safeUrl}
-      </div>
-      <div><span class="prompt">[+]</span> Link Status: <span style="color:var(--accent);">Active</span> (${record.clicks} total clicks recorded)</div>
-      <div><span class="prompt">[+]</span> Security Audit: Verified Destination</div>
-      <div style="margin-top: 1.25rem;"><span class="prompt">$</span> <span class="out">Auto-redirecting in <strong id="countdown-num" style="color:var(--accent); font-size:1.3rem;">5</strong> seconds...</span></div>
-    </div>
-  </div>
-
-  <div style="max-width: 680px; margin: 1.25rem auto;">
-    <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 999px; height: 10px; overflow: hidden; padding: 2px;">
-      <div id="progress-bar" style="background: var(--accent); width: 20%; height: 100%; border-radius: 999px; transition: width .9s linear;"></div>
-    </div>
-  </div>
-
-  <div style="display: flex; gap: 1rem; justify-content: center; align-items: center; margin-top: 1.75rem; flex-wrap: wrap;">
-    <a id="proceed-btn" class="btn btn-solid" href="${safeUrl}">$ redirect --now (Skip Timer) →</a>
-    <a class="btn" href="/tools/tinyurl/">← Create TinyURL</a>
-  </div>
-</main>
-
-<footer>
-  <div class="footer-inner">
-    <span>© pokedb.site · redirect gateway</span>
-    <span id="uptime">session uptime · 00:00:00</span>
-  </div>
-</footer>
-
-<script>
-(function () {
-  var count = 5;
-  var target = ${JSON.stringify(record.longUrl)};
-  var numEl = document.getElementById('countdown-num');
-  var barEl = document.getElementById('progress-bar');
-
-  var timer = setInterval(function () {
-    count--;
-    if (numEl) numEl.textContent = count;
-    if (barEl) barEl.style.width = Math.min(100, ((6 - count) * 20)) + '%';
-
-    if (count <= 0) {
-      clearInterval(timer);
-      window.location.href = target;
-    }
-  }, 1000);
-})();
-</script>
-
-</body>
-</html>
-    `);
+    const safeUrl = htmlEscape(record.longUrl);
+    return res.status(200).send(renderTemplate('redirect.html', {
+      safeUrl,
+      safeCode,
+      clickCount: String(clickCount),
+      nonce: res.locals.cspNonce,
+      serializedUrl: serializeForInlineScript(record.longUrl)
+    }));
   } catch (err) {
     console.error('Error redirecting:', err);
     return res.status(500).send('Server Error');

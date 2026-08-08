@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="oled-black">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Redirecting — pokedb.site</title>
+  <meta http-equiv="refresh" content="5;url={{safeUrl}}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/shared/theme.css">
+  <script src="/shared/theme-switcher.js"></script>
+</head>
+<body>
+<header class="site-nav"><div class="logo"><a class="logo" href="/">root<span>@</span>pokedb</a><div class="nav-links"><a class="nav-link" href="/tools/">← Tools Hub</a></div></div></header>
+<main class="container" style="padding-top: 3rem; padding-bottom: 4rem;">
+  <div class="term-window" style="max-width: 680px; margin: 0 auto; box-shadow: 0 4px 24px rgba(0,0,0,0.25);">
+    <div class="term-titlebar mono">~/redirect.sh — pokedb.site</div>
+    <div class="term-body">
+      <div><span class="prompt">$</span> <span class="out">tinyurl --resolve /{{safeCode}}</span></div>
+      <div style="margin-top: .75rem;"><span class="prompt">[+]</span> Destination URL:</div>
+      <div class="out" style="word-break: break-all; font-weight: 600; color: var(--accent); font-size: 1.05rem; margin: .3rem 0 .9rem 1rem;">{{safeUrl}}</div>
+      <div><span class="prompt">[+]</span> Link Status: <span style="color:var(--accent);">Active</span> ({{clickCount}} total clicks recorded)</div>
+      <div><span class="prompt">[+]</span> Security Audit: Verified Destination</div>
+      <div style="margin-top: 1.25rem;"><span class="prompt">$</span> <span class="out">Auto-redirecting in <strong id="countdown-num" style="color:var(--accent); font-size:1.3rem;">5</strong> seconds...</span></div>
+    </div>
+  </div>
+  <div style="display: flex; gap: 1rem; justify-content: center; margin-top: 1.75rem; flex-wrap: wrap;"><a id="proceed-btn" class="btn btn-solid" href="{{safeUrl}}">$ redirect --now (Skip Timer) →</a><a class="btn" href="/tools/tinyurl/">← Create TinyURL</a></div>
+</main>
+<footer><div class="footer-inner"><span>© pokedb.site · redirect gateway</span><span id="uptime">session uptime · 00:00:00</span></div></footer>
+<script nonce="{{nonce}}">
+(function () {
+  var count = 5;
+  var target = {{serializedUrl}};
+  var numEl = document.getElementById('countdown-num');
+  var timer = setInterval(function () {
+    count--;
+    if (numEl) numEl.textContent = count;
+    if (count <= 0) { clearInterval(timer); window.location.href = target; }
+  }, 1000);
+})();
+</script>
+</body>
+</html>

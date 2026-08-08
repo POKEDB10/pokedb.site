@@ -9,7 +9,7 @@ services:
       - "5050:5050"
     environment:
       - PORT=5050
-      - REDIS_URL=redis://redis:6379
+      - REDIS_URL=redis://:${REDIS_PASSWORD:?Set REDIS_PASSWORD in your environment}@redis:6379
       - BASE_URL=http://localhost:5050
     volumes:
       - ./data:/app/data
@@ -19,9 +19,7 @@ services:
 
   redis:
     image: redis:7-alpine
-    command: redis-server --appendonly yes
-    ports:
-      - "6379:6379"
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:?Set REDIS_PASSWORD in your environment}
     volumes:
       - redis-data:/data
     restart: unless-stopped

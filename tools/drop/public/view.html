@@ -11,6 +11,7 @@
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/shared/theme.css">
 <script src="/shared/theme-switcher.js"></script>
+<script src="/shared/utils.js"></script>
 
 <style>
 .viewer-wrapper {
@@ -201,24 +202,8 @@
 
 <script>
 (function () {
-  function formatBytes(bytes) {
-    if (!bytes || isNaN(bytes)) return '0 B';
-    var k = 1024;
-    var sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
-    var i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-  }
-
-  function getFileIcon(filename) {
-    var ext = (filename || '').split('.').pop().toLowerCase();
-    if (['mp4', 'mkv', 'avi', 'mov', 'webm'].includes(ext)) return '🎥';
-    if (['mp3', 'wav', 'flac', 'ogg', 'm4a'].includes(ext)) return '🎵';
-    if (['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp'].includes(ext)) return '🖼️';
-    if (['pdf', 'doc', 'docx', 'txt', 'md'].includes(ext)) return '📄';
-    if (['zip', 'tar', 'gz', '7z', 'rar'].includes(ext)) return '📦';
-    if (['js', 'ts', 'py', 'json', 'html', 'css', 'rs', 'go'].includes(ext)) return '💻';
-    return '📁';
-  }
+  var formatBytes = window.PokeDbUtils.formatBytes;
+  var getFileIcon = window.PokeDbUtils.getFileIcon;
 
   document.addEventListener('DOMContentLoaded', async function () {
     var pathname = window.location.pathname;

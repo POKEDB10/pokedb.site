@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="oled-black">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{title}}</title>
+  <link rel="stylesheet" href="/shared/theme.css">
+  <script src="/shared/theme-switcher.js"></script>
+</head>
+<body class="container" style="padding-top: 5rem; text-align: center;">
+  <div class="term-window" style="max-width: 520px; margin: 0 auto; text-align: left;">
+    <div class="term-titlebar">~/404-not-found.sh</div>
+    <div class="term-body" style="padding: 1.5rem;">
+      <div><span class="prompt">$</span> <span class="out">{{command}}</span></div>
+      <div class="out" style="color: #ff5555; margin-top: .75rem;">{{message}}</div>
+    </div>
+  </div>
+  <p style="margin-top: 2rem;"><a class="btn btn-primary" href="{{returnUrl}}">{{returnLabel}}</a></p>
+</body>
+</html>

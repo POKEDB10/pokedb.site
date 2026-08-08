@@ -1,6 +1,6 @@
 # pokedb.site — Developer Tools & Storage Platform
 
-A modular, high-performance web platform and API hub built with Node.js, Express, and Vanilla CSS/JS. Designed for seamless extensibility, `pokedb.site` provides high-speed URL shortening, vector QR code generation, and 25 GB file transfer storage powered by Rootz API memory-streaming.
+A modular, high-performance web platform and API hub built with Node.js, Express, and Vanilla CSS/JS. Designed for seamless extensibility, `pokedb.site` provides high-speed URL shortening, vector QR code generation, and 25 GB file transfer storage powered by Rootz API.
 
 ---
 
@@ -13,7 +13,7 @@ A modular, high-performance web platform and API hub built with Node.js, Express
 - Automatic vector QR Code generator with SVG and PNG export capabilities.
 
 ### 2. Drop Storage Gateway (`/tools/drop/`)
-- **Rootz API Streaming**: Direct memory-to-cloud streaming (`multer.memoryStorage()`) with zero local disk caching.
+- **Rootz API Uploads**: Files are staged temporarily on local disk while being sent to Rootz, then removed in a `finally` cleanup step.
 - **25 GB File Transfers**: Supports large file uploads with password protection for files exceeding 1 GB.
 - **Upload Telemetry**: Real-time upload speed calculation (MB/s), transfer progress, estimated time remaining, and drop box status badge.
 - **Media Landing Page (`/v/:fileId`)**: File transfer landing card featuring direct download, mobile QR modal, and download counter telemetry.
@@ -43,8 +43,8 @@ tools/
 ```
 Link shared resources in your HTML:
 ```html
-<link rel="stylesheet" href="/tools/shared/theme.css">
-<script src="/tools/shared/theme-switcher.js"></script>
+<link rel="stylesheet" href="/shared/theme.css">
+<script src="/shared/theme-switcher.js"></script>
 ```
 
 ### 2. Express Backend Integration
@@ -63,7 +63,7 @@ app.post('/api/[your-tool-name]/action', async (req, res) => {
 
 ## Security & Privacy Standards
 
-- **Zero Disk Storage**: Files uploaded via Drop Storage stream directly to cloud storage; no temporary files remain on the host server.
+- **Temporary Upload Staging**: Files are deleted from local disk immediately after each Rootz upload attempt, including failures.
 - **Secrets Isolation**: Environment variables and sensitive data (`data/config.json`, `data/store.json`, `.env`) are ignored via `.gitignore`.
 - **SSRF & Path Traversal Protection**: Remote URL fetches strictly block private IPs (`localhost`, `127.0.0.1`, `10.x.x.x`, `192.168.x.x`).
 - **Rate Limiting & Security Headers**: Includes Helmet HTTP security headers, CORS origin controls, and Express rate limiting.

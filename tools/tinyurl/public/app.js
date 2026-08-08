@@ -5,19 +5,11 @@
     var container = document.getElementById(containerId);
     if (!container || !text) return;
 
-    if (window.QRCodeLib && typeof window.QRCodeLib.generateSVG === 'function') {
-      try {
-        var svg = QRCodeLib.generateSVG(text, {
-          dark: '#000000',
-          light: '#ffffff',
-          margin: 1
-        });
-        container.innerHTML = svg;
-        return;
-      } catch (e) {}
-    }
-
-    container.innerHTML = '<img src="/api/qr?format=svg&text=' + encodeURIComponent(text) + '" style="width:160px; height:160px; display:block;">';
+    var image = document.createElement('img');
+    image.src = '/api/qr?format=svg&text=' + encodeURIComponent(text);
+    image.style.cssText = 'width:160px; height:160px; display:block;';
+    image.alt = 'QR code for shortened URL';
+    container.replaceChildren(image);
   }
 
   document.addEventListener('DOMContentLoaded', function () {

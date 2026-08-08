@@ -94,21 +94,15 @@
       frame.style.background = '#ffffff';
     }
 
-    // 3. Fetch Base64 PNG Data URL from /api/qr
+    // 3. Generate the live preview locally; the API is reserved for exports.
     try {
-      var res = await fetch('/api/qr', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          text: activeText,
-          dark: opts.dark,
-          light: opts.light,
-          format: 'json'
-        })
+      if (!window.QRCodeLib || typeof window.QRCodeLib.generateDataURL !== 'function') return;
+      var dataUrl = window.QRCodeLib.generateDataURL(activeText, {
+        dark: opts.dark,
+        light: opts.light,
+        margin: 1
       });
-
-      var data = await res.json();
-      if (!data || !data.dataUrl) return;
+      if (!dataUrl) return;
 
       // 4. Composite Center Emblem using HTML5 Canvas (600x600)
       var canvas = document.createElement('canvas');
@@ -200,7 +194,7 @@
           finishComposite();
         }
       };
-      baseImg.src = data.dataUrl;
+      baseImg.src = dataUrl;
 
     } catch (err) {
       console.error('Error in generateAndShowQr:', err);
@@ -293,16 +287,27 @@
     });
 
     // Export SVG Download Handler
-    document.getElementById('export-svg-btn').addEventListener('click', function (e) {
+    document.getElementById('export-svg-btn').addEventListener('click', async function (e) {
       if (e && e.preventDefault) e.preventDefault();
       if (!lastCompositeDataUrl) return alert('Please click Generate QR Code first.');
 
-      var link = document.createElement('a');
-      link.href = lastCompositeDataUrl;
-      link.download = 'qrcode-p10.png';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      try {
+        var opts = getStyleOptions();
+        var url = '/api/qr?format=svg&download=1&text=' + encodeURIComponent(activeText) +
+          '&dark=' + encodeURIComponent(opts.dark) + '&light=' + encodeURIComponent(opts.light);
+        var response = await fetch(url);
+        if (!response.ok) throw new Error('SVG export failed');
+        var blobUrl = URL.createObjectURL(await response.blob());
+        var link = document.createElement('a');
+        link.href = blobUrl;
+        link.download = 'qrcode.svg';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(blobUrl);
+      } catch (err) {
+        alert('Unable to export SVG. Please try again.');
+      }
     });
 
     // Re-render if generated and theme changes

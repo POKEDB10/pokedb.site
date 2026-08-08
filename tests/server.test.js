@@ -1,4 +1,6 @@
 process.env.NODE_ENV = 'test';
+const fs = require('fs');
+const path = require('path');
 const request = require('supertest');
 const app = require('../server');
 
@@ -103,7 +105,154 @@ describe('URL Shortener API Suite', () => {
     expect(statsRes.body.longUrl).toBe(targetUrl);
   });
 
-  test('7. Enforce Rate Limiting (429 Too Many Requests)', async () => {
+  test('7. Reject API requests sent to an unauthorized host despite spoofed routing headers', async () => {
+    const res = await request(app)
+      .post('/api/shorten')
+      .set('Host', 'pokedb.site')
+      .set('X-Subdomain', 'tinyurl.pokedb.site')
+      .send({ url: 'https://example.com/host-routing-test' });
+
+    expect(res.status).toBe(404);
+    expect(res.body.error).toMatch(/not available/i);
+  });
+
+  test('8. Escape redirect data and authorize the inline script with a CSP nonce', async () => {
+    const targetUrl = 'https://example.com/</script><script>window.injected=true</script>';
+    const createRes = await request(app)
+      .post('/api/shorten')
+      .send({ url: targetUrl });
+
+    expect(createRes.status).toBe(200);
+
+    const originalNodeEnv = process.env.NODE_ENV;
+    process.env.NODE_ENV = 'production';
+    try {
+      const redirectRes = await request(app)
+        .get(`/${createRes.body.code}`)
+        .set('Accept', 'text/html');
+      const csp = redirectRes.headers['content-security-policy'];
+      const nonceMatch = csp.match(/script-src 'self' 'nonce-([^']+)'/);
+
+      expect(redirectRes.status).toBe(200);
+      expect(csp).not.toMatch(/script-src[^;]*'unsafe-inline'/);
+      expect(nonceMatch).not.toBeNull();
+      expect(redirectRes.text).toContain(`<script nonce="${nonceMatch[1]}">`);
+      expect(redirectRes.text).toContain('\\u003c\\/script\\u003e');
+      expect(redirectRes.text).not.toContain('</script><script>window.injected=true</script>');
+    } finally {
+      process.env.NODE_ENV = originalNodeEnv;
+    }
+  });
+
+  test('9. Require an upload-specific deletion token before deleting a drop file', async () => {
+    const originalFetch = global.fetch;
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ success: true, data: { short_id: 'drop-token-test', name: 'example.txt' } })
+    });
+
+    try {
+      const uploadRes = await request(app)
+        .post('/api/drop/remote-upload')
+        .send({ url: 'https://1.1.1.1/example.txt' });
+
+      expect(uploadRes.status).toBe(200);
+      expect(uploadRes.body.data.deletionToken).toMatch(/^[A-Za-z0-9_-]{32}$/);
+
+      const missingTokenRes = await request(app)
+        .delete('/api/drop/delete?fileId=drop-token-test');
+      const invalidTokenRes = await request(app)
+        .delete('/api/drop/delete?fileId=drop-token-test&token=incorrect-token');
+
+      expect(missingTokenRes.status).toBe(403);
+      expect(invalidTokenRes.status).toBe(403);
+    } finally {
+      global.fetch = originalFetch;
+    }
+  });
+
+  test('10. Require a timing-safe admin token before listing Rootz files', async () => {
+    const originalAdminToken = process.env.ADMIN_TOKEN;
+    process.env.ADMIN_TOKEN = 'test-admin-token-with-sufficient-length';
+
+    try {
+      const missingTokenRes = await request(app).get('/api/drop/list');
+      const invalidTokenRes = await request(app)
+        .get('/api/drop/list')
+        .set('X-Admin-Token', 'incorrect-admin-token');
+
+      expect(missingTokenRes.status).toBe(403);
+      expect(invalidTokenRes.status).toBe(403);
+    } finally {
+      if (originalAdminToken === undefined) delete process.env.ADMIN_TOKEN;
+      else process.env.ADMIN_TOKEN = originalAdminToken;
+    }
+  });
+
+  test('11. Cover health, QR, CORS, expiration validation, and private IPv6 SSRF protection', async () => {
+    const healthRes = await request(app)
+      .get('/api/health/ping')
+      .set('Origin', 'https://qr.pokedb.site');
+    const qrRes = await request(app).get('/api/qr?format=svg&text=coverage-test');
+    const expiryRes = await request(app)
+      .post('/api/shorten')
+      .send({ url: 'https://example.com/expiry-validation', expiresInDays: 366 });
+    const privateIpv6Res = await request(app)
+      .post('/api/drop/remote-upload')
+      .send({ url: 'http://[::1]/private-file' });
+
+    expect(healthRes.status).toBe(200);
+    expect(healthRes.headers['access-control-allow-origin']).toBe('https://qr.pokedb.site');
+    expect(qrRes.status).toBe(200);
+    expect(qrRes.headers['content-type']).toContain('image/svg+xml');
+    expect(expiryRes.status).toBe(400);
+    expect(privateIpv6Res.status).toBe(400);
+  });
+
+  test('12. Use a NanoID fallback and remove temporary direct-upload files', async () => {
+    const originalFetch = global.fetch;
+    const uploadsDir = path.join(__dirname, '..', 'data', 'uploads');
+    const before = new Set(fs.readdirSync(uploadsDir));
+    global.fetch = jest.fn().mockResolvedValue({ ok: true, status: 200, json: async () => ({}) });
+
+    try {
+      const response = await request(app)
+        .post('/api/drop/upload')
+        .field('expiresInDays', '30')
+        .attach('file', Buffer.from('temporary upload coverage'), 'coverage.txt');
+
+      expect(response.status).toBe(200);
+      expect(response.body.id).toMatch(/^[A-Za-z0-9_-]{21}$/);
+      expect(new Set(fs.readdirSync(uploadsDir))).toEqual(before);
+    } finally {
+      global.fetch = originalFetch;
+    }
+  });
+
+  test('13. Stream Rootz download responses without materializing a full buffer', async () => {
+    const originalFetch = global.fetch;
+    global.fetch = jest.fn().mockResolvedValue(new Response('streamed-content', {
+      status: 200,
+      headers: { 'content-type': 'text/plain', 'content-length': '16' }
+    }));
+
+    try {
+      const response = await request(app).get('/api/drop/file/stream-test');
+      expect(response.status).toBe(200);
+      expect(response.text).toBe('streamed-content');
+      expect(response.headers['content-type']).toContain('text/plain');
+    } finally {
+      global.fetch = originalFetch;
+    }
+  });
+
+  test('14. Enforce the shared API rate limit', async () => {
+    const responses = await Promise.all(Array.from({ length: 130 }, () => request(app).get('/api/health/ping')));
+    expect(responses.some((response) => response.status === 429)).toBe(true);
+  });
+
+  test('15. Enforce Rate Limiting (429 Too Many Requests)', async () => {
     const requests = [];
     for (let i = 0; i < 110; i++) {
       requests.push(
@@ -116,7 +265,7 @@ describe('URL Shortener API Suite', () => {
     const responses = await Promise.all(requests);
     const rateLimitedResponse = responses.find(r => r.status === 429);
     expect(rateLimitedResponse).toBeDefined();
-    expect(rateLimitedResponse.body.error).toMatch(/too many requests/i);
+    expect(rateLimitedResponse.body.error).toMatch(/too many .*requests/i);
   });
 
 });

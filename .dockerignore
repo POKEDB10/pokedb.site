@@ -1,0 +1,9 @@
+.git
+.env
+node_modules
+coverage
+npm-debug.log*
+data/store.json
+data/uploads
+tests
+README.md
