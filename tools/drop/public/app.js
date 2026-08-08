@@ -94,8 +94,6 @@
     formData.append('file', item.file);
     formData.append('expiresInDays', element('expires-in-select').value);
     formData.append('relativePath', item.path);
-    var targetFolder = element('target-folder-id').value.trim();
-    if (targetFolder) formData.append('folderId', targetFolder);
     var xhr = new XMLHttpRequest();
     activeUpload = { xhr: xhr, item: item };
     xhr.open('POST', '/api/drop/upload', true);
@@ -206,12 +204,9 @@
 
   document.addEventListener('DOMContentLoaded', function () {
     var storedToken = sessionStorage.getItem('pokedb-admin-token'); if (storedToken) element('manager-token-input').value = storedToken;
-    var fileInput = element('file-input'); var folderInput = element('folder-input'); var dropZone = element('drop-zone');
-    element('choose-files-btn').addEventListener('click', function () { fileInput.click(); });
-    element('choose-folder-btn').addEventListener('click', function () { folderInput.click(); });
+    var fileInput = element('file-input'); var dropZone = element('drop-zone');
     dropZone.addEventListener('click', function (event) { if (event.target === dropZone || event.target.closest('#drop-default-prompt')) fileInput.click(); });
     fileInput.addEventListener('change', function (event) { addFiles(event.target.files); fileInput.value = ''; });
-    folderInput.addEventListener('change', function (event) { addFiles(event.target.files); folderInput.value = ''; });
     ['dragenter', 'dragover'].forEach(function (name) { dropZone.addEventListener(name, function (event) { event.preventDefault(); dropZone.classList.add('dragover'); }); });
     ['dragleave', 'drop'].forEach(function (name) { dropZone.addEventListener(name, function (event) { event.preventDefault(); dropZone.classList.remove('dragover'); }); });
     dropZone.addEventListener('drop', function (event) { if (event.dataTransfer.files.length) addFiles(event.dataTransfer.files); });
@@ -222,7 +217,7 @@
     element('cancel-large-pass-btn').addEventListener('click', function () { if (pendingLargeItem) pendingLargeItem.status = 'cancelled'; pendingLargeItem = null; element('large-file-modal').style.display = 'none'; renderQueue(); });
     document.querySelectorAll('.tab-btn').forEach(function (tab) { tab.addEventListener('click', function () { document.querySelectorAll('.tab-btn').forEach(function (button) { button.classList.remove('is-active'); }); tab.classList.add('is-active'); activeTab = tab.dataset.tab; element('tab-content-direct').style.display = activeTab === 'direct' ? 'block' : 'none'; element('tab-content-remote').style.display = activeTab === 'remote' ? 'block' : 'none'; element('tab-content-manager').style.display = activeTab === 'manager' ? 'block' : 'none'; if (activeTab === 'manager') loadFileList(); }); });
     element('refresh-files-btn').addEventListener('click', loadFileList);
-    element('remote-upload-btn').addEventListener('click', async function () { var url = element('remote-url-input').value.trim(); if (!url) { showNotice('Enter a public URL first.'); return; } try { var response = await fetch('/api/drop/remote-upload', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url: url, folderId: element('remote-folder-id').value.trim() || null }) }); var data = await response.json(); if (!response.ok) throw new Error(data.error || 'Remote upload failed'); displayResult(data.data); } catch (error) { showNotice(error.message); } });
+    element('remote-upload-btn').addEventListener('click', async function () { var url = element('remote-url-input').value.trim(); if (!url) { showNotice('Enter a public URL first.'); return; } try { var response = await fetch('/api/drop/remote-upload', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url: url }) }); var data = await response.json(); if (!response.ok) throw new Error(data.error || 'Remote upload failed'); displayResult(data.data); } catch (error) { showNotice(error.message); } });
     element('copy-link-btn').addEventListener('click', function () { navigator.clipboard.writeText(element('res-share-link').value); this.textContent = 'Copied'; var button = this; setTimeout(function () { button.textContent = '$ copy'; }, 1500); });
     element('delete-res-file-btn').addEventListener('click', function () { showNotice('Delete controls require the file deletion token returned with this upload.'); });
     renderQueue();

@@ -194,6 +194,7 @@ input:focus {
 .queue-status { color:var(--accent); font:500 .7rem 'IBM Plex Mono',monospace; text-transform:uppercase; }
 .upload-controls { display:flex; flex-wrap:wrap; gap:.6rem; margin-top:1rem; }
 .upload-controls .btn { flex:1 1 130px; }
+.upload-controls .btn:disabled { cursor:not-allowed; pointer-events:none; opacity:.42; color:var(--muted); background:var(--surface-2); border-color:var(--border); box-shadow:none; }
 @media (max-width:560px) {
   .drop-card { padding:1rem; }
   .tab-bar { flex-wrap:wrap; }
@@ -274,7 +275,6 @@ input:focus {
         <div id="tab-content-direct">
           <div class="drop-zone" id="drop-zone">
             <input type="file" id="file-input" multiple>
-            <input type="file" id="folder-input" webkitdirectory directory multiple>
             <div id="drop-default-prompt">
               <span class="drop-icon">📦</span>
               <div class="drop-text">Drop files here, or click to browse</div>
@@ -291,11 +291,9 @@ input:focus {
             </div>
           </div>
           <div class="upload-controls">
-            <button class="btn" id="choose-files-btn" type="button">Choose files</button>
-            <button class="btn" id="choose-folder-btn" type="button">Choose folder</button>
             <button class="btn btn-solid" id="start-upload-btn" type="button" disabled>Start upload</button>
             <button class="btn" id="pause-upload-btn" type="button" disabled>Pause queue</button>
-            <button class="btn" id="cancel-upload-btn" type="button" disabled>Cancel</button>
+            <button class="btn" id="cancel-upload-btn" type="button" disabled>Stop upload</button>
           </div>
           <div class="queue-list" id="upload-queue" aria-live="polite"></div>
           <div class="form-group" style="margin-top: 1.25rem;">
@@ -307,10 +305,6 @@ input:focus {
               <option value="0">Never (Permanent)</option>
             </select>
           </div>
-          <div class="form-group">
-            <label for="target-folder-id">Destination Folder ID (optional)</label>
-            <input type="text" id="target-folder-id" placeholder="Existing Rootz folder ID — keeps this upload grouped">
-          </div>
         </div>
 
         <!-- TAB 2: Remote URL Upload -->
@@ -318,10 +312,6 @@ input:focus {
           <div class="form-group">
             <label for="remote-url-input">Remote File URL (HTTP / HTTPS)</label>
             <input type="url" id="remote-url-input" placeholder="https://example.com/large-video.mp4">
-          </div>
-          <div class="form-group">
-            <label for="remote-folder-id">Optional Folder ID (Rootz Dashboard)</label>
-            <input type="text" id="remote-folder-id" placeholder="Optional folder UUID...">
           </div>
           <button class="btn btn-solid" id="remote-upload-btn" style="width:100%; justify-content:center; padding:.8rem;">
             $ rootz --remote-upload
@@ -397,7 +387,7 @@ input:focus {
   </div>
 </footer>
 
-<script src="./app.js"></script>
+<script src="./app.js?v=20260808-queue-controls"></script>
 
 </body>
 </html>
