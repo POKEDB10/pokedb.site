@@ -29,6 +29,10 @@ function resolveHost(req) {
   if (!req) return '';
   const candidates = [];
 
+  const xsub = req.headers['x-subdomain'] || req.headers['x-tool-subdomain'];
+  if (Array.isArray(xsub)) candidates.push(...xsub);
+  else if (typeof xsub === 'string') candidates.push(...xsub.split(','));
+
   const xfh = req.headers['x-forwarded-host'];
   if (Array.isArray(xfh)) candidates.push(...xfh);
   else if (typeof xfh === 'string') candidates.push(...xfh.split(','));
