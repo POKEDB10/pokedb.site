@@ -255,9 +255,18 @@ app.use((req, res, next) => {
   }
 
   const notFound = (customToolName) => {
+    const isPrimaryHost = ['pokedb.site', 'www.pokedb.site', 'pokedb-site.onrender.com'].includes(host);
     const requestedTool = typeof customToolName === 'string' ? customToolName : host.split('.')[0];
     const acceptsHtml = (req.headers.accept || '').includes('text/html');
     if (!acceptsHtml) return res.status(404).send('Not Found');
+
+    const errMessage = isPrimaryHost
+      ? `Error 404: Page '${req.path}' not found on pokedb.site.`
+      : `Error 404: Subdomain '${requestedTool}.pokedb.site' does not correspond to any active tool.`;
+
+    const cmdMessage = isPrimaryHost
+      ? `pokedb resolve --path "${req.path}"`
+      : `pokedb resolve --subdomain "${requestedTool}"`;
 
     return res.status(404).send(`
 <!DOCTYPE html>
@@ -265,16 +274,16 @@ app.use((req, res, next) => {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>404 — Tool Not Found | pokedb.site</title>
+  <title>404 — Not Found | pokedb.site</title>
   <link rel="stylesheet" href="/shared/theme.css">
   <script src="/shared/theme-switcher.js"></script>
 </head>
 <body class="container" style="padding-top: 5rem; text-align: center;">
   <div class="term-window" style="max-width: 520px; margin: 0 auto; text-align: left;">
-    <div class="term-titlebar">~/404-tool-not-found.sh</div>
+    <div class="term-titlebar">~/404-not-found.sh</div>
     <div class="term-body" style="padding: 1.5rem;">
-      <div><span class="prompt">$</span> <span class="out">pokedb resolve --subdomain "${requestedTool}"</span></div>
-      <div class="out" style="color: #ff5555; margin-top: .75rem;">Error 404: Subdomain '${requestedTool}.pokedb.site' does not correspond to any active tool.</div>
+      <div><span class="prompt">$</span> <span class="out">${cmdMessage}</span></div>
+      <div class="out" style="color: #ff5555; margin-top: .75rem;">${errMessage}</div>
     </div>
   </div>
   <p style="margin-top: 2rem;">
