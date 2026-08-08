@@ -48,8 +48,11 @@ function resolveHost(req) {
     .map(h => String(h).trim().split(':')[0].toLowerCase())
     .filter(Boolean);
 
-  const pokedbHost = hosts.find(h => h.endsWith('.pokedb.site') || h === 'pokedb.site');
-  if (pokedbHost) return pokedbHost;
+  const toolSubdomain = hosts.find(h => h.endsWith('.pokedb.site') && h !== 'pokedb.site' && h !== 'www.pokedb.site');
+  if (toolSubdomain) return toolSubdomain;
+
+  const apexHost = hosts.find(h => h.endsWith('.pokedb.site') || h === 'pokedb.site');
+  if (apexHost) return apexHost;
 
   return hosts[0] || '';
 }
