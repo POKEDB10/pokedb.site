@@ -94,15 +94,11 @@
       frame.style.background = '#ffffff';
     }
 
-    // 3. Generate the live preview locally; the API is reserved for exports.
+    // Generate through the same hardened API used for exports so the preview
+    // stays reliable even when a browser blocks the local SVG data URL.
     try {
-      if (!window.QRCodeLib || typeof window.QRCodeLib.generateDataURL !== 'function') return;
-      var dataUrl = window.QRCodeLib.generateDataURL(activeText, {
-        dark: opts.dark,
-        light: opts.light,
-        margin: 1
-      });
-      if (!dataUrl) return;
+      var dataUrl = '/api/qr?format=png&text=' + encodeURIComponent(activeText) +
+        '&dark=' + encodeURIComponent(opts.dark) + '&light=' + encodeURIComponent(opts.light);
 
       // 4. Composite Center Emblem using HTML5 Canvas (600x600)
       var canvas = document.createElement('canvas');
@@ -194,10 +190,16 @@
           finishComposite();
         }
       };
+      baseImg.onerror = function () {
+        imgEl.removeAttribute('src');
+        imgEl.alt = 'QR preview could not be generated. Please try again.';
+      };
       baseImg.src = dataUrl;
 
     } catch (err) {
       console.error('Error in generateAndShowQr:', err);
+      imgEl.removeAttribute('src');
+      imgEl.alt = 'QR preview could not be generated. Please try again.';
     }
   }
 

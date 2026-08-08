@@ -15,15 +15,15 @@
 
 <style>
 .studio-wrapper {
-  max-width: 660px;
+  max-width: 800px;
   margin: 0 auto;
   transition: max-width 0.45s cubic-bezier(0.16, 1, 0.3, 1);
   width: 100%;
 }
 .studio-wrapper.is-generated {
-  max-width: 960px;
+  max-width: 1120px;
   display: grid;
-  grid-template-columns: 1fr 340px;
+  grid-template-columns: minmax(0, 1.25fr) minmax(300px, .75fr);
   gap: 1.75rem;
   align-items: start;
 }
@@ -104,7 +104,7 @@ input:focus, select:focus {
   opacity: 0;
   transform: scale(0.94) translateY(12px);
   position: sticky;
-  top: 5rem;
+  top: 6rem;
   flex-direction: column;
   align-items: center;
   gap: 1.25rem;
@@ -125,8 +125,9 @@ input:focus, select:focus {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 220px;
-  height: 220px;
+  width: min(100%, 240px);
+  aspect-ratio: 1;
+  height: auto;
   transition: transform .2s ease;
 }
 .qr-frame:hover { transform: scale(1.02); }
@@ -136,6 +137,7 @@ input:focus, select:focus {
   height: 100%;
   animation: popIn 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
+#qr-preview-img { width:100%; height:100%; object-fit:contain; }
 
 @keyframes popIn {
   from { opacity: 0; transform: scale(0.85); }

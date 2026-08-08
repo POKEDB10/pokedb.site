@@ -117,6 +117,17 @@ describe('URL Shortener API Suite', () => {
     expect(res.body.error).toMatch(/not available/i);
   });
 
+  test('7b. Accept a tool API request routed through Render using its trusted platform host', async () => {
+    const res = await request(app)
+      .post('/api/shorten')
+      .set('Host', 'pokedb-site.onrender.com')
+      .set('X-Subdomain', 'tinyurl.pokedb.site')
+      .send({ url: 'https://example.com/render-routing-test' });
+
+    expect(res.status).toBe(200);
+    expect(res.body.shortUrl).toContain('tinyurl.pokedb.site');
+  });
+
   test('8. Escape redirect data and authorize the inline script with a CSP nonce', async () => {
     const targetUrl = 'https://example.com/</script><script>window.injected=true</script>';
     const createRes = await request(app)

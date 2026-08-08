@@ -63,6 +63,28 @@ function resolveHost(req) {
   return hosts[0] || '';
 }
 
+function normalizeHost(value) {
+  if (typeof value !== 'string') return '';
+  return value.trim().split(',')[0].trim().replace(/^https?:\/\//i, '').split(':')[0].toLowerCase();
+}
+
+// Render's custom-domain routing can preserve the platform host while adding the
+// requested tool host in a proxy header. Only honour that routing hint when the
+// direct Host is a known platform host; clients on the public domain cannot use
+// it to switch API permissions.
+function resolveApiHost(req) {
+  const directHost = normalizeHost(req.headers.host || req.get('host'));
+  if (!directHost.endsWith('.onrender.com')) return directHost;
+
+  const forwardedHost = normalizeHost(req.headers['x-forwarded-host']);
+  if (forwardedHost.endsWith('.pokedb.site')) return forwardedHost;
+
+  const routedSubdomain = normalizeHost(req.headers['x-subdomain'] || req.headers['x-tool-subdomain']);
+  if (routedSubdomain.endsWith('.pokedb.site')) return routedSubdomain;
+
+  return directHost;
+}
+
 function htmlEscape(value) {
   return String(value ?? '').replace(/[&<>"']/g, (character) => ({
     '&': '&amp;',
@@ -480,7 +502,7 @@ const staticHandlers = {
 // Helper middleware to validate API host access per subdomain
 const checkApiHost = (allowedHosts) => {
   return (req, res, next) => {
-    const host = (req.hostname || '').toLowerCase();
+    const host = resolveApiHost(req);
 
     if (['localhost', '127.0.0.1', '::1'].includes(host)) {
       return next();
@@ -749,6 +771,10 @@ const uploadMulter = multer({
 
 const SERVER_ROOTZ_KEY = process.env.ROOTZ_API_KEY || CONFIG.ROOTZ_API_KEY || '';
 const LARGE_FILE_PASSWORD = process.env.LARGE_FILE_PASSWORD || CONFIG.LARGE_FILE_PASSWORD || null;
+const configuredRootzTimeout = Number.parseInt(process.env.ROOTZ_TIMEOUT_MS || '1200000', 10);
+const ROOTZ_TIMEOUT_MS = Number.isFinite(configuredRootzTimeout) && configuredRootzTimeout > 0
+  ? Math.min(configuredRootzTimeout, 3600000)
+  : 1200000;
 const ONE_GB = 1073741824; // 1 GB limit in bytes
 
 const verifyLargeFilePassword = (req, fileSize) => {
@@ -839,6 +865,10 @@ app.post('/api/drop/upload', uploadLimiter, uploadMulter.single('file'), async (
       return res.status(400).json({ error: 'No file provided in upload request.' });
     }
 
+    if (!SERVER_ROOTZ_KEY) {
+      return res.status(503).json({ error: 'File storage is not configured. Set ROOTZ_API_KEY on the server and try again.' });
+    }
+
     // Password verification for files > 1 GB
     if (req.file.size > ONE_GB && !verifyLargeFilePassword(req, req.file.size)) {
       return res.status(401).json({ error: 'Invalid or missing owner password for files over 1 GB.' });
@@ -872,7 +902,7 @@ app.post('/api/drop/upload', uploadLimiter, uploadMulter.single('file'), async (
       method: 'POST',
       headers: headers,
       body: formData,
-      signal: AbortSignal.timeout(15000)
+      signal: AbortSignal.timeout(ROOTZ_TIMEOUT_MS)
     });
 
     let rootzData;
@@ -920,7 +950,8 @@ app.post('/api/drop/upload', uploadLimiter, uploadMulter.single('file'), async (
     });
   } catch (err) {
     console.error('Error proxying direct upload to Rootz:', err);
-    return res.status(500).json({ error: 'Failed to process file upload to Rootz.' });
+    const timedOut = err?.name === 'TimeoutError';
+    return res.status(timedOut ? 504 : 502).json({ error: timedOut ? 'The storage provider timed out while receiving the file. Please retry.' : 'The storage provider could not process this upload. Please retry.' });
   } finally {
     if (req.file?.path) {
       await fs.promises.unlink(req.file.path).catch((err) => {
@@ -940,6 +971,10 @@ app.post('/api/drop/remote-upload', uploadLimiter, async (req, res) => {
         success: false,
         error: 'Invalid or unsafe remote URL provided. Only public HTTP/HTTPS URLs are allowed.'
       });
+    }
+
+    if (!SERVER_ROOTZ_KEY) {
+      return res.status(503).json({ success: false, error: 'Remote storage is not configured. Set ROOTZ_API_KEY on the server and try again.' });
     }
 
     if (fileSize && Number(fileSize) > ONE_GB && !verifyLargeFilePassword(req, Number(fileSize))) {
@@ -962,7 +997,8 @@ app.post('/api/drop/remote-upload', uploadLimiter, async (req, res) => {
         folder_id: targetFolder ? String(targetFolder).trim() : null,
         folder_name: targetFolder ? String(targetFolder).trim() : null,
         folder: targetFolder ? String(targetFolder).trim() : null
-      })
+      }),
+      signal: AbortSignal.timeout(ROOTZ_TIMEOUT_MS)
     });
 
     const rootzData = await rootzRes.json();
@@ -994,7 +1030,8 @@ app.post('/api/drop/remote-upload', uploadLimiter, async (req, res) => {
     return res.status(200).json(rootzData);
   } catch (err) {
     console.error('Error proxying remote upload to Rootz:', err);
-    return res.status(500).json({ success: false, error: 'Internal server error processing remote upload.' });
+    const timedOut = err?.name === 'TimeoutError';
+    return res.status(timedOut ? 504 : 502).json({ success: false, error: timedOut ? 'The storage provider timed out while fetching that URL. Please retry.' : 'The storage provider could not process the remote upload. Please retry.' });
   }
 });
 

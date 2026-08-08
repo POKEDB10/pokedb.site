@@ -7,6 +7,18 @@
   var formatBytes = window.PokeDbUtils.formatBytes;
   var getFileIcon = window.PokeDbUtils.getFileIcon;
 
+  function showNotice(message) {
+    var notice = document.getElementById('drop-notice');
+    if (!notice) return;
+    notice.textContent = message;
+    notice.style.display = 'block';
+  }
+
+  function clearNotice() {
+    var notice = document.getElementById('drop-notice');
+    if (notice) notice.style.display = 'none';
+  }
+
   function showProgress(percent, text) {
     var container = document.getElementById('progress-container');
     var fill = document.getElementById('progress-bar-fill');
@@ -175,6 +187,7 @@
 
   function uploadFile(file, password) {
     if (!file) return;
+    clearNotice();
 
     var expiresSelect = document.getElementById('expires-in-select');
     var expDays = expiresSelect ? expiresSelect.value : 30;
@@ -227,22 +240,22 @@
           var res = JSON.parse(xhr.responseText);
           displayResult(res);
         } catch (err) {
-          alert('Upload completed but response format was invalid.');
+          showNotice('Upload completed, but the server returned an unreadable response.');
           hideProgress();
         }
       } else {
         try {
           var errData = JSON.parse(xhr.responseText);
-          alert('Upload failed: ' + (errData.error || xhr.responseText));
+          showNotice('Upload failed: ' + (errData.error || xhr.responseText));
         } catch (e) {
-          alert('Upload failed: ' + (xhr.responseText || 'Server error'));
+          showNotice('Upload failed: ' + (xhr.responseText || 'Server error'));
         }
         hideProgress();
       }
     };
 
     xhr.onerror = function () {
-      alert('Network error occurred during file upload.');
+      showNotice('The upload connection was interrupted. Your file was not marked as complete; please retry.');
       hideProgress();
     };
 
@@ -291,9 +304,10 @@
     var targetUrl = urlInput.value.trim();
 
     if (!targetUrl) {
-      alert('Please enter a valid remote file URL.');
+      showNotice('Enter a public HTTP or HTTPS file URL first.');
       return;
     }
+    clearNotice();
 
     showProgress(25, 'Initiating remote URL upload via Rootz Account...');
 
@@ -317,11 +331,11 @@
         showProgress(100, 'Remote upload completed!');
         displayResult(data.data);
       } else {
-        alert('Remote upload error: ' + (data.error || 'Failed to process remote URL'));
+        showNotice('Remote upload failed: ' + (data.error || 'Failed to process the remote URL.'));
         hideProgress();
       }
     } catch (err) {
-      alert('Network error initiating remote upload.');
+      showNotice('Could not start the remote upload. Check your connection and try again.');
       hideProgress();
     }
   }

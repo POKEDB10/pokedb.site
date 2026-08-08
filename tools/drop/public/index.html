@@ -186,6 +186,14 @@ input:focus {
   color: var(--accent);
   border: 1px solid var(--accent);
 }
+.drop-notice { display:none; margin-top:1rem; padding:.75rem .9rem; border:1px solid var(--danger); border-radius:7px; color:var(--danger); background:color-mix(in srgb,var(--danger) 8%,transparent); font:.78rem 'IBM Plex Mono',monospace; }
+@media (max-width:560px) {
+  .drop-card { padding:1rem; }
+  .tab-bar { flex-wrap:wrap; }
+  .tab-btn { flex:1 1 100%; }
+  .drop-zone { padding:2rem 1rem; }
+  .link-output-group { align-items:stretch; flex-direction:column; }
+}
 </style>
 </head>
 <body>
@@ -258,10 +266,10 @@ input:focus {
         <!-- TAB 1: Direct File Upload -->
         <div id="tab-content-direct">
           <div class="drop-zone" id="drop-zone">
-            <input type="file" id="file-input" multiple>
+            <input type="file" id="file-input">
             <div id="drop-default-prompt">
               <span class="drop-icon">📦</span>
-              <div class="drop-text">Drag & drop your file or folder here, or click to browse</div>
+              <div class="drop-text">Drag & drop a file here, or click to browse</div>
               <div class="drop-hint">Supports videos, movies, pictures, PDFs, archives, and code (Max 25GB)</div>
             </div>
             <div id="drop-file-badge" style="display:none; padding:.75rem; background:var(--surface); border:1px solid var(--accent); border-radius:8px; width:90%; margin:0 auto;">
@@ -326,6 +334,7 @@ input:focus {
       </div>
 
       <!-- Result Card -->
+      <div class="drop-notice" id="drop-notice" role="alert"></div>
       <div class="result-card" id="result-card">
         <div class="file-meta-row">
           <div class="file-icon-box" id="res-file-icon">📄</div>

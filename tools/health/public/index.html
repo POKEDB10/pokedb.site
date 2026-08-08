@@ -1,353 +1,85 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en" data-theme="oled-black">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>System Health & Status | pokedb.site</title>
-  <meta name="description" content="Real-time system health, uptime monitoring, and status telemetry for pokedb.site services.">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>System Health | pokedb.site</title>
+  <meta name="description" content="Live health, latency, uptime, and service telemetry for pokedb.site.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/shared/theme.css">
+  <script src="/shared/theme-switcher.js"></script>
   <style>
-    .status-pulse {
-      display: inline-block;
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      background-color: var(--color-success, #00ff88);
-      box-shadow: 0 0 10px var(--color-success, #00ff88);
-      animation: pulse-glow 2s infinite;
-      margin-right: 0.5rem;
-    }
-    @keyframes pulse-glow {
-      0% { opacity: 1; transform: scale(1); }
-      50% { opacity: 0.4; transform: scale(1.2); }
-      100% { opacity: 1; transform: scale(1); }
-    }
-    .status-card {
-      background: var(--bg-surface-elevated, #16181d);
-      border: 1px solid var(--border-color, #272a30);
-      border-radius: var(--radius-lg, 12px);
-      padding: 1.25rem;
-      transition: border-color 0.2s ease, transform 0.2s ease;
-    }
-    .status-card:hover {
-      border-color: var(--color-primary, #00d8ff);
-      transform: translateY(-2px);
-    }
-    .metric-val {
-      font-family: 'Fira Code', monospace;
-      font-size: 1.75rem;
-      font-weight: 700;
-      color: var(--text-primary, #ffffff);
-      margin-top: 0.25rem;
-    }
-    .metric-lbl {
-      font-size: 0.85rem;
-      color: var(--text-secondary, #94a3b8);
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-    }
-    .svc-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0.85rem 1rem;
-      background: rgba(255, 255, 255, 0.02);
-      border: 1px solid var(--border-color, #272a30);
-      border-radius: var(--radius-md, 8px);
-      margin-bottom: 0.75rem;
-    }
-    .badge-ok {
-      background: rgba(0, 255, 136, 0.1);
-      color: #00ff88;
-      border: 1px solid rgba(0, 255, 136, 0.3);
-      padding: 0.25rem 0.65rem;
-      border-radius: 20px;
-      font-size: 0.8rem;
-      font-weight: 600;
-      display: inline-flex;
-      align-items: center;
-    }
-    .ping-bar-container {
-      display: flex;
-      align-items: flex-end;
-      gap: 4px;
-      height: 48px;
-      margin-top: 1rem;
-      padding-top: 8px;
-      border-bottom: 1px solid var(--border-color, #272a30);
-    }
-    .ping-bar {
-      flex: 1;
-      background: var(--color-primary, #00d8ff);
-      border-radius: 2px 2px 0 0;
-      transition: height 0.3s ease, background-color 0.3s ease;
-      min-height: 4px;
-    }
-    .code-box {
-      background: #0d0f12;
-      border: 1px solid var(--border-color, #272a30);
-      border-radius: 8px;
-      padding: 0.75rem 1rem;
-      font-family: 'Fira Code', monospace;
-      font-size: 0.85rem;
-      color: #00d8ff;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-top: 0.5rem;
-    }
-    .copy-btn {
-      background: transparent;
-      border: 1px solid var(--border-color, #272a30);
-      color: var(--text-secondary, #94a3b8);
-      padding: 0.25rem 0.5rem;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 0.75rem;
-      transition: all 0.2s;
-    }
-    .copy-btn:hover {
-      color: #fff;
-      border-color: var(--color-primary, #00d8ff);
-    }
+    .health-shell { padding:clamp(2.25rem,5vw,4.5rem) 0; }
+    .health-head { display:flex; align-items:end; justify-content:space-between; gap:1.5rem; margin-bottom:1.75rem; }
+    .health-title { max-width:700px; font-size:clamp(1.8rem,5vw,3.4rem); line-height:1.04; letter-spacing:-.06em; }
+    .health-subtitle { max-width:62ch; color:var(--muted); margin-top:.85rem; }
+    .live-badge { display:inline-flex; align-items:center; gap:.55rem; width:max-content; padding:.38rem .7rem; margin-bottom:.9rem; border:1px solid color-mix(in srgb,var(--success) 45%,transparent); border-radius:999px; color:var(--success); background:color-mix(in srgb,var(--success) 9%,transparent); font:500 .72rem 'IBM Plex Mono',monospace; letter-spacing:.06em; }
+    .live-dot { width:.52rem; height:.52rem; border-radius:50%; background:currentColor; box-shadow:0 0 0 5px color-mix(in srgb,currentColor 15%,transparent); }
+    .health-actions { display:flex; gap:.65rem; flex-wrap:wrap; }
+    .metric-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:1rem; }
+    .metric { min-height:150px; display:flex; flex-direction:column; justify-content:space-between; }
+    .metric-label { color:var(--muted); font:500 .72rem 'IBM Plex Mono',monospace; text-transform:uppercase; letter-spacing:.08em; }
+    .metric-value { overflow-wrap:anywhere; font:600 clamp(1.35rem,3vw,2.1rem)/1.1 'IBM Plex Mono',monospace; letter-spacing:-.06em; }
+    .metric-detail { color:var(--muted); font-size:.8rem; }
+    .telemetry-grid { display:grid; grid-template-columns:minmax(0,1.5fr) minmax(260px,.9fr); gap:1rem; margin-top:1rem; }
+    .telemetry-card { min-height:245px; }
+    .telemetry-top { display:flex; justify-content:space-between; align-items:start; gap:1rem; }
+    .telemetry-top h2,.service-title { font-size:1rem; }
+    .telemetry-summary { color:var(--accent); text-align:right; font:500 .74rem 'IBM Plex Mono',monospace; }
+    .chart { display:grid; grid-template-columns:repeat(20,1fr); align-items:end; gap:.32rem; height:135px; margin-top:1rem; border-bottom:1px solid var(--border); }
+    .bar { min-height:7px; border-radius:3px 3px 0 0; background:var(--accent); opacity:.9; transition:height .35s cubic-bezier(.2,.8,.2,1),background-color .2s ease; }
+    .service-list { display:grid; gap:.55rem; margin-top:1rem; }
+    .service { display:flex; justify-content:space-between; gap:1rem; padding:.72rem 0; border-bottom:1px solid var(--border); }
+    .service:last-child { border:0; }
+    .service-name { display:block; font:500 .78rem 'IBM Plex Mono',monospace; }
+    .service-path { display:block; color:var(--muted); font:.72rem 'IBM Plex Mono',monospace; margin-top:.18rem; overflow-wrap:anywhere; }
+    .service-state { color:var(--success); font:500 .71rem 'IBM Plex Mono',monospace; white-space:nowrap; }
+    .endpoints { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:1rem; margin-top:1rem; }
+    .endpoint { display:flex; gap:.75rem; align-items:center; justify-content:space-between; min-width:0; }
+    .endpoint-text { min-width:0; } .endpoint-label { display:block; color:var(--muted); font:500 .69rem 'IBM Plex Mono',monospace; text-transform:uppercase; letter-spacing:.06em; } .endpoint-url { display:block; margin-top:.35rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--text); font:500 .76rem 'IBM Plex Mono',monospace; }
+    @media (max-width:850px) { .metric-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } .telemetry-grid { grid-template-columns:1fr; } }
+    @media (max-width:560px) { .health-head { align-items:start; flex-direction:column; } .metric-grid,.endpoints { grid-template-columns:1fr; } .metric { min-height:125px; } .telemetry-top { flex-direction:column; } .telemetry-summary { text-align:left; } }
   </style>
 </head>
-<body class="site-wrapper">
-  <!-- Header Navbar -->
-  <header class="header">
-    <div class="container header-container">
-      <a href="https://pokedb.site" class="logo-group" data-nav="main">
-        <span class="logo-icon">⚡</span>
-        <span class="logo-text">pokedb.site</span>
-      </a>
-      <nav class="nav-links">
-        <a href="https://tools.pokedb.site" class="nav-link" data-nav="tools">Tools Hub</a>
-        <a href="https://tinyurl.pokedb.site" class="nav-link" data-nav="tinyurl">TinyURL</a>
-        <a href="https://qr.pokedb.site" class="nav-link" data-nav="qr">QR Studio</a>
-        <a href="https://drop.pokedb.site" class="nav-link" data-nav="drop">Drop</a>
-        <a href="https://health.pokedb.site" class="nav-link active" data-nav="health">Health</a>
-      </nav>
-      <div class="theme-select-wrapper">
-        <select id="theme-select" class="theme-select" aria-label="Select Color Theme">
-          <option value="oled-black">OLED Black</option>
-          <option value="cyberpunk-neon">Cyberpunk Neon</option>
-          <option value="dracula-purple">Dracula Purple</option>
-          <option value="monokai-pro">Monokai Pro</option>
-          <option value="nord-dark">Nord Dark</option>
-          <option value="clean-light">Clean Light</option>
-        </select>
-      </div>
-    </div>
+<body>
+  <header class="site-nav">
+    <a class="logo" href="/" data-nav="main">root<span>@</span>pokedb</a>
+    <nav class="nav-links" aria-label="Tools navigation">
+      <a class="nav-link" href="/tools/" data-nav="tools">Tools hub</a>
+      <a class="nav-link" href="/tools/tinyurl/" data-nav="tinyurl">TinyURL</a>
+      <a class="nav-link" href="/tools/qr/" data-nav="qr">QR studio</a>
+      <a class="nav-link" href="/tools/drop/" data-nav="drop">Drop</a>
+      <a class="nav-link active" href="/tools/health/" data-nav="health">Health</a>
+    </nav>
+    <div class="theme-switcher"><span class="theme-swatch" id="theme-swatch"></span><select id="theme-select" aria-label="Choose a theme"><option value="oled-black">OLED — Pitch Indigo</option><option value="matrix">Matrix — Phosphor Green</option><option value="cyberpunk">Cyberpunk — Neon Cyan</option><option value="synthwave">Synthwave — 80s Magenta</option><option value="nordic-ice">Nordic — Glacier Blue</option><option value="paper">Paper — Editorial Light</option></select></div>
   </header>
-
-  <!-- Hero Section -->
-  <main class="main-content">
-    <div class="container" style="max-width: 960px; padding-top: 2rem; padding-bottom: 4rem;">
-      <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; margin-bottom: 2rem;">
-        <div>
-          <div style="display: inline-flex; align-items: center; background: rgba(0, 255, 136, 0.08); border: 1px solid rgba(0, 255, 136, 0.2); padding: 0.35rem 0.85rem; border-radius: 20px; font-size: 0.85rem; font-weight: 600; color: #00ff88; margin-bottom: 0.75rem;">
-            <span class="status-pulse"></span>
-            <span id="system-status-title">ALL SYSTEMS OPERATIONAL</span>
-          </div>
-          <h1 style="font-size: 2.25rem; font-weight: 700; margin: 0; letter-spacing: -0.02em;">System Health & Telemetry</h1>
-          <p style="color: var(--text-secondary, #94a3b8); margin-top: 0.5rem;">Live uptime, latency metrics, and API health status for pokedb.site infrastructure.</p>
-        </div>
-        <div>
-          <button id="refresh-btn" class="btn btn-primary" onclick="runDiagnostics()">
-            🔄 Run Diagnostics
-          </button>
-        </div>
+  <main class="container health-shell">
+    <section class="health-head" aria-labelledby="health-title">
+      <div>
+        <div class="live-badge" id="system-badge"><span class="live-dot"></span><span id="system-status-title">Checking system health</span></div>
+        <h1 class="health-title" id="health-title">Service health, without the guesswork.</h1>
+        <p class="health-subtitle">A live view of the pokedb.site API, tool services, and the storage gateway. Metrics refresh automatically every five seconds.</p>
       </div>
-
-      <!-- Top Metric Cards -->
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
-        <div class="status-card">
-          <div class="metric-lbl">API Latency</div>
-          <div class="metric-val" id="metric-ping">-- ms</div>
-          <div style="font-size: 0.75rem; color: #00ff88; margin-top: 0.25rem;">🟢 Responsive</div>
-        </div>
-        <div class="status-card">
-          <div class="metric-lbl">System Uptime</div>
-          <div class="metric-val" id="metric-uptime">--</div>
-          <div style="font-size: 0.75rem; color: var(--text-secondary, #94a3b8); margin-top: 0.25rem;">Node process uptime</div>
-        </div>
-        <div class="status-card">
-          <div class="metric-lbl">Memory Usage</div>
-          <div class="metric-val" id="metric-memory">-- MB</div>
-          <div style="font-size: 0.75rem; color: var(--text-secondary, #94a3b8); margin-top: 0.25rem;">RAM RSS Memory</div>
-        </div>
-        <div class="status-card">
-          <div class="metric-lbl">Storage Engine</div>
-          <div class="metric-val" id="metric-store" style="font-size: 1.2rem; margin-top: 0.55rem;">--</div>
-          <div style="font-size: 0.75rem; color: var(--text-secondary, #94a3b8); margin-top: 0.25rem;" id="metric-records">0 active records</div>
-        </div>
-      </div>
-
-      <!-- Live Latency Monitor Histogram -->
-      <div class="status-card" style="margin-bottom: 2rem;">
-        <div style="display: flex; align-items: center; justify-content: space-between;">
-          <div>
-            <h3 style="font-size: 1.1rem; font-weight: 600; margin: 0;">Live Response Latency (ms)</h3>
-            <p style="font-size: 0.8rem; color: var(--text-secondary, #94a3b8); margin-top: 0.2rem;">Auto-pings every 5s</p>
-          </div>
-          <div style="font-family: 'Fira Code', monospace; font-size: 0.85rem; color: var(--color-primary, #00d8ff);" id="latency-summary">
-            Min: -- ms | Avg: -- ms | Max: -- ms
-          </div>
-        </div>
-        <div class="ping-bar-container" id="ping-chart">
-          <!-- Live ping bars injected here -->
-        </div>
-      </div>
-
-      <!-- Services Breakdown -->
-      <div style="margin-bottom: 2.5rem;">
-        <h2 style="font-size: 1.3rem; font-weight: 700; margin-bottom: 1rem;">Service Components</h2>
-        
-        <div class="svc-row">
-          <div>
-            <strong style="display: block;">Core API Gateway</strong>
-            <span style="font-size: 0.8rem; color: var(--text-secondary, #94a3b8);">https://pokedb.site/api/</span>
-          </div>
-          <span class="badge-ok" id="svc-api">🟢 Operational</span>
-        </div>
-
-        <div class="svc-row">
-          <div>
-            <strong style="display: block;">TinyURL Link Engine</strong>
-            <span style="font-size: 0.8rem; color: var(--text-secondary, #94a3b8);">https://tinyurl.pokedb.site</span>
-          </div>
-          <span class="badge-ok" id="svc-tinyurl">🟢 Operational</span>
-        </div>
-
-        <div class="svc-row">
-          <div>
-            <strong style="display: block;">QR Code Studio Engine</strong>
-            <span style="font-size: 0.8rem; color: var(--text-secondary, #94a3b8);">https://qr.pokedb.site</span>
-          </div>
-          <span class="badge-ok" id="svc-qr">🟢 Operational</span>
-        </div>
-
-        <div class="svc-row">
-          <div>
-            <strong style="display: block;">Drop File Vault</strong>
-            <span style="font-size: 0.8rem; color: var(--text-secondary, #94a3b8);">https://drop.pokedb.site (Rootz Storage)</span>
-          </div>
-          <span class="badge-ok" id="svc-drop">🟢 Operational</span>
-        </div>
-      </div>
-
-      <!-- Monitoring Setup Guide for UptimeRobot / Better Stack -->
-      <div class="status-card">
-        <h3 style="font-size: 1.1rem; font-weight: 600; margin-top: 0;">External Uptime Monitors Setup</h3>
-        <p style="font-size: 0.85rem; color: var(--text-secondary, #94a3b8);">Use these endpoints to set up automated monitors in <strong>UptimeRobot</strong>, <strong>Better Stack</strong>, or <strong>Datadog</strong>:</p>
-
-        <div style="margin-top: 1rem;">
-          <label style="font-size: 0.8rem; font-weight: 600; text-transform: uppercase; color: var(--text-secondary, #94a3b8);">Lightweight Ping Endpoint (HTTP 200)</label>
-          <div class="code-box">
-            <span id="endpoint-ping">https://pokedb.site/api/health/ping</span>
-            <button class="copy-btn" onclick="copyToClipboard('endpoint-ping', this)">Copy</button>
-          </div>
-        </div>
-
-        <div style="margin-top: 1rem;">
-          <label style="font-size: 0.8rem; font-weight: 600; text-transform: uppercase; color: var(--text-secondary, #94a3b8);">Full JSON Status Telemetry Endpoint</label>
-          <div class="code-box">
-            <span id="endpoint-full">https://pokedb.site/api/health</span>
-            <button class="copy-btn" onclick="copyToClipboard('endpoint-full', this)">Copy</button>
-          </div>
-        </div>
-      </div>
-    </div>
+      <div class="health-actions"><button class="btn btn-solid" id="refresh-btn" type="button">Run diagnostics</button></div>
+    </section>
+    <section class="metric-grid" aria-label="System metrics">
+      <article class="status-card metric"><span class="metric-label">API latency</span><strong class="metric-value" id="metric-ping">—</strong><span class="metric-detail" id="metric-ping-detail">Waiting for response</span></article>
+      <article class="status-card metric"><span class="metric-label">Process uptime</span><strong class="metric-value" id="metric-uptime">—</strong><span class="metric-detail">Node service uptime</span></article>
+      <article class="status-card metric"><span class="metric-label">Memory RSS</span><strong class="metric-value" id="metric-memory">—</strong><span class="metric-detail">Active process footprint</span></article>
+      <article class="status-card metric"><span class="metric-label">Data store</span><strong class="metric-value" id="metric-store">—</strong><span class="metric-detail" id="metric-records">Waiting for telemetry</span></article>
+    </section>
+    <section class="telemetry-grid" aria-label="Live telemetry">
+      <article class="status-card telemetry-card"><div class="telemetry-top"><div><h2>Response trace</h2><p class="metric-detail">Last 20 API checks</p></div><span class="telemetry-summary" id="latency-summary">Min — · Avg — · Max —</span></div><div class="chart" id="ping-chart" aria-label="Latency history"></div></article>
+      <article class="status-card telemetry-card"><h2 class="service-title">Service components</h2><div class="service-list" id="service-list"></div></article>
+    </section>
+    <section class="endpoints" aria-label="Monitor endpoints">
+      <article class="status-card endpoint"><div class="endpoint-text"><span class="endpoint-label">Lightweight ping</span><code class="endpoint-url" id="endpoint-ping">/api/health/ping</code></div><button class="btn" type="button" data-copy="endpoint-ping">Copy</button></article>
+      <article class="status-card endpoint"><div class="endpoint-text"><span class="endpoint-label">Full telemetry</span><code class="endpoint-url" id="endpoint-full">/api/health</code></div><button class="btn" type="button" data-copy="endpoint-full">Copy</button></article>
+    </section>
   </main>
-
-  <!-- Footer -->
-  <footer class="footer">
-    <div class="container footer-container">
-      <p>&copy; 2026 pokedb.site. All systems operational.</p>
-    </div>
-  </footer>
-
-  <script src="/shared/theme-switcher.js"></script>
-  <script>
-    const pingHistory = [];
-    const maxHistory = 20;
-
-    async function fetchTelemetry() {
-      const startTime = performance.now();
-      try {
-        const res = await fetch('/api/health');
-        const duration = Math.round(performance.now() - startTime);
-
-        if (!res.ok) throw new Error('Health check failed');
-        const data = await res.json();
-
-        // Update metrics
-        document.getElementById('metric-ping').textContent = `${duration} ms`;
-        document.getElementById('metric-uptime').textContent = data.uptimeFormatted || `${data.uptimeSeconds}s`;
-        document.getElementById('metric-memory').textContent = `${data.memoryUsageMB} MB`;
-        document.getElementById('metric-store').textContent = data.storeMode || 'Online';
-        document.getElementById('metric-records').textContent = `${data.recordsCount || 0} active records`;
-
-        // Update ping history chart
-        addPingBar(duration);
-      } catch (err) {
-        document.getElementById('system-status-title').textContent = 'DEGRADED PERFORMANCE';
-        document.getElementById('system-status-title').style.color = '#ffaa00';
-        addPingBar(150, true);
-      }
-    }
-
-    function addPingBar(ms, isError = false) {
-      pingHistory.push({ ms, isError });
-      if (pingHistory.length > maxHistory) pingHistory.shift();
-
-      const container = document.getElementById('ping-chart');
-      container.innerHTML = '';
-
-      const validPings = pingHistory.map(p => p.ms);
-      const min = Math.min(...validPings);
-      const max = Math.max(...validPings);
-      const avg = Math.round(validPings.reduce((a, b) => a + b, 0) / validPings.length);
-
-      document.getElementById('latency-summary').textContent = `Min: ${min} ms | Avg: ${avg} ms | Max: ${max} ms`;
-
-      pingHistory.forEach(p => {
-        const bar = document.createElement('div');
-        bar.className = 'ping-bar';
-        const heightPct = Math.min(100, Math.max(15, (p.ms / Math.max(100, max)) * 100));
-        bar.style.height = `${heightPct}%`;
-        bar.title = `${p.ms} ms`;
-        if (p.isError) bar.style.backgroundColor = '#ff5555';
-        else if (p.ms > 100) bar.style.backgroundColor = '#ffaa00';
-        container.appendChild(bar);
-      });
-    }
-
-    function runDiagnostics() {
-      const btn = document.getElementById('refresh-btn');
-      btn.textContent = '🔄 Testing...';
-      btn.disabled = true;
-      fetchTelemetry().finally(() => {
-        btn.textContent = '🔄 Run Diagnostics';
-        btn.disabled = false;
-      });
-    }
-
-    function copyToClipboard(elementId, btn) {
-      const text = document.getElementById(elementId).textContent;
-      navigator.clipboard.writeText(text).then(() => {
-        const orig = btn.textContent;
-        btn.textContent = 'Copied!';
-        setTimeout(() => btn.textContent = orig, 2000);
-      });
-    }
-
-    // Auto-refresh telemetry every 5 seconds
-    fetchTelemetry();
-    setInterval(fetchTelemetry, 5000);
-  </script>
+  <footer><div class="footer-inner"><span>© 2026 pokedb.site</span><span id="health-last-updated">Telemetry initializing</span></div></footer>
+  <script src="./app.js"></script>
 </body>
 </html>
