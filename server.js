@@ -223,7 +223,7 @@ const dynamicToolHandlers = {};
 // Helper middleware to validate API host access per subdomain
 const checkApiHost = (allowedHosts) => {
   return (req, res, next) => {
-    const rawHost = req.headers.host || req.get('host') || '';
+    const rawHost = (req.headers['x-forwarded-host'] || req.headers.host || req.get('host') || '').split(',')[0].trim();
     const host = rawHost.split(':')[0].toLowerCase();
 
     if (['localhost', '127.0.0.1', '::1'].includes(host) || process.env.NODE_ENV === 'test') {
@@ -246,7 +246,7 @@ const checkApiHost = (allowedHosts) => {
 // Internal file serving only, NO 301/302 redirects.
 // ============================================================
 app.use((req, res, next) => {
-  const rawHost = req.headers.host || req.get('host') || '';
+  const rawHost = (req.headers['x-forwarded-host'] || req.headers.host || req.get('host') || '').split(',')[0].trim();
   const host = rawHost.split(':')[0].toLowerCase();
 
   // Allow API endpoints and health checks to pass through directly
