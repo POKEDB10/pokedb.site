@@ -734,7 +734,10 @@ const handleQrGeneration = async (req, res) => {
     const light = req.body?.light || req.query?.light || '#ffffff';
 
     const options = {
-      margin: 1,
+      // A generous quiet zone and high error correction are essential when the
+      // image is printed, resized, or has a centred logo overlay.
+      margin: 4,
+      errorCorrectionLevel: 'H',
       color: {
         dark: dark,
         light: light === 'transparent' ? '#ffffff00' : light
@@ -750,7 +753,7 @@ const handleQrGeneration = async (req, res) => {
       return res.send(svg);
     }
 
-    const dataUrl = await QRCodeServer.toDataURL(text, { ...options, width: 400 });
+    const dataUrl = await QRCodeServer.toDataURL(text, { ...options, width: 512 });
 
     if (format === 'png') {
       const base64Data = dataUrl.replace(/^data:image\/png;base64,/, '');
@@ -803,6 +806,14 @@ const ROOTZ_TIMEOUT_MS = Number.isFinite(configuredRootzTimeout) && configuredRo
   ? Math.min(configuredRootzTimeout, 3600000)
   : 1200000;
 const ONE_GB = 1073741824; // 1 GB limit in bytes
+
+app.get('/api/drop/status', (req, res) => {
+  const defaultFolder = process.env.ROOTZ_FOLDER_ID || CONFIG.ROOTZ_FOLDER_ID || process.env.ROOTZ_FOLDER_NAME || CONFIG.ROOTZ_FOLDER_NAME || '';
+  return res.status(200).json({
+    storageConfigured: Boolean(SERVER_ROOTZ_KEY),
+    defaultFolderConfigured: Boolean(defaultFolder)
+  });
+});
 
 const verifyLargeFilePassword = (req, fileSize) => {
   if (!fileSize || fileSize <= ONE_GB) return true;
@@ -940,7 +951,10 @@ app.post('/api/drop/upload', uploadLimiter, uploadMulter.single('file'), async (
     }
 
     if (!rootzRes.ok) {
-      return res.status(rootzRes.status).json(rootzData);
+      return res.status(rootzRes.status).json({
+        error: rootzData?.error || rootzData?.message || 'Rootz rejected the upload request.',
+        providerStatus: rootzRes.status
+      });
     }
 
     // Return unified file metadata
@@ -1032,7 +1046,11 @@ app.post('/api/drop/remote-upload', uploadLimiter, async (req, res) => {
 
     const rootzData = await rootzRes.json();
     if (!rootzRes.ok) {
-      return res.status(rootzRes.status).json(rootzData);
+      return res.status(rootzRes.status).json({
+        success: false,
+        error: rootzData?.error || rootzData?.message || 'Rootz rejected the remote upload request.',
+        providerStatus: rootzRes.status
+      });
     }
 
     if (rootzData && rootzData.data) {

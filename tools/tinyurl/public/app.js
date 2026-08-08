@@ -1,22 +1,18 @@
 (function () {
   var activeShortUrl = '';
 
-  async function renderQrImage(containerId, text) {
+  function renderQrImage(containerId, text) {
     var container = document.getElementById(containerId);
     if (!container || !text) return;
 
     var image = document.createElement('img');
     image.style.cssText = 'width:160px; height:160px; display:block;';
     image.alt = 'QR code for shortened URL';
-    try {
-      var response = await fetch('/api/qr?format=png&text=' + encodeURIComponent(text), { cache: 'no-store' });
-      if (!response.ok) throw new Error('QR generation failed');
-      var objectUrl = URL.createObjectURL(await response.blob());
-      image.onload = function () { URL.revokeObjectURL(objectUrl); };
-      image.src = objectUrl;
-    } catch (error) {
-      image.alt = 'QR code could not be generated.';
-    }
+    image.onerror = function () {
+      image.alt = 'QR code could not be generated. Please use the PNG download instead.';
+      image.style.opacity = '.35';
+    };
+    image.src = '/api/qr?format=png&text=' + encodeURIComponent(text) + '&t=' + Date.now();
     container.replaceChildren(image);
   }
 

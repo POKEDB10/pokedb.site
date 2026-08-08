@@ -3,6 +3,7 @@
   var ONE_GB = 1073741824;
   var queue = [];
   var activeUpload = null;
+  var starting = false;
   var paused = false;
   var pendingLargeItem = null;
   var currentResultData = null;
@@ -18,7 +19,7 @@
 
   function updateControls() {
     var hasPending = queue.some(function (item) { return item.status === 'ready' || item.status === 'paused' || item.status === 'failed'; });
-    element('start-upload-btn').disabled = !hasPending || Boolean(activeUpload);
+    element('start-upload-btn').disabled = !hasPending || Boolean(activeUpload) || starting;
     element('pause-upload-btn').disabled = !activeUpload && !paused;
     element('pause-upload-btn').textContent = paused ? 'Resume queue' : 'Pause queue';
     element('cancel-upload-btn').disabled = !activeUpload && !hasPending;
@@ -76,8 +77,28 @@
 
   function nextItem() { return queue.find(function (item) { return item.status === 'ready' || item.status === 'paused' || item.status === 'failed'; }); }
 
-  function beginQueue() {
-    if (activeUpload) return;
+  async function beginQueue() {
+    if (activeUpload || starting) return;
+    starting = true;
+    updateControls();
+    try {
+      var statusResponse = await fetch('/api/drop/status', { cache: 'no-store' });
+      var status = await statusResponse.json();
+      if (!status.storageConfigured) {
+        showNotice('Uploads are disabled: set ROOTZ_API_KEY in Render first.');
+        return;
+      }
+      if (!status.defaultFolderConfigured) {
+        showNotice('Uploads are disabled: set ROOTZ_FOLDER_ID=YkGAJ in Render first.');
+        return;
+      }
+    } catch (error) {
+      showNotice('Could not verify the upload service. Please refresh and try again.');
+      return;
+    } finally {
+      starting = false;
+      updateControls();
+    }
     paused = false;
     var item = nextItem();
     if (!item) { hideProgress(); updateControls(); return; }

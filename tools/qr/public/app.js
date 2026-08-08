@@ -126,7 +126,9 @@
         }
 
         // Center protective background frame
-        var padSize = 148;
+        // Keep the obstruction well below the high-ECC recovery budget. The
+        // former 25% badge overlapped too many data modules to scan reliably.
+        var padSize = 88;
         var px = 300 - padSize / 2;
         var py = 300 - padSize / 2;
 
@@ -134,13 +136,13 @@
           // 1) OUR P10 LOGO
           ctx.fillStyle = '#14151C';
           ctx.strokeStyle = opts.dark === '#000000' ? '#6366F1' : opts.dark;
-          ctx.lineWidth = 5;
-          drawRoundedRect(ctx, px, py, padSize, padSize, 22);
+          ctx.lineWidth = 3;
+          drawRoundedRect(ctx, px, py, padSize, padSize, 14);
           ctx.fill();
           ctx.stroke();
 
           // Text P10
-          ctx.font = '700 52px "IBM Plex Mono", monospace';
+          ctx.font = '700 30px "IBM Plex Mono", monospace';
           ctx.fillStyle = '#ECE7DA';
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
@@ -150,13 +152,13 @@
           // 2) ANY EMOJI
           ctx.fillStyle = opts.light && opts.light !== 'transparent' ? opts.light : '#ffffff';
           ctx.strokeStyle = opts.dark;
-          ctx.lineWidth = 4;
-          drawRoundedRect(ctx, px, py, padSize, padSize, 20);
+          ctx.lineWidth = 3;
+          drawRoundedRect(ctx, px, py, padSize, padSize, 14);
           ctx.fill();
           ctx.stroke();
 
           var emojiText = document.getElementById('emoji-input').value.trim() || '⚡';
-          ctx.font = '58px sans-serif, "Apple Color Emoji", "Segoe UI Emoji"';
+          ctx.font = '40px sans-serif, "Apple Color Emoji", "Segoe UI Emoji"';
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
           ctx.fillText(emojiText, 300, 305);
@@ -165,20 +167,20 @@
           // 3) CUSTOM PICTURE UPLOAD
           ctx.fillStyle = opts.light && opts.light !== 'transparent' ? opts.light : '#ffffff';
           ctx.strokeStyle = opts.dark;
-          ctx.lineWidth = 4;
-          drawRoundedRect(ctx, px, py, padSize, padSize, 20);
+          ctx.lineWidth = 3;
+          drawRoundedRect(ctx, px, py, padSize, padSize, 14);
           ctx.fill();
           ctx.stroke();
 
           var logoImg = new Image();
           logoImg.onload = function () {
-            var logoSize = 120;
+            var logoSize = 70;
             var lx = 300 - logoSize / 2;
             var ly = 300 - logoSize / 2;
 
             // Clip image to rounded rectangle inside box
             ctx.save();
-            drawRoundedRect(ctx, lx, ly, logoSize, logoSize, 14);
+            drawRoundedRect(ctx, lx, ly, logoSize, logoSize, 10);
             ctx.clip();
             ctx.drawImage(logoImg, lx, ly, logoSize, logoSize);
             ctx.restore();
