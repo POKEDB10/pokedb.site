@@ -87,7 +87,7 @@
 }
 
 /* Hidden File Input */
-#file-input { display: none; }
+#file-input, #folder-input { display: none; }
 
 .form-group {
   display: flex;
@@ -187,6 +187,13 @@ input:focus {
   border: 1px solid var(--accent);
 }
 .drop-notice { display:none; margin-top:1rem; padding:.75rem .9rem; border:1px solid var(--danger); border-radius:7px; color:var(--danger); background:color-mix(in srgb,var(--danger) 8%,transparent); font:.78rem 'IBM Plex Mono',monospace; }
+.queue-list { display:grid; gap:.55rem; margin-top:1rem; }
+.queue-item { display:grid; grid-template-columns:auto minmax(0,1fr) auto; align-items:center; gap:.75rem; padding:.75rem; border:1px solid var(--border); border-radius:8px; background:var(--bg); }
+.queue-name { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font:500 .82rem 'IBM Plex Mono',monospace; }
+.queue-meta { display:block; color:var(--muted); font:.7rem 'IBM Plex Mono',monospace; margin-top:.15rem; }
+.queue-status { color:var(--accent); font:500 .7rem 'IBM Plex Mono',monospace; text-transform:uppercase; }
+.upload-controls { display:flex; flex-wrap:wrap; gap:.6rem; margin-top:1rem; }
+.upload-controls .btn { flex:1 1 130px; }
 @media (max-width:560px) {
   .drop-card { padding:1rem; }
   .tab-bar { flex-wrap:wrap; }
@@ -266,11 +273,12 @@ input:focus {
         <!-- TAB 1: Direct File Upload -->
         <div id="tab-content-direct">
           <div class="drop-zone" id="drop-zone">
-            <input type="file" id="file-input">
+            <input type="file" id="file-input" multiple>
+            <input type="file" id="folder-input" webkitdirectory directory multiple>
             <div id="drop-default-prompt">
               <span class="drop-icon">📦</span>
-              <div class="drop-text">Drag & drop a file here, or click to browse</div>
-              <div class="drop-hint">Supports videos, movies, pictures, PDFs, archives, and code (Max 25GB)</div>
+              <div class="drop-text">Drop files here, or click to browse</div>
+              <div class="drop-hint">Select files or a complete folder. Nothing uploads until you press Start Upload.</div>
             </div>
             <div id="drop-file-badge" style="display:none; padding:.75rem; background:var(--surface); border:1px solid var(--accent); border-radius:8px; width:90%; margin:0 auto;">
               <div style="display:flex; align-items:center; gap:.75rem; justify-content:center;">
@@ -282,6 +290,14 @@ input:focus {
               </div>
             </div>
           </div>
+          <div class="upload-controls">
+            <button class="btn" id="choose-files-btn" type="button">Choose files</button>
+            <button class="btn" id="choose-folder-btn" type="button">Choose folder</button>
+            <button class="btn btn-solid" id="start-upload-btn" type="button" disabled>Start upload</button>
+            <button class="btn" id="pause-upload-btn" type="button" disabled>Pause queue</button>
+            <button class="btn" id="cancel-upload-btn" type="button" disabled>Cancel</button>
+          </div>
+          <div class="queue-list" id="upload-queue" aria-live="polite"></div>
           <div class="form-group" style="margin-top: 1.25rem;">
             <label for="expires-in-select">Link Expiration Period</label>
             <select id="expires-in-select" style="font-family:'IBM Plex Mono',monospace; padding:.65rem; background:var(--bg); color:var(--text); border:1px solid var(--border); border-radius:6px; width:100%;">
@@ -290,6 +306,10 @@ input:focus {
               <option value="1">1 Day (24 Hours)</option>
               <option value="0">Never (Permanent)</option>
             </select>
+          </div>
+          <div class="form-group">
+            <label for="target-folder-id">Destination Folder ID (optional)</label>
+            <input type="text" id="target-folder-id" placeholder="Existing Rootz folder ID — keeps this upload grouped">
           </div>
         </div>
 
@@ -310,6 +330,10 @@ input:focus {
 
         <!-- TAB 3: Account Files Manager & Telemetry -->
         <div id="tab-content-manager" style="display:none;">
+          <div class="form-row">
+            <div class="form-group"><label for="manager-token-input">Admin token</label><input id="manager-token-input" type="password" autocomplete="off" placeholder="Required to list your Rootz files"></div>
+            <div class="form-group"><label for="manager-folder-id">Folder ID filter</label><input id="manager-folder-id" type="text" placeholder="Leave empty for all files"></div>
+          </div>
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 1rem;">
             <span class="eyebrow">$ rootz --list-files</span>
             <button class="btn" id="refresh-files-btn" style="font-size:.8rem;">🔄 Refresh List</button>

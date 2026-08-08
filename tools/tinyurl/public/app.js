@@ -1,15 +1,48 @@
 (function () {
   var activeShortUrl = '';
 
-  function renderQrImage(containerId, text) {
+  async function renderQrImage(containerId, text) {
     var container = document.getElementById(containerId);
     if (!container || !text) return;
 
     var image = document.createElement('img');
-    image.src = '/api/qr?format=svg&text=' + encodeURIComponent(text);
     image.style.cssText = 'width:160px; height:160px; display:block;';
     image.alt = 'QR code for shortened URL';
+    try {
+      var response = await fetch('/api/qr?format=png&text=' + encodeURIComponent(text), { cache: 'no-store' });
+      if (!response.ok) throw new Error('QR generation failed');
+      var objectUrl = URL.createObjectURL(await response.blob());
+      image.onload = function () { URL.revokeObjectURL(objectUrl); };
+      image.src = objectUrl;
+    } catch (error) {
+      image.alt = 'QR code could not be generated.';
+    }
     container.replaceChildren(image);
+  }
+
+  function renderSuggestions(suggestions, aliasInput) {
+    var container = document.getElementById('alias-suggestions');
+    container.replaceChildren();
+    if (!suggestions || !suggestions.length) {
+      container.style.display = 'none';
+      return;
+    }
+    var label = document.createElement('span');
+    label.textContent = 'Try one of these available aliases:';
+    container.appendChild(label);
+    suggestions.forEach(function (suggestion) {
+      var button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'alias-suggestion';
+      button.textContent = suggestion;
+      button.addEventListener('click', function () {
+        aliasInput.value = suggestion;
+        container.style.display = 'none';
+        aliasInput.focus();
+      });
+      container.appendChild(button);
+    });
+    container.style.display = 'flex';
   }
 
   document.addEventListener('DOMContentLoaded', function () {
@@ -32,6 +65,7 @@
       e.preventDefault();
       errorEl.style.display = 'none';
       errorEl.textContent = '';
+      renderSuggestions([], customAliasInput);
 
       var payload = {
         url: longUrlInput.value.trim(),
@@ -51,6 +85,7 @@
         if (!res.ok) {
           errorEl.textContent = data.error || 'Failed to shorten URL.';
           errorEl.style.display = 'block';
+          renderSuggestions(data.suggestions, customAliasInput);
           return;
         }
 
@@ -79,6 +114,10 @@
         errorEl.textContent = 'Network error. Please try again.';
         errorEl.style.display = 'block';
       }
+    });
+
+    customAliasInput.addEventListener('input', function () {
+      renderSuggestions([], customAliasInput);
     });
 
     // Copy to clipboard

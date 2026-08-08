@@ -704,7 +704,15 @@ app.post('/api/shorten', shortenLimiter, checkApiHost(['tinyurl.pokedb.site']), 
     }
 
     if (!result) {
-      return res.status(409).json({ error: 'Alias is already taken.' });
+      const suggestions = [];
+      for (let suffixNumber = 2; suffixNumber <= 50 && suggestions.length < 3; suffixNumber += 1) {
+        const suffix = `-${suffixNumber}`;
+        const candidate = `${code.slice(0, 30 - suffix.length)}${suffix}`;
+        if (!RESERVED_BLOCKLIST.has(candidate.toLowerCase()) && !(await redis.get(`url:${candidate}`))) {
+          suggestions.push(candidate);
+        }
+      }
+      return res.status(409).json({ error: 'Alias is already taken.', suggestions });
     }
 
     await redis.set(`${redisKey}:clicks`, '0', ttlSeconds ? { ex: ttlSeconds } : {});
@@ -761,11 +769,16 @@ const handleQrGeneration = async (req, res) => {
   }
 };
 
-app.get('/api/qr', checkApiHost(['qr.pokedb.site']), handleQrGeneration);
-app.post('/api/qr', checkApiHost(['qr.pokedb.site']), handleQrGeneration);
+// QR output contains no account data and is deliberately shared by TinyURL,
+// QR Studio, and Drop. Keeping it host-neutral prevents reverse-proxy host
+// rewrites from intermittently breaking <img> previews and exports.
+app.get('/api/qr', handleQrGeneration);
+app.post('/api/qr', handleQrGeneration);
 
 // Enforce subdomain access control on all /api/drop endpoints
-app.use('/api/drop', checkApiHost(['drop.pokedb.site']));
+// Drop endpoints are protected by per-upload deletion tokens and the admin
+// token where applicable. Do not couple media playback or uploads to a proxy
+// host header, which can vary between Render edge requests.
 
 // ============================================================
 // DROP FILE STORAGE TOOL API (/api/drop)
@@ -942,6 +955,7 @@ app.post('/api/drop/upload', uploadLimiter, uploadMulter.single('file'), async (
       downloads: 0,
       createdAt: new Date().toISOString(),
       expiresAt: resultObj.expires_at || resultObj.expiresAt || null,
+      relativePath: req.body.relativePath || req.file.originalname,
       deletionToken: nanoid(32)
     };
 
@@ -960,6 +974,7 @@ app.post('/api/drop/upload', uploadLimiter, uploadMulter.single('file'), async (
       expiresAt: dropRecord.expiresAt,
       provider: 'rootz',
       createdAt: dropRecord.createdAt,
+      relativePath: dropRecord.relativePath,
       deletionToken: dropRecord.deletionToken
     });
   } catch (err) {
@@ -1189,7 +1204,7 @@ app.get('/api/drop/info', async (req, res) => {
 // 6. Direct Rootz Raw Binary File & Stream Proxy (Handles JSON URLs, Redirects, & Binary Streams)
 app.get(['/api/drop/file/:filename', '/api/drop/stream/:filename'], async (req, res) => {
   try {
-    const fileCode = req.params.filename.split('-')[0];
+    const fileCode = req.params.filename;
     const rootzUrl = `https://rootz.so/api/files/retrieve?file_code=${encodeURIComponent(fileCode)}`;
 
     const headers = {};
@@ -1251,7 +1266,7 @@ app.get(['/api/drop/file/:filename', '/api/drop/stream/:filename'], async (req, 
     return undefined;
   } catch (err) {
     console.error('Error streaming file from Rootz:', err);
-    return res.redirect(302, `https://rootz.so/d/${encodeURIComponent(req.params.filename.split('-')[0])}`);
+    return res.redirect(302, `https://rootz.so/d/${encodeURIComponent(req.params.filename)}`);
   }
 });
 

@@ -1,452 +1,230 @@
 (function () {
-  var activeTab = 'direct';
-  var pendingFile = null;
+  'use strict';
+  var ONE_GB = 1073741824;
+  var queue = [];
+  var activeUpload = null;
+  var paused = false;
+  var pendingLargeItem = null;
   var currentResultData = null;
-
-  var ONE_GB = 1073741824; // 1 GB in bytes
+  var activeTab = 'direct';
   var formatBytes = window.PokeDbUtils.formatBytes;
   var getFileIcon = window.PokeDbUtils.getFileIcon;
 
-  function showNotice(message) {
-    var notice = document.getElementById('drop-notice');
-    if (!notice) return;
-    notice.textContent = message;
-    notice.style.display = 'block';
+  function element(id) { return document.getElementById(id); }
+  function showNotice(message) { element('drop-notice').textContent = message; element('drop-notice').style.display = 'block'; }
+  function clearNotice() { element('drop-notice').style.display = 'none'; }
+  function setProgress(percent, text) { element('progress-container').style.display = 'block'; element('progress-bar-fill').style.width = Math.max(0, Math.min(100, percent)) + '%'; element('progress-status-text').textContent = text; element('progress-percent-text').textContent = Math.round(percent) + '%'; }
+  function hideProgress() { element('progress-container').style.display = 'none'; }
+
+  function updateControls() {
+    var hasPending = queue.some(function (item) { return item.status === 'ready' || item.status === 'paused' || item.status === 'failed'; });
+    element('start-upload-btn').disabled = !hasPending || Boolean(activeUpload);
+    element('pause-upload-btn').disabled = !activeUpload && !paused;
+    element('pause-upload-btn').textContent = paused ? 'Resume queue' : 'Pause queue';
+    element('cancel-upload-btn').disabled = !activeUpload && !hasPending;
   }
 
-  function clearNotice() {
-    var notice = document.getElementById('drop-notice');
-    if (notice) notice.style.display = 'none';
-  }
-
-  function showProgress(percent, text) {
-    var container = document.getElementById('progress-container');
-    var fill = document.getElementById('progress-bar-fill');
-    var textEl = document.getElementById('progress-status-text');
-    var percentEl = document.getElementById('progress-percent-text');
-
-    container.style.display = 'block';
-    fill.style.width = Math.min(100, Math.max(0, percent)) + '%';
-    if (text) textEl.textContent = text;
-    percentEl.textContent = Math.round(percent) + '%';
-  }
-
-  function hideProgress() {
-    document.getElementById('progress-container').style.display = 'none';
-  }
-
-  function displayResult(result) {
-    hideProgress();
-    currentResultData = result;
-
-    var badgeMeta = document.getElementById('badge-meta');
-    if (badgeMeta) {
-      badgeMeta.textContent = formatBytes(result.size) + ' · Upload Complete ✓';
-      badgeMeta.style.color = 'var(--accent)';
-    }
-
-    var card = document.getElementById('result-card');
-    card.style.display = 'block';
-
-    document.getElementById('res-file-icon').textContent = getFileIcon(result.name);
-    document.getElementById('res-file-name').textContent = result.name || 'Uploaded File';
-    document.getElementById('res-file-size').textContent = formatBytes(result.size);
-
-    var downloadsCount = result.downloads || result.download_count || 0;
-    document.getElementById('res-downloads-tag').textContent = '👁️ ' + downloadsCount + ' downloads';
-
-    var providerEl = document.getElementById('res-storage-provider');
-    if (result.provider === 'rootz' || result.isAnonymous === false) {
-      providerEl.textContent = 'Rootz Account Storage';
-      providerEl.style.borderColor = 'var(--accent)';
-    } else {
-      providerEl.textContent = 'Local Storage';
-    }
-
-    var fileCode = result.shortId || result.short_id || result.id;
-    var viewerUrl = window.location.origin + '/v/' + fileCode;
-    document.getElementById('res-share-link').value = viewerUrl;
-    document.getElementById('open-link-btn').href = viewerUrl;
-
-    var expiryEl = document.getElementById('res-expiry-info');
-    if (result.expiresAt || result.expires_at) {
-      var expDate = new Date(result.expiresAt || result.expires_at);
-      expiryEl.textContent = '⏱ Expires: ' + expDate.toLocaleString();
-    } else {
-      expiryEl.textContent = '🔒 Permanent Storage Link';
-    }
-  }
-
-  async function deleteFile(fileId, token, isLocal) {
-    if (!confirm('Are you sure you want to permanently delete this file? This action cannot be undone.')) {
-      return;
-    }
-
-    try {
-      var query = 'fileId=' + encodeURIComponent(fileId);
-      if (token) query += '&token=' + encodeURIComponent(token);
-      if (isLocal) query += '&isLocal=true';
-
-      var res = await fetch('/api/drop/delete?' + query, { method: 'DELETE' });
-      var data = await res.json();
-
-      if (res.ok && data.success) {
-        alert('File deleted successfully.');
-        document.getElementById('result-card').style.display = 'none';
-        if (activeTab === 'manager') loadFileList();
-      } else {
-        alert('Failed to delete file: ' + (data.error || 'Unknown error'));
-      }
-    } catch (err) {
-      alert('Error connecting to server for file deletion.');
-    }
-  }
-
-  function setFileListMessage(container, message, color, padding) {
-    var item = document.createElement('div');
-    item.style.cssText = 'color:' + color + '; text-align:center; padding:' + padding + '; font-family:"IBM Plex Mono",monospace;';
-    item.textContent = message;
-    container.replaceChildren(item);
-  }
-
-  function addFileListItem(container, file) {
-    var fileCard = document.createElement('div');
-    fileCard.style.cssText = 'background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:1rem; display:flex; align-items:center; justify-content:space-between; gap:1rem; flex-wrap:wrap;';
-
-    var details = document.createElement('div');
-    details.style.cssText = 'display:flex; align-items:center; gap:.85rem; flex:1; min-width:200px;';
-    var icon = document.createElement('span');
-    icon.style.fontSize = '1.4rem';
-    icon.textContent = getFileIcon(file.name);
-    var textWrap = document.createElement('div');
-    textWrap.style.overflow = 'hidden';
-    var name = document.createElement('div');
-    name.style.cssText = 'font-weight:600; font-size:.95rem; word-break:break-all;';
-    name.textContent = file.name || 'File';
-    var metadata = document.createElement('div');
-    metadata.style.cssText = 'font-size:.78rem; color:var(--muted); font-family:"IBM Plex Mono",monospace; margin-top:.2rem;';
-    metadata.textContent = formatBytes(file.size) + ' · 👁️ ' + (file.download_count || 0) + ' downloads · ' + (file.expires_at ? '⏱ ' + new Date(file.expires_at).toLocaleDateString() : '🔒 Permanent');
-    textWrap.append(name, metadata);
-    details.append(icon, textWrap);
-
-    var actions = document.createElement('div');
-    actions.style.cssText = 'display:flex; gap:.5rem; align-items:center;';
-    var shareLink = file.short_id ? 'https://rootz.so/d/' + file.short_id : (window.location.origin + '/api/drop/file/' + file.id);
-    var copyButton = document.createElement('button');
-    copyButton.className = 'btn';
-    copyButton.style.fontSize = '.78rem';
-    copyButton.textContent = '$ copy';
-    copyButton.addEventListener('click', function () {
-      navigator.clipboard.writeText(shareLink);
-      copyButton.textContent = '$ copied!';
-      setTimeout(function () { copyButton.textContent = '$ copy'; }, 2000);
+  function renderQueue() {
+    var container = element('upload-queue');
+    container.replaceChildren();
+    if (!queue.length) return;
+    queue.forEach(function (item) {
+      var row = document.createElement('div');
+      row.className = 'queue-item';
+      var icon = document.createElement('span');
+      icon.textContent = getFileIcon(item.file.name);
+      var details = document.createElement('div');
+      var name = document.createElement('div');
+      name.className = 'queue-name';
+      name.textContent = item.path;
+      var meta = document.createElement('span');
+      meta.className = 'queue-meta';
+      meta.textContent = formatBytes(item.file.size) + ' · ' + (item.status === 'uploading' ? item.progress + '%' : item.status);
+      details.append(name, meta);
+      var state = document.createElement('span');
+      state.className = 'queue-status';
+      state.textContent = item.status;
+      row.append(icon, details, state);
+      container.appendChild(row);
     });
-    var openLink = document.createElement('a');
-    openLink.className = 'btn';
-    openLink.href = shareLink;
-    openLink.target = '_blank';
-    openLink.rel = 'noopener';
-    openLink.style.fontSize = '.78rem';
-    openLink.textContent = '$ open ↗';
-    var deleteButton = document.createElement('button');
-    deleteButton.className = 'btn';
-    deleteButton.style.cssText = 'border-color:#ef4444; color:#ef4444; font-size:.78rem;';
-    deleteButton.textContent = '🗑️ Delete';
-    deleteButton.addEventListener('click', function () { deleteFile(file.id, null, false); });
-    actions.append(copyButton, openLink, deleteButton);
-    fileCard.append(details, actions);
-    container.appendChild(fileCard);
+    updateControls();
   }
 
-  async function loadFileList() {
-    var container = document.getElementById('file-list-container');
-    setFileListMessage(container, 'Loading files...', 'var(--muted)', '1rem');
-
-    try {
-      var res = await fetch('/api/drop/list');
-      var json = await res.json();
-
-      if (!res.ok || !json.success) {
-        setFileListMessage(container, json.error || 'Failed to load file list', 'red', '1rem');
-        return;
-      }
-
-      var files = json.data || [];
-      if (files.length === 0) {
-        setFileListMessage(container, 'No uploaded files found in your Rootz account.', 'var(--muted)', '1.5rem');
-        return;
-      }
-
-      container.replaceChildren();
-      files.forEach(function (file) { addFileListItem(container, file); });
-
-    } catch (err) {
-      setFileListMessage(container, 'Error loading file list from server.', 'red', '1rem');
+  function addFiles(files) {
+    Array.from(files).forEach(function (file) {
+      queue.push({ file: file, path: file.webkitRelativePath || file.name, status: 'ready', progress: 0, password: null });
+    });
+    if (queue.length) {
+      element('drop-default-prompt').style.display = 'none';
+      element('drop-file-badge').style.display = 'block';
+      var first = queue[0];
+      element('badge-icon').textContent = getFileIcon(first.file.name);
+      element('badge-name').textContent = queue.length === 1 ? first.file.name : queue.length + ' items selected';
+      element('badge-meta').textContent = queue.length === 1 ? formatBytes(first.file.size) + ' · Ready to upload' : 'Ready to upload as a queue';
+      clearNotice();
     }
+    renderQueue();
   }
 
-  function uploadFile(file, password) {
-    if (!file) return;
+  function showLargeFilePrompt(item) {
+    pendingLargeItem = item;
+    element('large-file-size-label').textContent = formatBytes(item.file.size);
+    element('large-file-pass-input').value = '';
+    element('large-pass-status').textContent = '';
+    element('large-file-modal').style.display = 'block';
+  }
+
+  function nextItem() { return queue.find(function (item) { return item.status === 'ready' || item.status === 'paused' || item.status === 'failed'; }); }
+
+  function beginQueue() {
+    if (activeUpload) return;
+    paused = false;
+    var item = nextItem();
+    if (!item) { hideProgress(); updateControls(); return; }
+    if (item.file.size > ONE_GB && !item.password) { showLargeFilePrompt(item); updateControls(); return; }
+    uploadItem(item);
+  }
+
+  function uploadItem(item) {
     clearNotice();
-
-    var expiresSelect = document.getElementById('expires-in-select');
-    var expDays = expiresSelect ? expiresSelect.value : 30;
-
+    item.status = 'uploading';
+    item.progress = 0;
+    renderQueue();
     var formData = new FormData();
-    formData.append('file', file);
-    formData.append('expiresInDays', expDays);
-
-    showProgress(0, 'Preparing file upload...');
-
-    var startTime = Date.now();
-    var lastLoaded = 0;
-    var lastTime = startTime;
-
+    formData.append('file', item.file);
+    formData.append('expiresInDays', element('expires-in-select').value);
+    formData.append('relativePath', item.path);
+    var targetFolder = element('target-folder-id').value.trim();
+    if (targetFolder) formData.append('folderId', targetFolder);
     var xhr = new XMLHttpRequest();
+    activeUpload = { xhr: xhr, item: item };
     xhr.open('POST', '/api/drop/upload', true);
-
-    if (password) {
-      xhr.setRequestHeader('x-upload-password', password);
-    }
-
-    xhr.upload.addEventListener('progress', function (e) {
-      if (e.lengthComputable) {
-        var now = Date.now();
-        var timeDiff = (now - lastTime) / 1000;
-        if (timeDiff >= 0.2 || e.loaded === e.total) {
-          var loadedDiff = e.loaded - lastLoaded;
-          var speedBps = timeDiff > 0 ? (loadedDiff / timeDiff) : 0;
-          lastLoaded = e.loaded;
-          lastTime = now;
-
-          var speedStr = formatBytes(speedBps) + '/s';
-          var remainingBytes = e.total - e.loaded;
-          var etaSec = speedBps > 0 ? Math.ceil(remainingBytes / speedBps) : 0;
-          var etaStr = etaSec > 0 ? (' · ETA: ' + etaSec + 's') : '';
-
-          var pct = (e.loaded / e.total) * 100;
-          if (pct >= 99.5) {
-            showProgress(100, 'Processing with Rootz storage...');
-          } else {
-            showProgress(pct, 'Uploading ' + file.name + ' (' + formatBytes(e.loaded) + ' / ' + formatBytes(e.total) + ') · ⚡ ' + speedStr + etaStr);
-          }
-        }
-      }
+    if (item.password) xhr.setRequestHeader('x-upload-password', item.password);
+    var lastTime = Date.now();
+    var lastLoaded = 0;
+    xhr.upload.addEventListener('progress', function (event) {
+      if (!event.lengthComputable) return;
+      item.progress = Math.round((event.loaded / event.total) * 100);
+      var now = Date.now();
+      var elapsed = (now - lastTime) / 1000;
+      var speed = elapsed ? (event.loaded - lastLoaded) / elapsed : 0;
+      if (elapsed > .2 || event.loaded === event.total) { lastTime = now; lastLoaded = event.loaded; }
+      setProgress(item.progress, 'Uploading ' + item.file.name + ' · ' + formatBytes(event.loaded) + ' / ' + formatBytes(event.total) + (speed ? ' · ' + formatBytes(speed) + '/s' : ''));
+      renderQueue();
     });
-
     xhr.onload = function () {
-      if (xhr.status === 200) {
+      activeUpload = null;
+      if (xhr.status >= 200 && xhr.status < 300) {
         try {
-          var res = JSON.parse(xhr.responseText);
-          displayResult(res);
-        } catch (err) {
-          showNotice('Upload completed, but the server returned an unreadable response.');
-          hideProgress();
-        }
+          var result = JSON.parse(xhr.responseText);
+          item.status = 'complete'; item.progress = 100;
+          displayResult(result);
+          renderQueue();
+          beginQueue();
+        } catch (error) { item.status = 'failed'; showNotice('Upload completed but the response could not be read.'); renderQueue(); }
       } else {
-        try {
-          var errData = JSON.parse(xhr.responseText);
-          showNotice('Upload failed: ' + (errData.error || xhr.responseText));
-        } catch (e) {
-          showNotice('Upload failed: ' + (xhr.responseText || 'Server error'));
-        }
-        hideProgress();
+        item.status = 'failed';
+        try { showNotice('Upload failed: ' + (JSON.parse(xhr.responseText).error || 'Server error')); } catch (error) { showNotice('Upload failed. Please retry this item.'); }
+        renderQueue();
       }
     };
-
-    xhr.onerror = function () {
-      showNotice('The upload connection was interrupted. Your file was not marked as complete; please retry.');
-      hideProgress();
+    xhr.onabort = function () {
+      activeUpload = null;
+      item.status = paused ? 'paused' : 'cancelled';
+      renderQueue();
     };
-
+    xhr.onerror = function () { activeUpload = null; item.status = 'failed'; showNotice('The upload connection was interrupted. You can retry the item.'); renderQueue(); };
     xhr.send(formData);
   }
 
-  function updateDropBoxBadge(file) {
-    var prompt = document.getElementById('drop-default-prompt');
-    var badge = document.getElementById('drop-file-badge');
-    var iconEl = document.getElementById('badge-icon');
-    var nameEl = document.getElementById('badge-name');
-    var metaEl = document.getElementById('badge-meta');
-
-    if (!file) {
-      if (prompt) prompt.style.display = 'block';
-      if (badge) badge.style.display = 'none';
-      return;
-    }
-
-    if (prompt) prompt.style.display = 'none';
-    if (badge) badge.style.display = 'block';
-
-    if (iconEl) iconEl.textContent = getFileIcon(file.name);
-    if (nameEl) nameEl.textContent = file.name || 'Selected File';
-    if (metaEl) metaEl.textContent = formatBytes(file.size) + ' · Uploading...';
+  function togglePause() {
+    if (paused) { beginQueue(); return; }
+    paused = true;
+    if (activeUpload) activeUpload.xhr.abort();
+    updateControls();
   }
 
-  function initiateFileUpload(file) {
-    if (!file) return;
-    updateDropBoxBadge(file);
-
-    if (file.size > ONE_GB) {
-      pendingFile = file;
-      document.getElementById('large-file-size-label').textContent = formatBytes(file.size);
-      document.getElementById('large-file-pass-input').value = '';
-      document.getElementById('large-pass-status').textContent = '';
-      document.getElementById('large-file-modal').style.display = 'block';
-    } else {
-      uploadFile(file, null);
-    }
+  function cancelQueue() {
+    paused = false;
+    if (activeUpload) activeUpload.xhr.abort();
+    queue.forEach(function (item) { if (item.status === 'ready' || item.status === 'paused') item.status = 'cancelled'; });
+    renderQueue(); hideProgress();
   }
 
-  async function handleRemoteUpload(password) {
-    var urlInput = document.getElementById('remote-url-input');
-    var folderInput = document.getElementById('remote-folder-id');
-    var targetUrl = urlInput.value.trim();
+  function displayResult(result) {
+    currentResultData = result;
+    element('result-card').style.display = 'block';
+    element('res-file-icon').textContent = getFileIcon(result.name || 'file');
+    element('res-file-name').textContent = result.name || 'Uploaded file';
+    element('res-file-size').textContent = formatBytes(result.size || 0);
+    element('res-storage-provider').textContent = result.provider === 'rootz' ? 'Rootz storage' : 'Storage';
+    element('res-downloads-tag').textContent = '0 downloads';
+    var code = result.shortId || result.short_id || result.id;
+    var viewerUrl = window.location.origin + '/v/' + code;
+    element('res-share-link').value = viewerUrl;
+    element('open-link-btn').href = viewerUrl;
+    element('res-expiry-info').textContent = result.expiresAt ? 'Expires: ' + new Date(result.expiresAt).toLocaleString() : 'Permanent storage link';
+  }
 
-    if (!targetUrl) {
-      showNotice('Enter a public HTTP or HTTPS file URL first.');
-      return;
-    }
-    clearNotice();
+  function addFileListItem(container, file) {
+    var row = document.createElement('div'); row.className = 'queue-item';
+    var isFolder = file.type === 'folder' || file.kind === 'folder' || file.is_folder === true || Boolean(file.folder_id && !file.name && !file.filename);
+    var icon = document.createElement('span'); icon.textContent = isFolder ? '📁' : getFileIcon(file.name || 'file');
+    var details = document.createElement('div');
+    var name = document.createElement('div'); name.className = 'queue-name'; name.textContent = file.name || file.filename || file.folder_name || 'File';
+    var meta = document.createElement('span'); meta.className = 'queue-meta'; meta.textContent = isFolder ? 'Folder · click Open to browse its contents' : formatBytes(Number(file.size || 0)) + ' · ' + (file.folder_name || file.folderId || 'Root folder');
+    details.append(name, meta);
+    var open = document.createElement(isFolder ? 'button' : 'a'); open.className = 'btn'; open.textContent = 'Open';
+    if (isFolder) {
+      open.type = 'button';
+      open.addEventListener('click', function () { element('manager-folder-id').value = file.folder_id || file.folderId || file.id; loadFileList(); });
+    } else { open.target = '_blank'; open.rel = 'noopener'; open.href = window.location.origin + '/v/' + (file.short_id || file.id || file.filecode); }
+    row.append(icon, details, open); container.appendChild(row);
+  }
 
-    showProgress(25, 'Initiating remote URL upload via Rootz Account...');
-
+  async function loadFileList() {
+    var container = element('file-list-container');
+    var token = element('manager-token-input').value.trim();
+    if (!token) { container.textContent = 'Enter the Render ADMIN_TOKEN to view your Rootz file manager.'; return; }
+    sessionStorage.setItem('pokedb-admin-token', token);
+    container.textContent = 'Loading files…';
+    var params = new URLSearchParams();
+    var folderId = element('manager-folder-id').value.trim(); if (folderId) params.set('folderId', folderId);
     try {
-      var headers = { 'Content-Type': 'application/json' };
-      if (password) {
-        headers['x-upload-password'] = password;
-      }
-
-      var res = await fetch('/api/drop/remote-upload', {
-        method: 'POST',
-        headers: headers,
-        body: JSON.stringify({
-          url: targetUrl,
-          folderId: folderInput.value.trim() || null
-        })
-      });
-
-      var data = await res.json();
-      if (res.ok && data.success) {
-        showProgress(100, 'Remote upload completed!');
-        displayResult(data.data);
-      } else {
-        showNotice('Remote upload failed: ' + (data.error || 'Failed to process the remote URL.'));
-        hideProgress();
-      }
-    } catch (err) {
-      showNotice('Could not start the remote upload. Check your connection and try again.');
-      hideProgress();
-    }
+      var response = await fetch('/api/drop/list?' + params, { headers: { 'X-Admin-Token': token } });
+      var data = await response.json();
+      if (!response.ok || !data.success) throw new Error(data.error || 'Unable to load files');
+      var payload = data.data || data.result || data;
+      var files = Array.isArray(payload) ? payload : (payload.files || data.files || []);
+      var folders = Array.isArray(payload.folders) ? payload.folders : (Array.isArray(data.folders) ? data.folders : []);
+      files = folders.concat(files);
+      container.replaceChildren();
+      if (!files.length) { container.textContent = 'No files in this folder.'; return; }
+      files.forEach(function (file) { addFileListItem(container, file); });
+    } catch (error) { container.textContent = error.message; }
   }
 
   document.addEventListener('DOMContentLoaded', function () {
-    var tabs = document.querySelectorAll('.tab-btn');
-    var dropZone = document.getElementById('drop-zone');
-    var fileInput = document.getElementById('file-input');
-    var remoteBtn = document.getElementById('remote-upload-btn');
-    var refreshFilesBtn = document.getElementById('refresh-files-btn');
-    var deleteResBtn = document.getElementById('delete-res-file-btn');
-
-    // Password Modal elements
-    var largeModal = document.getElementById('large-file-modal');
-    var passInput = document.getElementById('large-file-pass-input');
-    var submitPassBtn = document.getElementById('submit-large-pass-btn');
-    var cancelPassBtn = document.getElementById('cancel-large-pass-btn');
-    var passStatus = document.getElementById('large-pass-status');
-
-    submitPassBtn.addEventListener('click', function () {
-      var pass = passInput.value.trim();
-      if (!pass) {
-        passStatus.textContent = 'Password is required for files over 1 GB.';
-        return;
-      }
-      largeModal.style.display = 'none';
-      if (pendingFile) {
-        uploadFile(pendingFile, pass);
-        pendingFile = null;
-      } else {
-        handleRemoteUpload(pass);
-      }
-    });
-
-    cancelPassBtn.addEventListener('click', function () {
-      largeModal.style.display = 'none';
-      pendingFile = null;
-    });
-
-    // Tab Switching
-    tabs.forEach(function (tab) {
-      tab.addEventListener('click', function () {
-        tabs.forEach(function (t) { t.classList.remove('is-active'); });
-        tab.classList.add('is-active');
-        activeTab = tab.getAttribute('data-tab');
-
-        document.getElementById('tab-content-direct').style.display = activeTab === 'direct' ? 'block' : 'none';
-        document.getElementById('tab-content-remote').style.display = activeTab === 'remote' ? 'block' : 'none';
-        document.getElementById('tab-content-manager').style.display = activeTab === 'manager' ? 'block' : 'none';
-
-        if (activeTab === 'manager') {
-          loadFileList();
-        }
-      });
-    });
-
-    if (refreshFilesBtn) {
-      refreshFilesBtn.addEventListener('click', loadFileList);
-    }
-
-    if (deleteResBtn) {
-      deleteResBtn.addEventListener('click', function () {
-        if (!currentResultData) return;
-        var fileId = currentResultData.id;
-        var token = currentResultData.deletionToken || currentResultData.deletion_token;
-        var isLocal = currentResultData.provider === 'local';
-        deleteFile(fileId, token, isLocal);
-      });
-    }
-
-    // Drag & Drop
-    dropZone.addEventListener('click', function () { fileInput.click(); });
-    fileInput.addEventListener('change', function (e) {
-      if (e.target.files && e.target.files[0]) {
-        initiateFileUpload(e.target.files[0]);
-      }
-    });
-
-    ['dragenter', 'dragover'].forEach(function (evt) {
-      dropZone.addEventListener(evt, function (e) {
-        e.preventDefault();
-        dropZone.classList.add('dragover');
-      });
-    });
-
-    ['dragleave', 'drop'].forEach(function (evt) {
-      dropZone.addEventListener(evt, function (e) {
-        e.preventDefault();
-        dropZone.classList.remove('dragover');
-      });
-    });
-
-    dropZone.addEventListener('drop', function (e) {
-      if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]) {
-        initiateFileUpload(e.dataTransfer.files[0]);
-      }
-    });
-
-    // Remote Upload Button
-    remoteBtn.addEventListener('click', function () {
-      handleRemoteUpload(null);
-    });
-
-    // Copy Link Button
-    document.getElementById('copy-link-btn').addEventListener('click', function () {
-      var input = document.getElementById('res-share-link');
-      input.select();
-      navigator.clipboard.writeText(input.value);
-      this.textContent = '$ copied!';
-      var b = this;
-      setTimeout(function () { b.textContent = '$ copy'; }, 2000);
-    });
+    var storedToken = sessionStorage.getItem('pokedb-admin-token'); if (storedToken) element('manager-token-input').value = storedToken;
+    var fileInput = element('file-input'); var folderInput = element('folder-input'); var dropZone = element('drop-zone');
+    element('choose-files-btn').addEventListener('click', function () { fileInput.click(); });
+    element('choose-folder-btn').addEventListener('click', function () { folderInput.click(); });
+    dropZone.addEventListener('click', function (event) { if (event.target === dropZone || event.target.closest('#drop-default-prompt')) fileInput.click(); });
+    fileInput.addEventListener('change', function (event) { addFiles(event.target.files); fileInput.value = ''; });
+    folderInput.addEventListener('change', function (event) { addFiles(event.target.files); folderInput.value = ''; });
+    ['dragenter', 'dragover'].forEach(function (name) { dropZone.addEventListener(name, function (event) { event.preventDefault(); dropZone.classList.add('dragover'); }); });
+    ['dragleave', 'drop'].forEach(function (name) { dropZone.addEventListener(name, function (event) { event.preventDefault(); dropZone.classList.remove('dragover'); }); });
+    dropZone.addEventListener('drop', function (event) { if (event.dataTransfer.files.length) addFiles(event.dataTransfer.files); });
+    element('start-upload-btn').addEventListener('click', beginQueue);
+    element('pause-upload-btn').addEventListener('click', togglePause);
+    element('cancel-upload-btn').addEventListener('click', cancelQueue);
+    element('submit-large-pass-btn').addEventListener('click', function () { var password = element('large-file-pass-input').value.trim(); if (!password) { element('large-pass-status').textContent = 'Password is required for files over 1 GB.'; return; } pendingLargeItem.password = password; pendingLargeItem.status = 'ready'; pendingLargeItem = null; element('large-file-modal').style.display = 'none'; beginQueue(); });
+    element('cancel-large-pass-btn').addEventListener('click', function () { if (pendingLargeItem) pendingLargeItem.status = 'cancelled'; pendingLargeItem = null; element('large-file-modal').style.display = 'none'; renderQueue(); });
+    document.querySelectorAll('.tab-btn').forEach(function (tab) { tab.addEventListener('click', function () { document.querySelectorAll('.tab-btn').forEach(function (button) { button.classList.remove('is-active'); }); tab.classList.add('is-active'); activeTab = tab.dataset.tab; element('tab-content-direct').style.display = activeTab === 'direct' ? 'block' : 'none'; element('tab-content-remote').style.display = activeTab === 'remote' ? 'block' : 'none'; element('tab-content-manager').style.display = activeTab === 'manager' ? 'block' : 'none'; if (activeTab === 'manager') loadFileList(); }); });
+    element('refresh-files-btn').addEventListener('click', loadFileList);
+    element('remote-upload-btn').addEventListener('click', async function () { var url = element('remote-url-input').value.trim(); if (!url) { showNotice('Enter a public URL first.'); return; } try { var response = await fetch('/api/drop/remote-upload', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url: url, folderId: element('remote-folder-id').value.trim() || null }) }); var data = await response.json(); if (!response.ok) throw new Error(data.error || 'Remote upload failed'); displayResult(data.data); } catch (error) { showNotice(error.message); } });
+    element('copy-link-btn').addEventListener('click', function () { navigator.clipboard.writeText(element('res-share-link').value); this.textContent = 'Copied'; var button = this; setTimeout(function () { button.textContent = '$ copy'; }, 1500); });
+    element('delete-res-file-btn').addEventListener('click', function () { showNotice('Delete controls require the file deletion token returned with this upload.'); });
+    renderQueue();
   });
-})();
+}());

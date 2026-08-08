@@ -116,6 +116,25 @@ docker-compose up -d --build
    - `LARGE_FILE_PASSWORD`: `your-password`
 4. Map your custom domain (`pokedb.site`) in platform settings.
 
+### Render environment variables
+
+Set these in Render's **Environment** panel; keep secrets out of the repository.
+
+| Variable | Required | Value / purpose |
+| --- | --- | --- |
+| `NODE_ENV` | Yes | `production` |
+| `BASE_URL` | Yes | `https://pokedb.site` |
+| `ROOTZ_API_KEY` | For Drop | Your Rootz API key; required for direct and remote uploads. |
+| `ADMIN_TOKEN` | For file manager | A long random secret. The Drop manager asks for it before listing account files. |
+| `LARGE_FILE_PASSWORD` | For uploads over 1 GB | A strong owner-only password. |
+| `ROOTZ_TIMEOUT_MS` | Recommended | `1200000` (20 minutes; max accepted value is 1 hour). |
+| `ROOTZ_FOLDER_ID` | Optional | Default Rootz destination folder ID for uploads. |
+| `ROOTZ_FOLDER_NAME` | Optional | Use only when a folder ID is unavailable; defaults to `pokedb.site`. |
+| `REDIS_URL` | Recommended | Managed Redis connection URL. Without it, the app falls back to local JSON storage, which is not durable on Render. |
+| `PORT` | No | Render supplies this automatically. Do not hard-code it. |
+
+`REDIS_PASSWORD` is only needed by the local Docker Compose setup; when deploying to Render, place the password inside `REDIS_URL` instead.
+
 ---
 
 ## License

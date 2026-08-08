@@ -59,6 +59,7 @@ describe('URL Shortener API Suite', () => {
       });
     expect(res2.status).toBe(409);
     expect(res2.body.error).toMatch(/already taken/i);
+    expect(res2.body.suggestions).toEqual(expect.arrayContaining([`${customAlias}-2`]));
   });
 
   test('4. Successfully create a short URL (200 OK)', async () => {
@@ -223,6 +224,9 @@ describe('URL Shortener API Suite', () => {
       .get('/api/health/ping')
       .set('Origin', 'https://qr.pokedb.site');
     const qrRes = await request(app).get('/api/qr?format=svg&text=coverage-test');
+    const crossToolQrRes = await request(app)
+      .get('/api/qr?format=png&text=shared-qr-test')
+      .set('Host', 'tinyurl.pokedb.site');
     const expiryRes = await request(app)
       .post('/api/shorten')
       .send({ url: 'https://example.com/expiry-validation', expiresInDays: 366 });
@@ -234,6 +238,8 @@ describe('URL Shortener API Suite', () => {
     expect(healthRes.headers['access-control-allow-origin']).toBe('https://qr.pokedb.site');
     expect(qrRes.status).toBe(200);
     expect(qrRes.headers['content-type']).toContain('image/svg+xml');
+    expect(crossToolQrRes.status).toBe(200);
+    expect(crossToolQrRes.headers['content-type']).toContain('image/png');
     expect(expiryRes.status).toBe(400);
     expect(privateIpv6Res.status).toBe(400);
   });

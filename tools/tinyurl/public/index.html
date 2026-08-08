@@ -138,6 +138,9 @@ input:focus, select:focus {
   margin-top: .5rem;
   display: none;
 }
+.alias-suggestions { display:none; align-items:center; flex-wrap:wrap; gap:.5rem; margin-top:.8rem; padding:.75rem; border:1px solid color-mix(in srgb,var(--accent) 35%,transparent); border-radius:7px; background:color-mix(in srgb,var(--accent) 8%,transparent); }
+.alias-suggestions span { color:var(--muted); font:.75rem 'IBM Plex Mono',monospace; }
+.alias-suggestion { padding:.35rem .55rem; border:1px solid var(--accent); border-radius:5px; color:var(--accent-text); background:var(--accent); font:500 .75rem 'IBM Plex Mono',monospace; cursor:pointer; }
 </style>
 </head>
 <body>
@@ -204,6 +207,7 @@ input:focus, select:focus {
 
       <button type="submit" class="btn btn-solid" id="shorten-btn">$ tinyurl --exec</button>
       <div class="error-msg" id="shorten-error"></div>
+      <div class="alias-suggestions" id="alias-suggestions" aria-live="polite"></div>
     </form>
 
     <div class="result-card" id="shorten-result">
