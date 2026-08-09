@@ -4,12 +4,68 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Redirecting — pokedb.site</title>
-  <meta http-equiv="refresh" content="5;url={{safeUrl}}">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/shared/theme.css">
   <script src="/shared/theme-switcher.js"></script>
+  <style>
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      place-items: center;
+      padding: 1.25rem;
+      background: rgba(0, 0, 0, 0.85);
+      backdrop-filter: blur(6px);
+    }
+    .modal-card {
+      width: min(100%, 540px);
+      padding: 1.75rem;
+      border: 1px solid rgba(255, 85, 85, 0.5);
+      border-radius: 12px;
+      background: var(--surface);
+      box-shadow: 0 12px 36px rgba(255, 85, 85, 0.15);
+      text-align: left;
+      font-family: 'IBM Plex Sans', sans-serif;
+    }
+    .modal-header {
+      display: flex;
+      align-items: center;
+      gap: .75rem;
+      margin-bottom: 1rem;
+      color: #ff5555;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 1.15rem;
+      font-weight: 600;
+    }
+    .flag-box {
+      background: rgba(255, 85, 85, 0.08);
+      border: 1px solid rgba(255, 85, 85, 0.3);
+      border-radius: 8px;
+      padding: .85rem 1rem;
+      margin: 1rem 0;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: .84rem;
+      color: var(--text);
+    }
+    .flag-box ul {
+      margin: .4rem 0 0 1.2rem;
+      padding: 0;
+    }
+    .flag-box li {
+      margin-bottom: .3rem;
+      color: #ff7777;
+    }
+    .modal-actions {
+      display: flex;
+      gap: .75rem;
+      justify-content: flex-end;
+      flex-wrap: wrap;
+      margin-top: 1.5rem;
+    }
+  </style>
 </head>
 <body>
 <header class="site-nav"><div class="logo"><a class="logo" href="https://pokedb.site/" data-nav="main">root<span>@</span>pokedb</a><div class="nav-links"><a class="nav-link" href="https://tools.pokedb.site/" data-nav="tools">← Tools Hub</a></div></div></header>
@@ -21,23 +77,83 @@
       <div style="margin-top: .75rem;"><span class="prompt">[+]</span> Destination URL:</div>
       <div class="out" style="word-break: break-all; font-weight: 600; color: var(--accent); font-size: 1.05rem; margin: .3rem 0 .9rem 1rem;">{{safeUrl}}</div>
       <div><span class="prompt">[+]</span> Link Status: <span style="color:var(--accent);">Active</span> ({{clickCount}} total clicks recorded)</div>
-      <div><span class="prompt">[+]</span> Security Audit: Verified Destination</div>
-      <div style="margin-top: 1.25rem;"><span class="prompt">$</span> <span class="out">Auto-redirecting in <strong id="countdown-num" style="color:var(--accent); font-size:1.3rem;">5</strong> seconds...</span></div>
+      
+      <!-- Security Audit Telemetry -->
+      <div><span class="prompt">[+]</span> Security Audit: {{{securityAuditStatus}}}</div>
+      {{{flagListHtml}}}
+
+      <div style="margin-top: 1.25rem;"><span class="prompt">$</span> <span class="out" id="countdown-status-line">Auto-redirecting in <strong id="countdown-num" style="color:var(--accent); font-size:1.3rem;">10</strong> seconds...</span></div>
     </div>
   </div>
   <div style="display: flex; gap: 1rem; justify-content: center; margin-top: 1.75rem; flex-wrap: wrap;"><a id="proceed-btn" class="btn btn-solid" href="{{safeUrl}}">$ redirect --now (Skip Timer) →</a><a class="btn" href="https://tinyurl.pokedb.site/" data-nav="tinyurl">← Create TinyURL</a></div>
 </main>
+
+<!-- Security Caution Modal -->
+<div class="modal-overlay" id="caution-modal" role="dialog" aria-modal="true" aria-label="Security Caution Warning">
+  <div class="modal-card">
+    <div class="modal-header">
+      <span>⚠️ Security Caution: High-Risk Destination</span>
+    </div>
+    <p style="color:var(--text); font-size:.95rem; line-height:1.5;">
+      This short link points to a destination that triggered automated security risk flags. It may involve potential malware, phishing, or spoofing activity.
+    </p>
+    <div class="flag-box">
+      <strong>Detected Security Flags:</strong>
+      <ul id="modal-flag-list"></ul>
+    </div>
+    <p style="color:var(--muted); font-size:.84rem;">
+      Target: <code style="word-break:break-all; color:var(--accent);">{{safeUrl}}</code>
+    </p>
+    <div class="modal-actions">
+      <button class="btn" id="cancel-modal-btn" type="button">Cancel & Return to Safety</button>
+      <a class="btn" id="unsafe-proceed-btn" href="{{safeUrl}}" style="background:#ff5555; color:#ffffff; border-color:#ff5555;">$ proceed --unsafe →</a>
+    </div>
+  </div>
+</div>
+
 <footer><div class="footer-inner"><span>© pokedb.site · redirect gateway</span><span id="uptime">session uptime · 00:00:00</span></div></footer>
 <script nonce="{{nonce}}">
 (function () {
-  var count = 5;
+  var count = 10;
   var target = {{serializedUrl}};
+  var isSuspicious = {{isSuspicious}};
+  var flags = {{serializedFlags}};
   var numEl = document.getElementById('countdown-num');
-  var timer = setInterval(function () {
-    count--;
-    if (numEl) numEl.textContent = count;
-    if (count <= 0) { clearInterval(timer); window.location.href = target; }
-  }, 1000);
+  var statusLineEl = document.getElementById('countdown-status-line');
+  var proceedBtn = document.getElementById('proceed-btn');
+  var cautionModal = document.getElementById('caution-modal');
+  var cancelModalBtn = document.getElementById('cancel-modal-btn');
+  var modalFlagList = document.getElementById('modal-flag-list');
+
+  if (isSuspicious) {
+    if (statusLineEl) {
+      statusLineEl.innerHTML = '<span style="color:#ff5555; font-weight:600;">⚠️ Auto-redirect PAUSED due to security flags. Manual confirmation required.</span>';
+    }
+
+    if (modalFlagList && Array.isArray(flags)) {
+      modalFlagList.innerHTML = flags.map(function(f) { return '<li>' + f + '</li>'; }).join('');
+    }
+
+    function openModal(e) {
+      if (e) e.preventDefault();
+      if (cautionModal) cautionModal.style.display = 'grid';
+    }
+
+    if (proceedBtn) {
+      proceedBtn.addEventListener('click', openModal);
+    }
+    if (cancelModalBtn) {
+      cancelModalBtn.addEventListener('click', function () {
+        if (cautionModal) cautionModal.style.display = 'none';
+      });
+    }
+  } else {
+    var timer = setInterval(function () {
+      count--;
+      if (numEl) numEl.textContent = count;
+      if (count <= 0) { clearInterval(timer); window.location.href = target; }
+    }, 1000);
+  }
 })();
 </script>
 </body>

@@ -173,6 +173,34 @@ describe('URL Shortener API Suite', () => {
     }
   });
 
+  test('8b. Scan URL risk and present 10s redirect countdown or caution warning', async () => {
+    const cleanUrl = 'https://github.com/POKEDB10/pokedb.site';
+    const suspiciousUrl = 'http://192.168.1.50/login.exe';
+
+    const cleanRes = await request(app).post('/api/shorten').send({ url: cleanUrl });
+    const suspRes = await request(app).post('/api/shorten').send({ url: suspiciousUrl });
+
+    const originalNodeEnv = process.env.NODE_ENV;
+    process.env.NODE_ENV = 'production';
+    try {
+      const getClean = await request(app).get(`/${cleanRes.body.code}`).set('Accept', 'text/html');
+      const getSusp = await request(app).get(`/${suspRes.body.code}`).set('Accept', 'text/html');
+
+      expect(getClean.status).toBe(200);
+      expect(getClean.text).toContain('Auto-redirecting in');
+      expect(getClean.text).toContain('10');
+      expect(getClean.text).toContain('Verified Destination (Clean)');
+      expect(getClean.text).toContain('var isSuspicious = false');
+
+      expect(getSusp.status).toBe(200);
+      expect(getSusp.text).toContain('POTENTIAL SECURITY RISK DETECTED');
+      expect(getSusp.text).toContain('caution-modal');
+      expect(getSusp.text).toContain('var isSuspicious = true');
+    } finally {
+      process.env.NODE_ENV = originalNodeEnv;
+    }
+  });
+
   test('9. Require an upload-specific deletion token before deleting a drop file', async () => {
     const originalFetch = global.fetch;
     global.fetch = jest.fn().mockResolvedValue({
