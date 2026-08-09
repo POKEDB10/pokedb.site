@@ -62,6 +62,10 @@
     });
   }
 
+  if (document.readyState === 'interactive' || document.readyState === 'complete') {
+    resolveNavLinks();
+  }
+
   document.addEventListener('DOMContentLoaded', function () {
     applyTheme(savedTheme, false);
     resolveNavLinks();

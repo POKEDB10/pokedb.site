@@ -1773,7 +1773,7 @@ app.get('/:code', async (req, res) => {
         title: '404 — Short Link Not Found',
         command: `get /${safeCode}`,
         message: 'Error 404: Link not found or expired.',
-        returnUrl: '/tools/shorten/',
+        returnUrl: 'https://tinyurl.pokedb.site/',
         returnLabel: '← Return to Shortener'
       }));
     }
