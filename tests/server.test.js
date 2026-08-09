@@ -229,6 +229,38 @@ describe('URL Shortener API Suite', () => {
     }
   });
 
+  test('8c. Scan uploaded files for malware/viruses via MalwareBazaar & VirusTotal API', async () => {
+    const originalFetch = global.fetch;
+    const originalVtKey = process.env.VIRUSTOTAL_API_KEY;
+    process.env.VIRUSTOTAL_API_KEY = 'test-vt-key';
+
+    global.fetch = jest.fn().mockImplementation((url) => {
+      if (url.includes('mb-api.abuse.ch')) {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => ({
+            query_status: 'ok',
+            data: [{ signature: 'Test.Ransomware.Payload' }]
+          })
+        });
+      }
+      return originalFetch ? originalFetch(url) : Promise.resolve({ ok: true, status: 200, json: async () => ({}) });
+    });
+
+    try {
+      const uploadRes = await request(app)
+        .post('/api/drop/upload')
+        .attach('file', Buffer.from('malicious payload sample test'), 'virus.exe');
+
+      expect(uploadRes.status).toBe(400);
+      expect(uploadRes.body.error).toMatch(/MalwareBazaar/i);
+    } finally {
+      process.env.VIRUSTOTAL_API_KEY = originalVtKey;
+      global.fetch = originalFetch;
+    }
+  });
+
   test('9. Require an upload-specific deletion token before deleting a drop file', async () => {
     const originalFetch = global.fetch;
     global.fetch = jest.fn().mockResolvedValue({

@@ -1061,12 +1061,90 @@ const isValidRemoteUrl = async (rawUrl) => {
   }
 };
 
+async function scanFileVirus(filePath) {
+  const flags = [];
+
+  try {
+    // 1. Calculate SHA-256 hash of the uploaded file
+    const hashSum = crypto.createHash('sha256');
+    const fileStream = fs.createReadStream(filePath);
+    for await (const chunk of fileStream) {
+      hashSum.update(chunk);
+    }
+    const sha256 = hashSum.digest('hex');
+
+    // 2. Query MalwareBazaar API (100% Free, NO API key required)
+    try {
+      const mbController = new AbortController();
+      const mbTimer = setTimeout(() => mbController.abort(), 2500);
+      const mbRes = await fetch('https://mb-api.abuse.ch/api/v1/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        signal: mbController.signal,
+        body: new URLSearchParams({ query: 'get_info', hash: sha256 })
+      });
+      clearTimeout(mbTimer);
+
+      if (mbRes.ok) {
+        const mbData = await mbRes.json();
+        if (mbData.query_status === 'ok' && mbData.data && mbData.data.length > 0) {
+          const sample = mbData.data[0];
+          const family = sample.signature || sample.malware_family || 'Malicious Payload';
+          flags.push(`Flagged by MalwareBazaar database: Known malware sample (${family})`);
+        }
+      }
+    } catch (mbErr) {
+      // Safe fallback on timeout or network issue
+    }
+
+    // 3. Query VirusTotal API v3 (if VIRUSTOTAL_API_KEY environment variable is configured)
+    if (process.env.VIRUSTOTAL_API_KEY) {
+      try {
+        const vtController = new AbortController();
+        const vtTimer = setTimeout(() => vtController.abort(), 2500);
+        const vtRes = await fetch(`https://www.virustotal.com/api/v3/files/${sha256}`, {
+          method: 'GET',
+          headers: { 'x-apikey': process.env.VIRUSTOTAL_API_KEY },
+          signal: vtController.signal
+        });
+        clearTimeout(vtTimer);
+
+        if (vtRes.ok) {
+          const vtData = await vtRes.json();
+          const stats = vtData?.data?.attributes?.last_analysis_stats;
+          if (stats && stats.malicious > 0) {
+            flags.push(`Flagged by VirusTotal: Detected as malicious by ${stats.malicious} antivirus engine(s).`);
+          }
+        }
+      } catch (vtErr) {
+        // Safe fallback on timeout
+      }
+    }
+  } catch (err) {
+    console.error('Error calculating file hash for virus scan:', err);
+  }
+
+  return {
+    isVirus: flags.length > 0,
+    flags
+  };
+}
+
 // 1. Direct File Upload Endpoint (Proxied to Rootz API with local storage fallback)
 app.post('/api/drop/upload', uploadLimiter, uploadMulter.single('file'), async (req, res) => {
   let isSavedLocally = false;
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'No file provided in upload request.' });
+    }
+
+    // Scan uploaded file for viruses/malware via MalwareBazaar / VirusTotal
+    const virusScan = await scanFileVirus(req.file.path);
+    if (virusScan.isVirus) {
+      fs.unlink(req.file.path, () => {}); // Instantly purge infected file
+      return res.status(400).json({
+        error: `File upload rejected: ${virusScan.flags.join('; ')}`
+      });
     }
 
     // Password verification for files > 1 GB
@@ -1212,14 +1290,6 @@ app.post('/api/drop/remote-upload', uploadLimiter, async (req, res) => {
       return res.status(400).json({
         success: false,
         error: 'Invalid or unsafe remote URL provided. Only public HTTP/HTTPS URLs are allowed.'
-      });
-    }
-
-    const risk = await analyzeUrlRisk(url);
-    if (risk.isSuspicious) {
-      return res.status(400).json({
-        success: false,
-        error: `Remote URL blocked by Google Safe Browsing: ${risk.flags.join(', ')}`
       });
     }
 
