@@ -1061,7 +1061,7 @@ const isValidRemoteUrl = async (rawUrl) => {
   }
 };
 
-async function scanFileVirus(filePath, originalName) {
+async function scanFileVirus(filePath) {
   const flags = [];
 
   try {
@@ -1118,14 +1118,6 @@ async function scanFileVirus(filePath, originalName) {
         }
       } catch (vtErr) {
         // Safe fallback on timeout
-      }
-    }
-
-    // 4. Executable binary / script extension advisories
-    if (originalName) {
-      const ext = (originalName.split('.').pop() || '').toLowerCase();
-      if (['exe', 'scr', 'bat', 'vbs', 'iso', 'apk', 'jar', 'cmd', 'ps1', 'msi'].includes(ext)) {
-        flags.push(`Executable binary or script file (.${ext}) — exercise caution when running downloaded software.`);
       }
     }
   } catch (err) {
