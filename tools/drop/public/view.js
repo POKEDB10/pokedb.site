@@ -61,6 +61,7 @@
           meta.isFolder = item.isFolder === true || meta.mimeType === 'application/x-folder';
           meta.files = item.files || [];
           meta.fileCount = item.fileCount || meta.files.length;
+          meta.virusFlags = item.virusFlags || [];
         }
       }
     } catch (error) { /* Instant fallback */ }
@@ -70,6 +71,63 @@
     byId('file-size').textContent = meta.size ? formatBytes(meta.size) + (meta.isFolder ? ' (' + meta.fileCount + ' files)' : '') : 'Ready to download';
     byId('file-downloads').textContent = meta.isFolder ? 'Folder Batch' : meta.downloads + ' downloads';
     byId('file-expiry').textContent = meta.expiresAt ? 'Expires ' + new Date(meta.expiresAt).toLocaleString() : 'Permanent link';
+
+    // Render security caution warning box if file has threat flags
+    if (meta.virusFlags && meta.virusFlags.length > 0) {
+      var warnBox = byId('security-warning-box');
+      var flagList = byId('warning-flag-list');
+      if (warnBox && flagList) {
+        flagList.replaceChildren();
+        meta.virusFlags.forEach(function (flag) {
+          var li = document.createElement('li');
+          li.textContent = flag;
+          flagList.appendChild(li);
+        });
+        warnBox.style.display = 'block';
+      }
+    }
+
+    // Handle Download button caution prompt if file has flags
+    var downloadBtn = byId('download-btn');
+    if (downloadBtn) {
+      downloadBtn.addEventListener('click', function (e) {
+        if (meta.virusFlags && meta.virusFlags.length > 0) {
+          e.preventDefault();
+          var cautionModal = byId('download-caution-modal');
+          var modalFlagList = byId('modal-caution-flag-list');
+          var confirmBtn = byId('confirm-unsafe-download-btn');
+
+          if (cautionModal && modalFlagList && confirmBtn) {
+            modalFlagList.replaceChildren();
+            meta.virusFlags.forEach(function (flag) {
+              var li = document.createElement('li');
+              li.textContent = flag;
+              modalFlagList.appendChild(li);
+            });
+            confirmBtn.href = streamUrl;
+            cautionModal.style.display = 'grid';
+          } else {
+            window.open(streamUrl, '_blank');
+          }
+        }
+      });
+    }
+
+    var cancelDlBtn = byId('cancel-download-btn');
+    if (cancelDlBtn) {
+      cancelDlBtn.addEventListener('click', function () {
+        var cautionModal = byId('download-caution-modal');
+        if (cautionModal) cautionModal.style.display = 'none';
+      });
+    }
+
+    var confirmDlBtn = byId('confirm-unsafe-download-btn');
+    if (confirmDlBtn) {
+      confirmDlBtn.addEventListener('click', function () {
+        var cautionModal = byId('download-caution-modal');
+        if (cautionModal) cautionModal.style.display = 'none';
+      });
+    }
 
     if (meta.isFolder) {
       byId('download-btn').style.display = 'none';

@@ -23,7 +23,55 @@
 </head>
 <body>
   <header class="site-nav"><a class="logo" href="https://pokedb.site/" data-nav="main">root<span>@</span>pokedb</a><nav class="nav-links"><a class="nav-link" href="https://drop.pokedb.site/" data-nav="drop">Drop</a><a class="nav-link" href="https://tools.pokedb.site/" data-nav="tools">Tools hub</a></nav><div class="theme-switcher"><span class="theme-swatch" id="theme-swatch"></span><select id="theme-select" aria-label="Choose a theme"><option value="oled-black">OLED — Pitch Indigo</option><option value="matrix">Matrix — Phosphor Green</option><option value="cyberpunk">Cyberpunk — Neon Cyan</option><option value="paper">Paper — Editorial Light</option></select></div></header>
-  <main class="viewer"><article class="viewer-card"><span class="eyebrow">$ drop --shared-file</span><div class="file-head"><div class="file-icon" id="file-icon">📦</div><div><h1 class="file-name" id="file-title">Loading file…</h1><p class="file-meta"><span id="file-size">—</span> · <span id="file-downloads">— downloads</span> · <span id="file-expiry">Checking expiry…</span></p></div></div><div class="media-preview" id="media-preview"></div><div id="folder-file-list" style="display:none; margin-top:1.25rem; text-align:left; border-top:1px solid var(--border); padding-top:1rem;"></div><div class="actions"><a class="btn btn-solid" id="download-btn" target="_blank" rel="noopener">Download file</a><button class="btn" id="qr-btn" type="button">Show QR</button><button class="btn" id="copy-btn" type="button">Copy link</button></div></article></main>
+  <main class="viewer">
+    <article class="viewer-card">
+      <span class="eyebrow">$ drop --shared-file</span>
+      <div class="file-head">
+        <div class="file-icon" id="file-icon">📦</div>
+        <div>
+          <h1 class="file-name" id="file-title">Loading file…</h1>
+          <p class="file-meta"><span id="file-size">—</span> · <span id="file-downloads">— downloads</span> · <span id="file-expiry">Checking expiry…</span></p>
+        </div>
+      </div>
+
+      <!-- Security Warning Box (Shown if file has threat flags or executable warnings) -->
+      <div id="security-warning-box" style="display:none; margin-top:1.25rem; padding:.9rem 1.1rem; border:1px solid rgba(255,85,85,0.4); border-radius:10px; background:rgba(255,85,85,0.08); font-family:'IBM Plex Mono',monospace; font-size:.84rem; color:#ff7777;">
+        <strong style="color:#ff5555; display:block; margin-bottom:.3rem; font-size:.9rem;">⚠️ Security Caution Telemetry</strong>
+        <div style="color:var(--text); margin-bottom:.4rem;">Automated security scanning detected potential risk flags on this file:</div>
+        <ul id="warning-flag-list" style="margin:0 0 0 1.2rem; padding:0; color:#ff7777;"></ul>
+      </div>
+
+      <div class="media-preview" id="media-preview"></div>
+      <div id="folder-file-list" style="display:none; margin-top:1.25rem; text-align:left; border-top:1px solid var(--border); padding-top:1rem;"></div>
+      <div class="actions">
+        <a class="btn btn-solid" id="download-btn" target="_blank" rel="noopener">Download file</a>
+        <button class="btn" id="qr-btn" type="button">Show QR</button>
+        <button class="btn" id="copy-btn" type="button">Copy link</button>
+      </div>
+    </article>
+  </main>
+
+  <!-- Downloader Caution Modal -->
+  <div class="modal" id="download-caution-modal" role="dialog" aria-modal="true" aria-label="Security Caution Confirmation">
+    <div class="modal-box" style="width:min(100%, 480px); text-align:left; border-color:rgba(255,85,85,0.5);">
+      <span class="eyebrow" style="color:#ff5555; font-weight:600;">⚠️ Security Caution: Downloader Choice</span>
+      <h3 style="font-size:1.1rem; margin:.5rem 0; color:var(--text);">Confirm Download of Flagged File</h3>
+      <p style="font-size:.86rem; color:var(--text); line-height:1.4;">
+        This file triggered automated threat telemetry or executable advisories:
+      </p>
+      <div style="background:rgba(255,85,85,0.08); border:1px solid rgba(255,85,85,0.3); border-radius:8px; padding:.75rem; margin:.75rem 0; font-family:'IBM Plex Mono',monospace; font-size:.8rem; color:#ff7777;">
+        <ul id="modal-caution-flag-list" style="margin:0 0 0 1.2rem; padding:0;"></ul>
+      </div>
+      <p style="font-size:.8rem; color:var(--muted); margin-bottom:1.25rem;">
+        You have full freedom to download and open this file. Proceed with caution when executing unverified software.
+      </p>
+      <div style="display:flex; gap:.75rem; justify-content:flex-end; flex-wrap:wrap;">
+        <button class="btn" id="cancel-download-btn" type="button">Cancel</button>
+        <a class="btn btn-solid" id="confirm-unsafe-download-btn" href="#" target="_blank" rel="noopener" style="background:#ff5555; color:#ffffff; border-color:#ff5555;">$ download --unsafe →</a>
+      </div>
+    </div>
+  </div>
+
   <div class="modal" id="qr-modal" role="dialog" aria-modal="true" aria-label="Share QR code"><div class="modal-box"><span class="eyebrow">$ qr --share</span><div id="qr-box" style="display:inline-block;background:#fff;padding:.35rem;border-radius:8px"></div><button class="btn btn-solid" id="close-qr-btn" type="button" style="width:100%;margin-top:1rem">Close</button></div></div>
   <footer><div class="footer-inner"><span>© pokedb.site · drop storage gateway</span><span id="uptime">session uptime · 00:00:00</span></div></footer>
   <script src="/shared/site.js"></script><script src="/view.js"></script>

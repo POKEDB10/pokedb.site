@@ -234,8 +234,9 @@ describe('URL Shortener API Suite', () => {
     const originalVtKey = process.env.VIRUSTOTAL_API_KEY;
     process.env.VIRUSTOTAL_API_KEY = 'test-vt-key';
 
-    global.fetch = jest.fn().mockImplementation((url) => {
-      if (url.includes('mb-api.abuse.ch')) {
+    global.fetch = jest.fn().mockImplementation((url, opts) => {
+      const urlStr = typeof url === 'string' ? url : (url && url.url) || String(url);
+      if (urlStr.includes('mb-api.abuse.ch')) {
         return Promise.resolve({
           ok: true,
           status: 200,
@@ -245,7 +246,17 @@ describe('URL Shortener API Suite', () => {
           })
         });
       }
-      return originalFetch ? originalFetch(url) : Promise.resolve({ ok: true, status: 200, json: async () => ({}) });
+      if (urlStr.includes('rootz.so')) {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => ({
+            success: true,
+            data: { id: 'test-code', name: 'virus.exe', size: 100 }
+          })
+        });
+      }
+      return originalFetch ? originalFetch(url, opts) : Promise.resolve({ ok: true, status: 200, json: async () => ({}) });
     });
 
     try {
@@ -253,8 +264,10 @@ describe('URL Shortener API Suite', () => {
         .post('/api/drop/upload')
         .attach('file', Buffer.from('malicious payload sample test'), 'virus.exe');
 
-      expect(uploadRes.status).toBe(400);
-      expect(uploadRes.body.error).toMatch(/MalwareBazaar/i);
+      expect(uploadRes.status).toBe(200);
+      expect(uploadRes.body.success).toBe(true);
+      expect(Array.isArray(uploadRes.body.virusFlags)).toBe(true);
+      expect(uploadRes.body.virusFlags.some((f) => f.includes('MalwareBazaar'))).toBe(true);
     } finally {
       process.env.VIRUSTOTAL_API_KEY = originalVtKey;
       global.fetch = originalFetch;

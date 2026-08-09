@@ -1061,7 +1061,7 @@ const isValidRemoteUrl = async (rawUrl) => {
   }
 };
 
-async function scanFileVirus(filePath) {
+async function scanFileVirus(filePath, originalName) {
   const flags = [];
 
   try {
@@ -1120,6 +1120,14 @@ async function scanFileVirus(filePath) {
         // Safe fallback on timeout
       }
     }
+
+    // 4. Executable binary / script extension advisories
+    if (originalName) {
+      const ext = (originalName.split('.').pop() || '').toLowerCase();
+      if (['exe', 'scr', 'bat', 'vbs', 'iso', 'apk', 'jar', 'cmd', 'ps1', 'msi'].includes(ext)) {
+        flags.push(`Executable binary or script file (.${ext}) — exercise caution when running downloaded software.`);
+      }
+    }
   } catch (err) {
     console.error('Error calculating file hash for virus scan:', err);
   }
@@ -1138,14 +1146,8 @@ app.post('/api/drop/upload', uploadLimiter, uploadMulter.single('file'), async (
       return res.status(400).json({ error: 'No file provided in upload request.' });
     }
 
-    // Scan uploaded file for viruses/malware via MalwareBazaar / VirusTotal
-    const virusScan = await scanFileVirus(req.file.path);
-    if (virusScan.isVirus) {
-      fs.unlink(req.file.path, () => {}); // Instantly purge infected file
-      return res.status(400).json({
-        error: `File upload rejected: ${virusScan.flags.join('; ')}`
-      });
-    }
+    // Scan uploaded file for threat telemetry (does NOT block upload — attaches warnings for downloaders)
+    const virusScan = await scanFileVirus(req.file.path, req.file.originalname);
 
     // Password verification for files > 1 GB
     if (req.file.size > ONE_GB && !verifyLargeFilePassword(req, req.file.size)) {
@@ -1204,7 +1206,8 @@ app.post('/api/drop/upload', uploadLimiter, uploadMulter.single('file'), async (
             expiresAt: resultObj.expires_at || resultObj.expiresAt || null,
             relativePath: req.body.relativePath || req.file.originalname,
             deletionToken: nanoid(32),
-            folderCode: targetFolderCode
+            folderCode: targetFolderCode,
+            virusFlags: virusScan.flags
           };
 
           inMemoryStore.set(`drop:${fileCode}`, JSON.stringify(dropRecord));
@@ -1224,7 +1227,8 @@ app.post('/api/drop/upload', uploadLimiter, uploadMulter.single('file'), async (
             provider: 'rootz',
             createdAt: dropRecord.createdAt,
             relativePath: dropRecord.relativePath,
-            deletionToken: dropRecord.deletionToken
+            deletionToken: dropRecord.deletionToken,
+            virusFlags: dropRecord.virusFlags
           });
         }
       } catch (proxyErr) {
@@ -1246,7 +1250,8 @@ app.post('/api/drop/upload', uploadLimiter, uploadMulter.single('file'), async (
       relativePath: req.body.relativePath || req.file.originalname,
       localPath: req.file.path,
       deletionToken: nanoid(32),
-      folderCode: targetFolderCode
+      folderCode: targetFolderCode,
+      virusFlags: virusScan.flags
     };
 
     inMemoryStore.set(`drop:${fileCode}`, JSON.stringify(dropRecord));
@@ -1675,6 +1680,7 @@ app.get('/api/drop/info', async (req, res) => {
           uploaded: rec.createdAt,
           download: String(rec.downloads || 0),
           expiresAt: rec.expiresAt,
+          virusFlags: rec.virusFlags || [],
           status_field: 'active'
         }]
       });
