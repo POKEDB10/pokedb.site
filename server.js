@@ -1215,6 +1215,14 @@ app.post('/api/drop/remote-upload', uploadLimiter, async (req, res) => {
       });
     }
 
+    const risk = await analyzeUrlRisk(url);
+    if (risk.isSuspicious) {
+      return res.status(400).json({
+        success: false,
+        error: `Remote URL blocked by Google Safe Browsing: ${risk.flags.join(', ')}`
+      });
+    }
+
     if (!SERVER_ROOTZ_KEY) {
       return res.status(503).json({ success: false, error: 'Remote storage is not configured. Set ROOTZ_API_KEY on the server and try again.' });
     }

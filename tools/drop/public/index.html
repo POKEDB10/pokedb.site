@@ -188,15 +188,88 @@ input:focus {
 }
 .drop-notice { display:none; margin-top:1rem; padding:.75rem .9rem; border:1px solid var(--danger); border-radius:7px; color:var(--danger); background:color-mix(in srgb,var(--danger) 8%,transparent); font:.78rem 'IBM Plex Mono',monospace; }
 .queue-list { display:grid; gap:.55rem; margin-top:1rem; }
-.queue-item { display:grid; grid-template-columns:auto minmax(0,1fr) auto auto; align-items:center; gap:.75rem; padding:.75rem; border:1px solid var(--border); border-radius:8px; background:var(--bg); }
+.queue-item { display:grid; grid-template-columns:auto minmax(0,1fr) auto auto; align-items:center; gap:.75rem; padding:.75rem; border:1px solid var(--border); border-radius:8px; background:var(--bg); transition:transform .15s ease, border-color .15s ease; }
+.queue-item:hover { border-color:var(--accent); transform:translateX(2px); }
 .queue-name { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font:500 .82rem 'IBM Plex Mono',monospace; }
 .queue-meta { display:block; color:var(--muted); font:.7rem 'IBM Plex Mono',monospace; margin-top:.15rem; }
 .queue-status { color:var(--accent); font:500 .7rem 'IBM Plex Mono',monospace; text-transform:uppercase; }
 .remove-queue-btn { background:rgba(255,85,85,0.1); border:1px solid rgba(255,85,85,0.4); color:#ff5555; border-radius:5px; width:26px; height:26px; display:inline-flex; align-items:center; justify-content:center; cursor:pointer; font:bold .85rem 'IBM Plex Mono',monospace; line-height:1; flex-shrink:0; transition:all .15s ease; margin-left:.25rem; }
-.remove-queue-btn:hover { background:#ff5555; color:#ffffff; border-color:#ff5555; transform:scale(1.05); }
+.remove-queue-btn:hover { background:#ff5555; color:#ffffff; border-color:#ff5555; transform:scale(1.08); }
 .upload-controls { display:flex; flex-wrap:wrap; gap:.6rem; margin-top:1rem; }
 .upload-controls .btn { flex:1 1 130px; }
 .upload-controls .btn:disabled { cursor:not-allowed; pointer-events:none; opacity:.42; color:var(--muted); background:var(--surface-2); border-color:var(--border); box-shadow:none; }
+
+/* Enhanced Drag & Drop Visuals */
+.drop-zone {
+  border: 2px dashed var(--border);
+  border-radius: 12px;
+  padding: 3.5rem 1.5rem;
+  text-align: center;
+  background: var(--bg);
+  cursor: pointer;
+  transition: all .25s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  overflow: hidden;
+}
+.drop-zone::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at center, rgba(99, 102, 241, 0.15) 0%, transparent 70%);
+  opacity: 0;
+  transition: opacity .3s ease;
+  pointer-events: none;
+}
+.drop-zone:hover, .drop-zone.dragover {
+  border-color: var(--accent);
+  background: rgba(99, 102, 241, 0.06);
+  box-shadow: 0 0 24px rgba(99, 102, 241, 0.2), inset 0 0 16px rgba(99, 102, 241, 0.08);
+  transform: scale(1.01);
+}
+.drop-zone.dragover::before { opacity: 1; }
+
+.drop-icon {
+  font-size: 2.8rem;
+  margin-bottom: .75rem;
+  display: inline-block;
+  transition: transform .3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.drop-zone.dragover .drop-icon {
+  transform: translateY(-10px) scale(1.25) rotate(-6deg);
+  animation: bounceBox .6s infinite alternate cubic-bezier(0.45, 0, 0.55, 1);
+}
+@keyframes bounceBox {
+  0% { transform: translateY(-10px) scale(1.25) rotate(-6deg); }
+  100% { transform: translateY(-18px) scale(1.3) rotate(6deg); }
+}
+
+.window-drag-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  background: rgba(0, 0, 0, 0.82);
+  backdrop-filter: blur(6px);
+  border: 3px dashed var(--accent);
+  display: none;
+  place-items: center;
+  pointer-events: none;
+}
+.window-drag-overlay.is-active { display: grid; }
+
+.drop-ripple {
+  position: absolute;
+  border-radius: 50%;
+  border: 2px solid var(--accent);
+  background: rgba(99, 102, 241, 0.2);
+  transform: scale(0);
+  animation: rippleExpand .6s ease-out forwards;
+  pointer-events: none;
+}
+@keyframes rippleExpand {
+  0% { transform: scale(0); opacity: 1; }
+  100% { transform: scale(3); opacity: 0; }
+}
+
 @media (max-width:560px) {
   .drop-card { padding:1rem; }
   .tab-bar { flex-wrap:wrap; }
@@ -207,6 +280,12 @@ input:focus {
 </style>
 </head>
 <body>
+<div class="window-drag-overlay" id="window-drag-overlay">
+  <div style="text-align:center; color:var(--accent); font-family:'IBM Plex Mono',monospace; font-weight:600; font-size:1.3rem;">
+    <span style="font-size:3.5rem; display:block; margin-bottom:.75rem;" class="drop-icon">⚡</span>
+    <div>RELEASE TO DROP FILES & STAGE FOR UPLOAD</div>
+  </div>
+</div>
 
 <header class="site-nav">
   <div class="logo">

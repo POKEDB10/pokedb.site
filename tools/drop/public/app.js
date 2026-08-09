@@ -628,17 +628,61 @@
     var fileInput = element('file-input');
     var dropZone = element('drop-zone');
 
+    var windowOverlay = element('window-drag-overlay');
+    var dragCounter = 0;
+
+    window.addEventListener('dragenter', function (e) {
+      if (e.dataTransfer && e.dataTransfer.types && Array.from(e.dataTransfer.types).includes('Files')) {
+        dragCounter++;
+        if (windowOverlay) windowOverlay.classList.add('is-active');
+      }
+    });
+
+    window.addEventListener('dragleave', function (e) {
+      dragCounter--;
+      if (dragCounter <= 0) {
+        dragCounter = 0;
+        if (windowOverlay) windowOverlay.classList.remove('is-active');
+      }
+    });
+
+    window.addEventListener('drop', function (e) {
+      dragCounter = 0;
+      if (windowOverlay) windowOverlay.classList.remove('is-active');
+    });
+
     dropZone.addEventListener('click', function (event) {
       if (event.target === dropZone || event.target.closest('#drop-default-prompt')) fileInput.click();
     });
     fileInput.addEventListener('change', function (event) { addFiles(event.target.files); fileInput.value = ''; });
     ['dragenter', 'dragover'].forEach(function (name) {
-      dropZone.addEventListener(name, function (event) { event.preventDefault(); dropZone.classList.add('dragover'); });
+      dropZone.addEventListener(name, function (event) {
+        event.preventDefault();
+        dropZone.classList.add('dragover');
+      });
     });
     ['dragleave', 'drop'].forEach(function (name) {
-      dropZone.addEventListener(name, function (event) { event.preventDefault(); dropZone.classList.remove('dragover'); });
+      dropZone.addEventListener(name, function (event) {
+        event.preventDefault();
+        dropZone.classList.remove('dragover');
+      });
     });
-    dropZone.addEventListener('drop', function (event) { if (event.dataTransfer.files.length) addFiles(event.dataTransfer.files); });
+    dropZone.addEventListener('drop', function (event) {
+      if (event.dataTransfer && event.dataTransfer.files.length) {
+        // Shockwave ripple effect on drop
+        var rect = dropZone.getBoundingClientRect();
+        var ripple = document.createElement('div');
+        ripple.className = 'drop-ripple';
+        var size = Math.max(rect.width, rect.height);
+        ripple.style.width = ripple.style.height = size + 'px';
+        ripple.style.left = (event.clientX - rect.left - size / 2) + 'px';
+        ripple.style.top = (event.clientY - rect.top - size / 2) + 'px';
+        dropZone.appendChild(ripple);
+        setTimeout(function () { ripple.remove(); }, 600);
+
+        addFiles(event.dataTransfer.files);
+      }
+    });
 
     element('start-upload-btn').addEventListener('click', beginQueue);
     element('pause-upload-btn').addEventListener('click', togglePause);
