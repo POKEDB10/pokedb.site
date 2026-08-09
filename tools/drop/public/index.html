@@ -188,10 +188,12 @@ input:focus {
 }
 .drop-notice { display:none; margin-top:1rem; padding:.75rem .9rem; border:1px solid var(--danger); border-radius:7px; color:var(--danger); background:color-mix(in srgb,var(--danger) 8%,transparent); font:.78rem 'IBM Plex Mono',monospace; }
 .queue-list { display:grid; gap:.55rem; margin-top:1rem; }
-.queue-item { display:grid; grid-template-columns:auto minmax(0,1fr) auto; align-items:center; gap:.75rem; padding:.75rem; border:1px solid var(--border); border-radius:8px; background:var(--bg); }
+.queue-item { display:grid; grid-template-columns:auto minmax(0,1fr) auto auto; align-items:center; gap:.75rem; padding:.75rem; border:1px solid var(--border); border-radius:8px; background:var(--bg); }
 .queue-name { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font:500 .82rem 'IBM Plex Mono',monospace; }
 .queue-meta { display:block; color:var(--muted); font:.7rem 'IBM Plex Mono',monospace; margin-top:.15rem; }
 .queue-status { color:var(--accent); font:500 .7rem 'IBM Plex Mono',monospace; text-transform:uppercase; }
+.remove-queue-btn { background:rgba(255,85,85,0.1); border:1px solid rgba(255,85,85,0.4); color:#ff5555; border-radius:5px; width:26px; height:26px; display:inline-flex; align-items:center; justify-content:center; cursor:pointer; font:bold .85rem 'IBM Plex Mono',monospace; line-height:1; flex-shrink:0; transition:all .15s ease; margin-left:.25rem; }
+.remove-queue-btn:hover { background:#ff5555; color:#ffffff; border-color:#ff5555; transform:scale(1.05); }
 .upload-controls { display:flex; flex-wrap:wrap; gap:.6rem; margin-top:1rem; }
 .upload-controls .btn { flex:1 1 130px; }
 .upload-controls .btn:disabled { cursor:not-allowed; pointer-events:none; opacity:.42; color:var(--muted); background:var(--surface-2); border-color:var(--border); box-shadow:none; }

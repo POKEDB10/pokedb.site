@@ -2,7 +2,7 @@
   'use strict';
 
   // ─── Constants ────────────────────────────────────────────────────────────
-  var MULTIPART_THRESHOLD = 4 * 1024 * 1024; // 4 MB — matches Rootz docs
+  var MULTIPART_THRESHOLD = 50 * 1024 * 1024; // 50 MB
   var ONE_GB = 1073741824;
 
   // ─── State ────────────────────────────────────────────────────────────────
@@ -13,6 +13,7 @@
   var pendingLargeItem = null;
   var currentResultData = null;
   var activeTab = 'direct';
+  var activeFolderBatch = null;
 
   var formatBytes = window.PokeDbUtils.formatBytes;
   var getFileIcon = window.PokeDbUtils.getFileIcon;
@@ -21,6 +22,20 @@
   function element(id) { return document.getElementById(id); }
   function showNotice(msg) { element('drop-notice').textContent = msg; element('drop-notice').style.display = 'block'; }
   function clearNotice() { element('drop-notice').style.display = 'none'; }
+
+  function formatSizeAuto(bytes) {
+    var num = Number(bytes) || 0;
+    if (num >= 1073741824) {
+      return (num / 1073741824).toFixed(2).replace(/\.00$/, '') + 'gb';
+    }
+    if (num >= 1048576) {
+      return (num / 1048576).toFixed(1).replace(/\.0$/, '') + 'mb';
+    }
+    if (num >= 1024) {
+      return (num / 1024).toFixed(0) + 'kb';
+    }
+    return num + 'b';
+  }
 
   function setProgress(percent, text) {
     element('progress-container').style.display = 'block';
@@ -36,6 +51,41 @@
     element('pause-upload-btn').disabled = !activeUpload && !paused;
     element('pause-upload-btn').textContent = paused ? 'Resume queue' : 'Pause queue';
     element('cancel-upload-btn').disabled = !activeUpload && !hasPending;
+  }
+
+  function removeItemFromQueue(item) {
+    var index = queue.indexOf(item);
+    if (index > -1) {
+      if (item.status === 'uploading') {
+        abortActiveUpload();
+      }
+      queue.splice(index, 1);
+    }
+    if (!queue.length) {
+      element('drop-default-prompt').style.display = 'block';
+      element('drop-file-badge').style.display = 'none';
+      hideProgress();
+      clearNotice();
+      activeFolderBatch = null;
+    } else {
+      updateBadgeInfo();
+    }
+    renderQueue();
+  }
+
+  function updateBadgeInfo() {
+    if (!queue.length) return;
+    var first = queue[0];
+    if (queue.length === 1) {
+      element('badge-icon').textContent = getFileIcon(first.file.name);
+      element('badge-name').textContent = first.file.name;
+      element('badge-meta').textContent = formatBytes(first.file.size) + ' · Ready to upload';
+    } else {
+      var totalBytes = queue.reduce(function (sum, i) { return sum + i.file.size; }, 0);
+      element('badge-icon').textContent = '📁';
+      element('badge-name').textContent = queue.length + ' items selected';
+      element('badge-meta').textContent = formatBytes(totalBytes) + ' · Ready to upload as a folder (' + formatSizeAuto(totalBytes) + ')';
+    }
   }
 
   function renderQueue() {
@@ -58,7 +108,18 @@
       var state = document.createElement('span');
       state.className = 'queue-status';
       state.textContent = item.status;
-      row.append(icon, details, state);
+
+      var removeBtn = document.createElement('button');
+      removeBtn.type = 'button';
+      removeBtn.className = 'remove-queue-btn';
+      removeBtn.title = 'Remove item from queue';
+      removeBtn.textContent = '✕';
+      removeBtn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        removeItemFromQueue(item);
+      });
+
+      row.append(icon, details, state, removeBtn);
       container.appendChild(row);
     });
     updateControls();
@@ -71,10 +132,7 @@
     if (queue.length) {
       element('drop-default-prompt').style.display = 'none';
       element('drop-file-badge').style.display = 'block';
-      var first = queue[0];
-      element('badge-icon').textContent = getFileIcon(first.file.name);
-      element('badge-name').textContent = queue.length === 1 ? first.file.name : queue.length + ' items selected';
-      element('badge-meta').textContent = queue.length === 1 ? formatBytes(first.file.size) + ' · Ready to upload' : 'Ready to upload as a queue';
+      updateBadgeInfo();
       clearNotice();
     }
     renderQueue();
@@ -98,24 +156,46 @@
     starting = true;
     updateControls();
     try {
-      var statusResponse = await fetch('/api/drop/status', { cache: 'no-store' });
-      var status = await statusResponse.json();
-      if (!status.storageConfigured) {
-        showNotice('Uploads are disabled: set ROOTZ_API_KEY in Render first.');
-        return;
-      }
-      if (!status.defaultFolderConfigured) {
-        showNotice('Uploads are disabled: the pokedb.site folder was not found in your Rootz account. Set ROOTZ_FOLDER_ID to its UUID in Render.');
-        return;
-      }
+      await fetch('/api/drop/status', { cache: 'no-store' });
     } catch (error) {
-      showNotice('Could not verify the upload service. Please refresh and try again.');
-      return;
     } finally {
       starting = false;
       updateControls();
     }
     paused = false;
+
+    var pendingItems = queue.filter(function (item) { return item.status === 'ready' || item.status === 'paused' || item.status === 'failed'; });
+    if (!pendingItems.length) { hideProgress(); updateControls(); return; }
+
+    // If multiple items are selected in queue, create a server folder
+    if (pendingItems.length > 1 && !activeFolderBatch) {
+      try {
+        var totalBytes = pendingItems.reduce(function (sum, item) { return sum + item.file.size; }, 0);
+        var sizeStr = formatSizeAuto(totalBytes);
+        var randStr = Math.random().toString(36).substring(2, 8);
+        var folderName = 'pokedb-' + randStr + '-' + sizeStr;
+
+        var folderRes = await fetch('/api/drop/create-folder', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: folderName, totalSize: totalBytes, fileCount: pendingItems.length })
+        });
+        var folderData = await folderRes.json();
+        if (folderRes.ok && folderData.success) {
+          activeFolderBatch = {
+            folderId: folderData.folderId,
+            folderCode: folderData.folderCode,
+            name: folderData.name,
+            totalSize: totalBytes,
+            viewUrl: folderData.viewUrl,
+            fileCount: pendingItems.length
+          };
+        }
+      } catch (e) {
+        console.warn('Failed to create folder for batch upload:', e);
+      }
+    }
+
     var item = nextItem();
     if (!item) { hideProgress(); updateControls(); return; }
     if (item.file.size > ONE_GB && !item.password) { showLargeFilePrompt(item); updateControls(); return; }
@@ -130,7 +210,7 @@
     }
   }
 
-  // ─── Direct upload (< 4 MB) ────────────────────────────────────────────────
+  // ─── Direct upload ────────────────────────────────────────────────────────
   function uploadItemDirect(item) {
     clearNotice();
     item.status = 'uploading';
@@ -141,6 +221,10 @@
     formData.append('file', item.file);
     formData.append('expiresInDays', element('expires-in-select').value);
     formData.append('relativePath', item.path);
+    if (activeFolderBatch) {
+      formData.append('folderCode', activeFolderBatch.folderCode);
+      if (activeFolderBatch.folderId) formData.append('folderId', activeFolderBatch.folderId);
+    }
 
     var xhr = new XMLHttpRequest();
     activeUpload = { xhr: xhr };
@@ -166,8 +250,14 @@
         try {
           var result = JSON.parse(xhr.responseText);
           item.status = 'complete'; item.progress = 100;
-          displayResult(result);
           renderQueue();
+          var remaining = nextItem();
+          if (!remaining && activeFolderBatch) {
+            displayFolderResult(activeFolderBatch);
+            activeFolderBatch = null;
+          } else if (!activeFolderBatch) {
+            displayResult(result);
+          }
           beginQueue();
         } catch (e) { item.status = 'failed'; showNotice('Upload completed but the response could not be read.'); renderQueue(); }
       } else {
@@ -219,6 +309,10 @@
         fileSize: fileSize,
         fileType: mimeType
       };
+      if (activeFolderBatch) {
+        initBody.folderCode = activeFolderBatch.folderCode;
+        if (activeFolderBatch.folderId) initBody.folderId = activeFolderBatch.folderId;
+      }
       if (item.password) {
         // Server reads the password from this header
         // (multipart/init proxies it on the server side through verifyLargeFilePassword)
@@ -367,6 +461,10 @@
         fileSize: fileSize,
         contentType: mimeType
       };
+      if (activeFolderBatch) {
+        completeBody.folderCode = activeFolderBatch.folderCode;
+        if (activeFolderBatch.folderId) completeBody.folderId = activeFolderBatch.folderId;
+      }
       var completeHeaders = { 'Content-Type': 'application/json' };
       if (item.password) completeHeaders['x-upload-password'] = item.password;
 
@@ -403,8 +501,14 @@
       item.status = 'complete';
       item.progress = 100;
       setProgress(100, 'Upload complete: ' + fileName);
-      displayResult(result);
       renderQueue();
+      var remaining = nextItem();
+      if (!remaining && activeFolderBatch) {
+        displayFolderResult(activeFolderBatch);
+        activeFolderBatch = null;
+      } else if (!activeFolderBatch) {
+        displayResult(result);
+      }
       beginQueue();
 
     } catch (err) {
@@ -461,6 +565,20 @@
     element('res-share-link').value = viewerUrl;
     element('open-link-btn').href = viewerUrl;
     element('res-expiry-info').textContent = result.expiresAt ? 'Expires: ' + new Date(result.expiresAt).toLocaleString() : 'Permanent storage link';
+  }
+
+  function displayFolderResult(batch) {
+    currentResultData = batch;
+    element('result-card').style.display = 'block';
+    element('res-file-icon').textContent = '📁';
+    element('res-file-name').textContent = batch.name;
+    element('res-file-size').textContent = formatBytes(batch.totalSize) + ' · ' + batch.fileCount + ' files in folder';
+    element('res-storage-provider').textContent = 'Pokedb Drop Folder';
+    element('res-downloads-tag').textContent = batch.fileCount + ' items';
+    var viewerUrl = batch.viewUrl || (window.location.origin + '/v/' + batch.folderCode);
+    element('res-share-link').value = viewerUrl;
+    element('open-link-btn').href = viewerUrl;
+    element('res-expiry-info').textContent = 'Multi-file folder batch';
   }
 
   // ─── File manager ─────────────────────────────────────────────────────────

@@ -505,7 +505,7 @@
       options = options || {};
       var fg = options.dark || '#000000';
       var bg = options.light || '#ffffff';
-      var margin = options.margin != undefined ? options.margin : 2;
+      var margin = options.margin != undefined ? options.margin : 1;
       var icon = options.icon || ''; // optional text icon or symbol in center
 
       var matrix = this.generateMatrix(text, options.ecLevel || 'H');
