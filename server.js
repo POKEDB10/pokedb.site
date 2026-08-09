@@ -111,7 +111,7 @@ function htmlEscape(value) {
 
 function renderTemplate(templateName, values) {
   const template = fs.readFileSync(path.join(TEMPLATES_DIR, templateName), 'utf8');
-  return template.replace(/{{(\w+)}}/g, (match, key) => values[key] ?? '');
+  return template.replace(/{{{?(\w+)}}}?/g, (match, key) => values[key] ?? '');
 }
 
 function serializeForInlineScript(value) {
@@ -1760,119 +1760,37 @@ async function analyzeUrlRisk(urlStr) {
   const flags = [];
   let riskLevel = 'low';
 
-  try {
-    const parsed = new URL(urlStr);
-    const hostname = parsed.hostname.toLowerCase();
-    const pathname = parsed.pathname.toLowerCase();
-    const port = parsed.port;
-
-    // Trusted domains list (never flagged to eliminate false positives on popular sites)
-    const trustedDomains = [
-      'google.com', 'youtube.com', 'github.com', 'wikipedia.org', 'twitter.com',
-      'x.com', 'discord.com', 'discord.gg', 'microsoft.com', 'apple.com',
-      'amazon.com', 'reddit.com', 'pokedb.site', 'stackoverflow.com', 'medium.com',
-      'git-scm.com', 'npmjs.com', 'cloudflare.com', 'render.com', 'vercel.app'
-    ];
-
-    const isWhitelisted = trustedDomains.some(d => hostname === d || hostname.endsWith('.' + d));
-
-    if (!isWhitelisted) {
-      // 1. Bare IP Address (e.g. http://192.168.1.1 or http://45.33.32.156)
-      if (net.isIP(hostname)) {
-        flags.push('Target uses a raw IP address instead of a registered domain name.');
-        riskLevel = 'high';
-      }
-
-      // 2. High-risk TLDs heavily used in phishing / scam campaigns
-      const highRiskTlds = [
-        '.xyz', '.top', '.zip', '.mov', '.fit', '.tk', '.ml', '.ga', '.cf',
-        '.gq', '.work', '.click', '.loan', '.country', '.stream', '.download',
-        '.racing', '.surf', '.buzz', '.monster', '.rest'
-      ];
-      if (highRiskTlds.some(tld => hostname.endsWith(tld))) {
-        flags.push(`Domain uses a high-risk TLD frequently associated with spam or phishing (${hostname.slice(hostname.lastIndexOf('.'))}).`);
-        if (riskLevel !== 'high') riskLevel = 'medium';
-      }
-
-      // 3. Obfuscated authority (userinfo / @ symbol)
-      if (parsed.username || parsed.password) {
-        flags.push('URL contains embedded user credentials or obfuscated login authority.');
-        riskLevel = 'high';
-      }
-
-      // 4. Phishing / Brand Impersonation Keywords on untrusted domains
-      const brandKeywords = [
-        'paypal', 'bankofamerica', 'chase', 'wellsfargo', 'steamcommunity',
-        'discord-nitro', 'metamask', 'binance', 'coinbase', 'appleid', 'account-verify'
-      ];
-      for (const kw of brandKeywords) {
-        if (hostname.includes(kw)) {
-          flags.push(`Domain contains brand keyword "${kw}" on an unverified domain.`);
-          riskLevel = 'high';
-          break;
-        }
-      }
-
-      // 5. Direct Executable / Script Downloads
-      const dangerousExts = ['.exe', '.scr', '.bat', '.vbs', '.iso', '.apk', '.jar', '.cmd', '.ps1', '.msi'];
-      if (dangerousExts.some(ext => pathname.endsWith(ext))) {
-        flags.push(`URL points directly to an executable file or script (${pathname.slice(pathname.lastIndexOf('.'))}).`);
-        riskLevel = 'high';
-      }
-
-      // 6. Excessive hyphens in domain
-      const domainParts = hostname.split('.');
-      for (const part of domainParts) {
-        const hyphenCount = (part.match(/-/g) || []).length;
-        if (hyphenCount >= 3) {
-          flags.push('Domain contains excessive hyphens often seen in typosquatting domains.');
-          if (riskLevel !== 'high') riskLevel = 'medium';
-          break;
-        }
-      }
-
-      // 7. Non-standard ports
-      if (port && port !== '80' && port !== '443') {
-        flags.push(`URL uses a non-standard web port (:${port}).`);
-        if (riskLevel !== 'high') riskLevel = 'medium';
-      }
-    }
-
-    // 8. Google Safe Browsing API Integration (if GOOGLE_SAFE_BROWSING_KEY environment variable is set)
-    if (process.env.GOOGLE_SAFE_BROWSING_KEY) {
-      try {
-        const controller = new AbortController();
-        const timer = setTimeout(() => controller.abort(), 2000);
-        const gsbRes = await fetch(`https://safebrowsing.googleapis.com/v4/threatMatches:find?key=${process.env.GOOGLE_SAFE_BROWSING_KEY}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          signal: controller.signal,
-          body: JSON.stringify({
-            client: { clientId: 'pokedb-site', clientVersion: '1.0.0' },
-            threatInfo: {
-              threatTypes: ['MALWARE', 'SOCIAL_ENGINEERING', 'UNWANTED_SOFTWARE', 'POTENTIALLY_HARMFUL_APPLICATION'],
-              platformTypes: ['ANY_PLATFORM'],
-              threatEntryTypes: ['URL'],
-              threatEntries: [{ url: urlStr }]
-            }
-          })
-        });
-        clearTimeout(timer);
-        if (gsbRes.ok) {
-          const data = await gsbRes.json();
-          if (data.matches && data.matches.length > 0) {
-            flags.push(`Flagged by Google Safe Browsing API as ${data.matches[0].threatType || 'malicious'}.`);
-            riskLevel = 'high';
+  // Rely exclusively on Google Safe Browsing API if configured
+  if (process.env.GOOGLE_SAFE_BROWSING_KEY) {
+    try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 2500);
+      const gsbRes = await fetch(`https://safebrowsing.googleapis.com/v4/threatMatches:find?key=${process.env.GOOGLE_SAFE_BROWSING_KEY}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal,
+        body: JSON.stringify({
+          client: { clientId: 'pokedb-site', clientVersion: '1.0.0' },
+          threatInfo: {
+            threatTypes: ['MALWARE', 'SOCIAL_ENGINEERING', 'UNWANTED_SOFTWARE', 'POTENTIALLY_HARMFUL_APPLICATION'],
+            platformTypes: ['ANY_PLATFORM'],
+            threatEntryTypes: ['URL'],
+            threatEntries: [{ url: urlStr }]
           }
+        })
+      });
+      clearTimeout(timer);
+      if (gsbRes.ok) {
+        const data = await gsbRes.json();
+        if (data.matches && data.matches.length > 0) {
+          const matchType = (data.matches[0].threatType || 'MALICIOUS_SITE').replace(/_/g, ' ');
+          flags.push(`Flagged by Google Safe Browsing API: ${matchType}`);
+          riskLevel = 'high';
         }
-      } catch (gsbErr) {
-        // Safe browsing fallback: continue with local findings if API times out or fails
       }
+    } catch (gsbErr) {
+      // Safe browsing API call failed or timed out — proceed cleanly
     }
-
-  } catch (err) {
-    flags.push('URL formatting could not be verified.');
-    riskLevel = 'medium';
   }
 
   return {
@@ -1917,12 +1835,18 @@ app.get('/:code', async (req, res) => {
       return res.redirect(302, record.longUrl);
     }
 
-    // Serve Intermediary Redirect Landing Page with 10s countdown and safety auditing
+    // Serve Intermediary Redirect Landing Page with 10s countdown and Google Safe Browsing auditing
     const safeUrl = htmlEscape(record.longUrl);
     const risk = await analyzeUrlRisk(record.longUrl);
-    const auditStatusHtml = risk.isSuspicious
-      ? `<span style="color:#ff5555; font-weight:600;">⚠️ POTENTIAL SECURITY RISK DETECTED (${risk.riskLevel.toUpperCase()})</span>`
-      : `<span style="color:var(--accent);">Verified Destination (Clean)</span>`;
+    const isSuspicious = risk.isSuspicious;
+
+    const auditStatusHtml = isSuspicious
+      ? `<span style="color:#ff5555; font-weight:600;">⚠️ FLAGGED BY GOOGLE SAFE BROWSING</span>`
+      : `<span style="color:var(--accent); font-weight:600;">Verified Safe (Google Safe Browsing)</span>`;
+
+    const primaryButtonLabel = isSuspicious
+      ? `$ proceed --caution →`
+      : `$ redirect --now (Skip Timer) →`;
 
     return res.status(200).send(renderTemplate('redirect.html', {
       safeUrl,
@@ -1930,11 +1854,12 @@ app.get('/:code', async (req, res) => {
       clickCount: String(clickCount),
       nonce: res.locals.cspNonce,
       serializedUrl: serializeForInlineScript(record.longUrl),
-      isSuspicious: risk.isSuspicious ? 'true' : 'false',
+      isSuspicious: isSuspicious ? 'true' : 'false',
       riskLevel: risk.riskLevel,
       securityAuditStatus: auditStatusHtml,
+      primaryButtonLabel,
       serializedFlags: serializeForInlineScript(JSON.stringify(risk.flags)),
-      flagListHtml: risk.flags.map(f => `<div><span class="prompt">[!]</span> Security Flag: <span style="color:#ff5555;">${htmlEscape(f)}</span></div>`).join('')
+      flagListHtml: risk.flags.map(f => `<div><span class="prompt">[!]</span> Threat Flag: <span style="color:#ff5555;">${htmlEscape(f)}</span></div>`).join('')
     }));
   } catch (err) {
     console.error('Error redirecting:', err);

@@ -173,12 +173,36 @@ describe('URL Shortener API Suite', () => {
     }
   });
 
-  test('8b. Scan URL risk and present 10s redirect countdown or caution warning', async () => {
+  test('8b. Scan URL risk via Google Safe Browsing API and present 10s redirect countdown or caution warning', async () => {
     const cleanUrl = 'https://github.com/POKEDB10/pokedb.site';
-    const suspiciousUrl = 'http://192.168.1.50/login.exe';
+    const suspiciousUrl = 'http://testsafebrowsing.appspot.com/s/phishing.html';
 
     const cleanRes = await request(app).post('/api/shorten').send({ url: cleanUrl });
     const suspRes = await request(app).post('/api/shorten').send({ url: suspiciousUrl });
+
+    const originalFetch = global.fetch;
+    const originalGsbKey = process.env.GOOGLE_SAFE_BROWSING_KEY;
+    process.env.GOOGLE_SAFE_BROWSING_KEY = 'test-gsb-api-key';
+
+    global.fetch = jest.fn().mockImplementation((url, options) => {
+      if (url.includes('safebrowsing.googleapis.com')) {
+        const body = JSON.parse(options.body);
+        const targetUrl = body.threatInfo.threatEntries[0].url;
+        if (targetUrl.includes('phishing')) {
+          return Promise.resolve({
+            ok: true,
+            status: 200,
+            json: async () => ({ matches: [{ threatType: 'SOCIAL_ENGINEERING' }] })
+          });
+        }
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => ({})
+        });
+      }
+      return originalFetch ? originalFetch(url, options) : Promise.resolve({ ok: true, status: 200, json: async () => ({}) });
+    });
 
     const originalNodeEnv = process.env.NODE_ENV;
     process.env.NODE_ENV = 'production';
@@ -189,15 +213,19 @@ describe('URL Shortener API Suite', () => {
       expect(getClean.status).toBe(200);
       expect(getClean.text).toContain('Auto-redirecting in');
       expect(getClean.text).toContain('10');
-      expect(getClean.text).toContain('Verified Destination (Clean)');
+      expect(getClean.text).toContain('Verified Safe (Google Safe Browsing)');
       expect(getClean.text).toContain('var isSuspicious = false');
 
       expect(getSusp.status).toBe(200);
-      expect(getSusp.text).toContain('POTENTIAL SECURITY RISK DETECTED');
+      expect(getSusp.text).toContain('FLAGGED BY GOOGLE SAFE BROWSING');
       expect(getSusp.text).toContain('caution-modal');
       expect(getSusp.text).toContain('var isSuspicious = true');
+      expect(getSusp.text).toContain('proceed --caution');
+      expect(getSusp.text).not.toContain('Skip Timer');
     } finally {
       process.env.NODE_ENV = originalNodeEnv;
+      process.env.GOOGLE_SAFE_BROWSING_KEY = originalGsbKey;
+      global.fetch = originalFetch;
     }
   });
 
