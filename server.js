@@ -1832,116 +1832,181 @@ app.get('/api/stats/:code', checkApiHost(['tinyurl.pokedb.site']), async (req, r
 // ============================================================
 // 3. GET /:code — Catch-all Short Link Redirect (Registered LAST)
 // ============================================================
+// Multi-Provider Threat Intelligence Engine (APIs & Security Tools)
+// ============================================================
 async function analyzeUrlRisk(urlStr) {
   const flags = [];
   let riskLevel = 'low';
 
-  const lowerUrl = urlStr.toLowerCase();
+  const gsbKey = process.env.GOOGLE_SAFE_BROWSING_KEY;
+  const vtKey = process.env.VIRUSTOTAL_API_KEY || process.env.VT_API_KEY;
+  const urlscanKey = process.env.URLSCAN_API_KEY;
+  const phishtankKey = process.env.PHISHTANK_API_KEY;
+  const abuseipdbKey = process.env.ABUSEIPDB_API_KEY;
 
-  // 1. Built-in Threat Intelligence for Security Test Domains (Mozilla & Google)
-  const knownTestThreats = [
-    { pattern: 'itisatrap.org', name: 'Firefox Attack Test Site (Malware/Badware)' },
-    { pattern: 'testsafebrowsing.appspot.com', name: 'Google Safe Browsing Test Site (Phishing/Malware)' },
-    { pattern: 'eicar.org', name: 'EICAR Anti-Virus Test File' },
-    { pattern: 'malware.testing.google.test', name: 'Google Safe Browsing Test Domain' }
-  ];
+  const promises = [];
 
-  for (const testThreat of knownTestThreats) {
-    if (lowerUrl.includes(testThreat.pattern)) {
-      flags.push(`Flagged by Threat Intelligence: ${testThreat.name}`);
+  // 1. Google Safe Browsing API v4
+  if (gsbKey) {
+    promises.push((async () => {
+      try {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 2500);
+        const res = await fetch(`https://safebrowsing.googleapis.com/v4/threatMatches:find?key=${gsbKey}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          signal: controller.signal,
+          body: JSON.stringify({
+            client: { clientId: 'pokedb-site', clientVersion: '1.0.0' },
+            threatInfo: {
+              threatTypes: ['MALWARE', 'SOCIAL_ENGINEERING', 'UNWANTED_SOFTWARE', 'POTENTIALLY_HARMFUL_APPLICATION'],
+              platformTypes: ['ANY_PLATFORM'],
+              threatEntryTypes: ['URL'],
+              threatEntries: [{ url: urlStr }]
+            }
+          })
+        });
+        clearTimeout(timer);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.matches && data.matches.length > 0) {
+            const matchType = (data.matches[0].threatType || 'MALICIOUS_SITE').replace(/_/g, ' ');
+            return `Flagged by Google Safe Browsing API: ${matchType}`;
+          }
+        }
+      } catch (e) {}
+      return null;
+    })());
+  }
+
+  // 2. VirusTotal API v3 (URL Analysis)
+  if (vtKey) {
+    promises.push((async () => {
+      try {
+        const urlId = Buffer.from(urlStr).toString('base64').replace(/=/g, '');
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 2500);
+        const res = await fetch(`https://www.virustotal.com/api/v3/urls/${urlId}`, {
+          headers: { 'x-apikey': vtKey },
+          signal: controller.signal
+        });
+        clearTimeout(timer);
+        if (res.ok) {
+          const data = await res.json();
+          const stats = data?.data?.attributes?.last_analysis_stats;
+          if (stats && (stats.malicious > 0 || stats.suspicious > 0)) {
+            return `Flagged by VirusTotal API: Detected by ${stats.malicious + stats.suspicious} security engines`;
+          }
+        }
+      } catch (e) {}
+      return null;
+    })());
+  }
+
+  // 3. URLScan.io API Threat Intelligence
+  if (urlscanKey) {
+    promises.push((async () => {
+      try {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 2500);
+        const res = await fetch(`https://urlscan.io/api/v1/search/?q=page.url:"${encodeURIComponent(urlStr)}"`, {
+          headers: { 'API-Key': urlscanKey },
+          signal: controller.signal
+        });
+        clearTimeout(timer);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.results && data.results.length > 0) {
+            const maliciousHits = data.results.filter(r => r.verdicts?.overall?.malicious);
+            if (maliciousHits.length > 0) {
+              return 'Flagged by URLScan.io API: Known malicious scan verdict';
+            }
+          }
+        }
+      } catch (e) {}
+      return null;
+    })());
+  }
+
+  // 4. Cloudflare 1.1.0.2 Security Filter (DoH Query)
+  try {
+    const parsed = new URL(urlStr);
+    const host = parsed.hostname;
+
+    promises.push((async () => {
+      try {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 2000);
+        const res = await fetch(`https://security.cloudflare-dns.com/dns-query?name=${encodeURIComponent(host)}&type=A`, {
+          headers: { 'Accept': 'application/dns-json' },
+          signal: controller.signal
+        });
+        clearTimeout(timer);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.Status === 3 || (data.Answer && data.Answer.some(a => a.data === '0.0.0.0' || a.data === '127.0.0.1'))) {
+            return `Flagged by Cloudflare 1.1.0.2 Security DNS: Malicious or phishing domain (${host})`;
+          }
+        }
+      } catch (e) {}
+      return null;
+    })());
+
+    // 5. AbuseIPDB API v2 (if host is IP address & API key set)
+    if (abuseipdbKey && /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/.test(host)) {
+      promises.push((async () => {
+        try {
+          const controller = new AbortController();
+          const timer = setTimeout(() => controller.abort(), 2000);
+          const res = await fetch(`https://api.abuseipdb.com/api/v2/check?ipAddress=${host}`, {
+            headers: { 'Key': abuseipdbKey, 'Accept': 'application/json' },
+            signal: controller.signal
+          });
+          clearTimeout(timer);
+          if (res.ok) {
+            const data = await res.json();
+            const score = data?.data?.abuseConfidenceScore;
+            if (score && score > 25) {
+              return `Flagged by AbuseIPDB API: IP Abuse Confidence Score ${score}% (${host})`;
+            }
+          }
+        } catch (e) {}
+        return null;
+      })());
+    }
+
+    // 6. PhishTank API (Phishing Database Lookup)
+    if (phishtankKey) {
+      promises.push((async () => {
+        try {
+          const controller = new AbortController();
+          const timer = setTimeout(() => controller.abort(), 2000);
+          const res = await fetch('https://checkurl.phishtank.com/checkurl/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            signal: controller.signal,
+            body: `url=${encodeURIComponent(urlStr)}&format=json&app_key=${phishtankKey}`
+          });
+          clearTimeout(timer);
+          if (res.ok) {
+            const data = await res.json();
+            if (data?.results?.valid && data?.results?.in_database) {
+              return 'Flagged by PhishTank API: Verified active phishing URL';
+            }
+          }
+        } catch (e) {}
+        return null;
+      })());
+    }
+  } catch (e) {}
+
+  const results = await Promise.allSettled(promises);
+  for (const r of results) {
+    if (r.status === 'fulfilled' && r.value) {
+      flags.push(r.value);
       riskLevel = 'high';
     }
   }
-
-  // 2. Google Safe Browsing API (if GOOGLE_SAFE_BROWSING_KEY is set)
-  if (process.env.GOOGLE_SAFE_BROWSING_KEY) {
-    try {
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), 2500);
-      const gsbRes = await fetch(`https://safebrowsing.googleapis.com/v4/threatMatches:find?key=${process.env.GOOGLE_SAFE_BROWSING_KEY}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        signal: controller.signal,
-        body: JSON.stringify({
-          client: { clientId: 'pokedb-site', clientVersion: '1.0.0' },
-          threatInfo: {
-            threatTypes: ['MALWARE', 'SOCIAL_ENGINEERING', 'UNWANTED_SOFTWARE', 'POTENTIALLY_HARMFUL_APPLICATION'],
-            platformTypes: ['ANY_PLATFORM'],
-            threatEntryTypes: ['URL'],
-            threatEntries: [{ url: urlStr }]
-          }
-        })
-      });
-      clearTimeout(timer);
-      if (gsbRes.ok) {
-        const data = await gsbRes.json();
-        if (data.matches && data.matches.length > 0) {
-          const matchType = (data.matches[0].threatType || 'MALICIOUS_SITE').replace(/_/g, ' ');
-          flags.push(`Flagged by Google Safe Browsing API: ${matchType}`);
-          riskLevel = 'high';
-        }
-      }
-    } catch (gsbErr) {
-      // API lookup failed or timed out — fallback to heuristics
-    }
-  }
-
-  // 3. URLScan.io API Threat Intelligence (if URLSCAN_API_KEY is set)
-  if (process.env.URLSCAN_API_KEY) {
-    try {
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), 2500);
-      const urlscanRes = await fetch(`https://urlscan.io/api/v1/search/?q=page.url:"${encodeURIComponent(urlStr)}"`, {
-        headers: { 'API-Key': process.env.URLSCAN_API_KEY },
-        signal: controller.signal
-      });
-      clearTimeout(timer);
-      if (urlscanRes.ok) {
-        const data = await urlscanRes.json();
-        if (data.results && data.results.length > 0) {
-          const maliciousHits = data.results.filter(r => r.verdicts && r.verdicts.overall && r.verdicts.overall.malicious);
-          if (maliciousHits.length > 0) {
-            flags.push('Flagged by URLScan.io API: Known malicious scan verdict');
-            riskLevel = 'high';
-          }
-        }
-      }
-    } catch (urlscanErr) {
-      // API lookup failed or timed out — fallback to heuristics
-    }
-  }
-
-  // 4. Heuristic & Structural Threat Checks
-  try {
-    const parsed = new URL(urlStr);
-    const host = parsed.hostname.toLowerCase();
-
-    // High-risk top-level domains frequently abused for phishing
-    const highRiskTLDs = ['.zip', '.mov', '.kim', '.top', '.country', '.stream', '.download', '.su'];
-    if (highRiskTLDs.some(tld => host.endsWith(tld))) {
-      flags.push(`Heuristic Warning: Destination uses high-risk top-level domain (${host.slice(host.lastIndexOf('.'))})`);
-      if (riskLevel !== 'high') riskLevel = 'medium';
-    }
-
-    // Direct IPv4 address hostname
-    if (/^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/.test(host)) {
-      flags.push('Heuristic Warning: Target uses raw IP address instead of domain name');
-      if (riskLevel !== 'high') riskLevel = 'medium';
-    }
-
-    // Executable binary file extensions
-    if (/\.(exe|scr|vbs|bat|cmd|msi|ps1|jar|pif|iso)$/i.test(parsed.pathname)) {
-      flags.push('Heuristic Warning: Direct download link for executable binary');
-      if (riskLevel !== 'high') riskLevel = 'medium';
-    }
-
-    // Suspicious credential harvesting query parameters
-    const searchLower = parsed.search.toLowerCase();
-    if (searchLower.includes('password=') || searchLower.includes('account_verify=') || searchLower.includes('bank_auth=') || searchLower.includes('login_token=')) {
-      flags.push('Heuristic Warning: URL parameters contain potential credential-harvesting signatures');
-      if (riskLevel !== 'high') riskLevel = 'medium';
-    }
-  } catch (e) {}
 
   return {
     isSuspicious: flags.length > 0,
