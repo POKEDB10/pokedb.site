@@ -1158,29 +1158,22 @@ app.post('/api/drop/upload', uploadLimiter, uploadMulter.single('file'), async (
         let resolvedFolderId = null;
         try {
           resolvedFolderId = await resolveRootzFolderId(req.body.folderId || '');
-        } catch (folderErr) {
-          console.warn('Could not resolve Rootz folder; uploading without folder assignment:', folderErr.message);
-        }
+        } catch (folderErr) {}
 
         const formData = new FormData();
         const fileBlob = await fs.openAsBlob(req.file.path, { type: req.file.mimetype || 'application/octet-stream' });
         formData.append('file', fileBlob, req.file.originalname);
         formData.append('expiresInDays', String(expDays));
-
-        if (resolvedFolderId) {
-          formData.append('folderId', resolvedFolderId);
-        }
+        if (resolvedFolderId) formData.append('folderId', resolvedFolderId);
 
         const headers = {};
-        if (SERVER_ROOTZ_KEY) {
-          headers['Authorization'] = SERVER_ROOTZ_KEY.startsWith('Bearer ') ? SERVER_ROOTZ_KEY : `Bearer ${SERVER_ROOTZ_KEY}`;
-        }
+        headers['Authorization'] = SERVER_ROOTZ_KEY.startsWith('Bearer ') ? SERVER_ROOTZ_KEY : `Bearer ${SERVER_ROOTZ_KEY}`;
 
         const rootzRes = await fetch('https://rootz.so/api/files/upload', {
           method: 'POST',
           headers: headers,
           body: formData,
-          signal: AbortSignal.timeout(ROOTZ_TIMEOUT_MS)
+          signal: AbortSignal.timeout(2500)
         });
 
         if (rootzRes.ok) {
@@ -1228,7 +1221,7 @@ app.post('/api/drop/upload', uploadLimiter, uploadMulter.single('file'), async (
       }
     }
 
-    // Fallback: Save file locally on disk
+    // High-Speed Local File Storage Fallback
     isSavedLocally = true;
     const fileCode = nanoid();
     const dropRecord = {
@@ -1263,7 +1256,8 @@ app.post('/api/drop/upload', uploadLimiter, uploadMulter.single('file'), async (
       provider: 'local',
       createdAt: dropRecord.createdAt,
       relativePath: dropRecord.relativePath,
-      deletionToken: dropRecord.deletionToken
+      deletionToken: dropRecord.deletionToken,
+      virusFlags: dropRecord.virusFlags
     });
 
   } catch (err) {
