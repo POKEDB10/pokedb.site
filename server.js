@@ -1678,6 +1678,12 @@ app.get('/api/drop/info', async (req, res) => {
       });
     }
 
+    // Check high-speed in-memory cache for Rootz file metadata
+    const cachedRootzInfo = inMemoryStore.get(`drop:info:${fileCode}`);
+    if (cachedRootzInfo) {
+      return res.status(200).json(typeof cachedRootzInfo === 'string' ? JSON.parse(cachedRootzInfo) : cachedRootzInfo);
+    }
+
     if (!SERVER_ROOTZ_KEY) {
       return res.status(200).json({
         msg: 'OK',
@@ -1695,15 +1701,18 @@ app.get('/api/drop/info', async (req, res) => {
       });
     }
 
-    // Query Rootz API with a strict 3.5s timeout for fast response
+    // Query Rootz API with a strict 2.0s timeout for fast response
     const url = `https://rootz.so/api/files/info?id=${encodeURIComponent(fileCode)}`;
     const headers = {};
     if (SERVER_ROOTZ_KEY) {
       headers['Authorization'] = SERVER_ROOTZ_KEY.startsWith('Bearer ') ? SERVER_ROOTZ_KEY : `Bearer ${SERVER_ROOTZ_KEY}`;
     }
 
-    const rootzRes = await fetch(url, { headers, signal: AbortSignal.timeout(3500) });
+    const rootzRes = await fetch(url, { headers, signal: AbortSignal.timeout(2000) });
     const rootzData = await rootzRes.json();
+    if (rootzRes.ok) {
+      inMemoryStore.set(`drop:info:${fileCode}`, JSON.stringify(rootzData));
+    }
     return res.status(rootzRes.status).json(rootzData);
   } catch (err) {
     // Return graceful instant fallback telemetry so the client UI never hangs
@@ -1731,10 +1740,13 @@ app.get(['/api/drop/file/:filename', '/api/drop/stream/:filename'], async (req, 
 
     const memoryFileData = inMemoryStore.get(`drop:${fileCode}`);
     const localData = memoryFileData || (await redis.get(`drop:${fileCode}`).catch(() => null));
+    let fileNameHint = fileCode;
     if (localData) {
       try {
         const rec = typeof localData === 'string' ? JSON.parse(localData) : localData;
+        if (rec.name) fileNameHint = rec.name;
         if (rec.localPath && fs.existsSync(rec.localPath)) {
+          res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(rec.name || fileCode)}"`);
           return res.sendFile(path.resolve(rec.localPath));
         }
       } catch (e) {}
@@ -1750,19 +1762,20 @@ app.get(['/api/drop/file/:filename', '/api/drop/stream/:filename'], async (req, 
       headers['Range'] = req.headers.range;
     }
 
-    const rootzRes = await fetch(rootzUrl, { headers, redirect: 'manual' });
+    let rootzRes = await fetch(rootzUrl, { headers, redirect: 'manual' });
 
-    // Handle HTTP Redirects from Rootz API
+    // Handle HTTP Redirects from Rootz API by piping the target stream directly
     if ([301, 302, 303, 307, 308].includes(rootzRes.status)) {
       let loc = rootzRes.headers.get('location');
       if (loc) {
         if (loc.startsWith('/')) {
           loc = 'https://rootz.so' + loc;
         }
-        if (loc.includes('/login')) {
-          loc = `https://rootz.so/d/${encodeURIComponent(fileCode)}`;
+        if (!loc.includes('/login')) {
+          rootzRes = await fetch(loc, { headers, signal: AbortSignal.timeout(15000) });
+        } else {
+          return res.redirect(302, `https://rootz.so/d/${encodeURIComponent(fileCode)}`);
         }
-        return res.redirect(302, loc);
       }
     }
 
@@ -1772,15 +1785,27 @@ app.get(['/api/drop/file/:filename', '/api/drop/stream/:filename'], async (req, 
 
     const contentType = (rootzRes.headers.get('content-type') || '').toLowerCase();
 
-    // If Rootz API returned JSON containing the direct CDN URL
+    // If Rootz API returned JSON containing direct CDN URL, fetch and stream raw bytes directly
     if (contentType.includes('application/json')) {
       const json = await rootzRes.json();
-      const directUrl = json.url || json.download_url || json.direct_url || (json.data && (json.data.url || json.data.download_url)) || `https://rootz.so/d/${encodeURIComponent(fileCode)}`;
-      return res.redirect(302, directUrl);
+      const directUrl = json.url || json.download_url || json.direct_url || (json.data && (json.data.url || json.data.download_url));
+      if (directUrl) {
+        const cdnRes = await fetch(directUrl, { headers, signal: AbortSignal.timeout(15000) });
+        if (cdnRes.ok && cdnRes.body) {
+          res.status(cdnRes.status);
+          res.setHeader('Content-Type', cdnRes.headers.get('content-type') || 'application/octet-stream');
+          res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(fileNameHint)}"`);
+          const cdnStream = Readable.fromWeb(cdnRes.body);
+          cdnStream.pipe(res);
+          return undefined;
+        }
+      }
+      return res.redirect(302, directUrl || `https://rootz.so/d/${encodeURIComponent(fileCode)}`);
     }
 
-    // Direct binary media stream
+    // Direct binary stream from Rootz CDN — pipe bytes directly while keeping browser on pokedb.site
     res.status(rootzRes.status);
+    res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(fileNameHint)}"`);
     const passthroughHeaders = ['content-type', 'content-length', 'content-range', 'accept-ranges', 'cache-control'];
 
     for (const key of passthroughHeaders) {
