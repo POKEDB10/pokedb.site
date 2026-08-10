@@ -2002,7 +2002,12 @@ app.post('/api/paste/create', pasteCreateLimiter, async (req, res) => {
 app.post('/api/paste/view/:code', pasteAuthLimiter, async (req, res) => {
   try {
     const code = req.params.code;
-    const stored = inMemoryStore.get(`paste:${code}`) || (await redis.get(`paste:${code}`).catch(() => null));
+    const key = `paste:${code}`;
+
+    let stored = inMemoryStore.get(key);
+    if (!stored) {
+      stored = await redis.get(key).catch(() => null);
+    }
     if (!stored) {
       return res.status(404).json({ error: 'Paste not found or has expired.' });
     }
@@ -2013,9 +2018,15 @@ app.post('/api/paste/view/:code', pasteAuthLimiter, async (req, res) => {
     }
 
     if (record.expiresAt && Date.parse(record.expiresAt) <= Date.now()) {
-      inMemoryStore.delete(`paste:${code}`);
-      await redis.del(`paste:${code}`).catch(() => {});
+      inMemoryStore.delete(key);
+      await redis.del(key).catch(() => {});
       return res.status(404).json({ error: 'Paste has expired.' });
+    }
+
+    // Atomically claim/delete record upfront so concurrent requests get 404 during scryptSync
+    if (record.burnOnRead) {
+      inMemoryStore.delete(key);
+      await redis.del(key).catch(() => {});
     }
 
     if (record.isProtected && record.passwordMeta) {
@@ -2024,19 +2035,21 @@ app.post('/api/paste/view/:code', pasteAuthLimiter, async (req, res) => {
       const storedHash = Buffer.from(record.passwordMeta.hash, 'hex');
 
       if (computedHash.length !== storedHash.length || !crypto.timingSafeEqual(computedHash, storedHash)) {
+        // Restore record if password check failed so legitimate users can re-enter password
+        if (record.burnOnRead) {
+          inMemoryStore.set(key, stored);
+          await redis.set(key, stored).catch(() => {});
+        }
         return res.status(401).json({ error: 'Incorrect password for protected paste.' });
       }
     }
 
     record.views = (record.views || 0) + 1;
 
-    // Burn-on-read deletion occurs ONLY after password authentication succeeds!
     if (record.burnOnRead) {
-      inMemoryStore.delete(`paste:${code}`);
-      await redis.del(`paste:${code}`).catch(() => {});
       await savePersistentStore();
     } else {
-      inMemoryStore.set(`paste:${code}`, JSON.stringify(record));
+      inMemoryStore.set(key, JSON.stringify(record));
     }
 
     const safeRecord = { ...record };

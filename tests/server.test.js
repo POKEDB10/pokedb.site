@@ -479,6 +479,50 @@ describe('URL Shortener API Suite', () => {
     expect(uploadRes.body.file.sha256).toHaveLength(64);
   });
 
+  test('13h. Header Inspector rejects multi-A-record responses if ANY returned IP is restricted', async () => {
+    const dns = require('dns').promises;
+    const origLookup = dns.lookup;
+
+    // Mock dns.lookup to return 1 public IP and 1 private IP (Multi-A rebinding attempt)
+    const spy = jest.spyOn(dns, 'lookup').mockImplementation(async (host, options) => {
+      if (host === 'rebinding-test.com') {
+        return [
+          { address: '93.184.216.34', family: 4 },
+          { address: '127.0.0.1', family: 4 }
+        ];
+      }
+      return origLookup(host, options);
+    });
+
+    const res = await request(app)
+      .post('/api/tools/inspect-headers')
+      .send({ url: 'http://rebinding-test.com/login' });
+
+    spy.mockRestore();
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/restricted|private/i);
+  });
+
+  test('13i. Parallel concurrent requests to password-protected burn-on-read paste result in exactly one 200 OK', async () => {
+    const createRes = await request(app)
+      .post('/api/paste/create')
+      .send({
+        content: 'Atomic secret payload',
+        password: 'concurrentPass123',
+        burnOnRead: true
+      });
+    const code = createRes.body.code;
+
+    // Fire 2 parallel requests with the correct password simultaneously
+    const [req1, req2] = await Promise.all([
+      request(app).post(`/api/paste/view/${code}`).send({ password: 'concurrentPass123' }),
+      request(app).post(`/api/paste/view/${code}`).send({ password: 'concurrentPass123' })
+    ]);
+
+    const statuses = [req1.status, req2.status].sort();
+    expect(statuses).toEqual([200, 404]);
+  });
+
   test('14. Enforce the shared API rate limit', async () => {
     const responses = await Promise.all(Array.from({ length: 130 }, () => request(app).get('/api/health/ping')));
     expect(responses.some((response) => response.status === 429)).toBe(true);

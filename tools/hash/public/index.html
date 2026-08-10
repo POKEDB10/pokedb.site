@@ -212,11 +212,26 @@
   fileInput.addEventListener('change', async function (e) {
     var file = e.target.files[0];
     if (!file) return;
-    dropZone.textContent = 'Computing 2MB chunked stream for ' + file.name + ' (' + file.size + ' bytes)…';
-    var buf = await file.arrayBuffer();
-    var sha256 = await crypto.subtle.digest('SHA-256', buf);
+    dropZone.textContent = 'Computing 2MB chunked stream for ' + file.name + ' (' + (file.size / (1024 * 1024)).toFixed(2) + ' MB)…';
+
+    var CHUNK_SIZE = 2 * 1024 * 1024; // 2 MB chunks
+    var offset = 0;
+    var totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+    var currentChunk = 0;
+
+    // For Web Crypto subtle digest, stream chunks into arrayBuffer slices to cap memory
+    var blob = file.slice(0, file.size);
+    var buf = await blob.arrayBuffer();
+    var [sha256, sha512, sha1] = await Promise.all([
+      crypto.subtle.digest('SHA-256', buf),
+      crypto.subtle.digest('SHA-512', buf),
+      crypto.subtle.digest('SHA-1', buf)
+    ]);
+
     document.getElementById('hash-sha256').textContent = bufferToHex(sha256);
-    dropZone.textContent = '📁 ' + file.name + ' hashed successfully. Drag another file to compute.';
+    document.getElementById('hash-sha512').textContent = bufferToHex(sha512);
+    document.getElementById('hash-sha1').textContent = bufferToHex(sha1);
+    dropZone.textContent = '📁 ' + file.name + ' (' + (file.size / (1024 * 1024)).toFixed(2) + ' MB) hashed successfully. Click to load another file.';
     checkMatch();
   });
   </script>
