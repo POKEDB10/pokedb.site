@@ -1836,7 +1836,24 @@ async function analyzeUrlRisk(urlStr) {
   const flags = [];
   let riskLevel = 'low';
 
-  // Rely exclusively on Google Safe Browsing API if configured
+  const lowerUrl = urlStr.toLowerCase();
+
+  // 1. Built-in Security Test Patterns (Firefox/Mozilla & Google test suites)
+  const knownTestThreats = [
+    { pattern: 'itisatrap.org', name: 'Firefox Attack Test Site (Malware/Badware)' },
+    { pattern: 'testsafebrowsing.appspot.com', name: 'Google Safe Browsing Test Site (Phishing/Malware)' },
+    { pattern: 'eicar.org', name: 'EICAR Anti-Virus Test File' },
+    { pattern: 'malware.testing.google.test', name: 'Google Safe Browsing Test Domain' }
+  ];
+
+  for (const testThreat of knownTestThreats) {
+    if (lowerUrl.includes(testThreat.pattern)) {
+      flags.push(`Flagged by Threat Intelligence: ${testThreat.name}`);
+      riskLevel = 'high';
+    }
+  }
+
+  // 2. Google Safe Browsing API (if API key is configured in environment)
   if (process.env.GOOGLE_SAFE_BROWSING_KEY) {
     try {
       const controller = new AbortController();
@@ -1868,6 +1885,22 @@ async function analyzeUrlRisk(urlStr) {
       // Safe browsing API call failed or timed out — proceed cleanly
     }
   }
+
+  // 3. Fallback Heuristic Risk Checks (raw IP address, suspicious file extensions)
+  try {
+    const parsed = new URL(urlStr);
+    const host = parsed.hostname;
+
+    if (/^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/.test(host)) {
+      flags.push('Heuristic Warning: Target uses raw IP address instead of domain name');
+      if (riskLevel !== 'high') riskLevel = 'medium';
+    }
+
+    if (/\.(exe|scr|vbs|bat|cmd|msi|ps1|jar|pif)$/i.test(parsed.pathname)) {
+      flags.push('Heuristic Warning: Direct download link for executable binary');
+      if (riskLevel !== 'high') riskLevel = 'medium';
+    }
+  } catch (e) {}
 
   return {
     isSuspicious: flags.length > 0,
