@@ -354,11 +354,15 @@ input:focus-visible {
         <!-- TAB 1: Direct File Upload -->
         <div id="tab-content-direct">
           <div class="drop-zone" id="drop-zone">
-            <input type="file" id="file-input" multiple>
+            <input type="file" id="file-input" multiple hidden>
+            <input type="file" id="folder-input" webkitdirectory directory multiple hidden>
             <div id="drop-default-prompt">
               <span class="drop-icon">📦</span>
-              <div class="drop-text">Drop files here, or click to browse</div>
-              <div class="drop-hint">Select files or a complete folder. Nothing uploads until you press Start Upload.</div>
+              <div class="drop-text">Drop files or folder here, or click to browse</div>
+              <div class="drop-hint" style="margin-top:.6rem;">
+                <button type="button" class="btn" id="btn-select-files" style="padding:.35rem .8rem; font-size:.8rem; margin-right:.4rem;">📁 Select file(s)</button>
+                <button type="button" class="btn" id="btn-select-folder" style="padding:.35rem .8rem; font-size:.8rem;">📂 Select folder</button>
+              </div>
             </div>
             <div id="drop-file-badge" style="display:none; padding:.75rem; background:var(--surface); border:1px solid var(--accent); border-radius:8px; width:90%; margin:0 auto;">
               <div style="display:flex; align-items:center; gap:.75rem; justify-content:center;">

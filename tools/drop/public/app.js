@@ -128,7 +128,8 @@
 
   function addFiles(files) {
     Array.from(files).forEach(function (file) {
-      queue.push({ file: file, path: file.webkitRelativePath || file.name, status: 'ready', progress: 0, password: null });
+      var relPath = file.relativePathOverride || file.webkitRelativePath || file.name;
+      queue.push({ file: file, path: relPath, status: 'ready', progress: 0, password: null });
     });
     if (queue.length) {
       element('drop-default-prompt').style.display = 'none';
@@ -156,13 +157,7 @@
     if (activeUpload || starting) return;
     starting = true;
     updateControls();
-    try {
-      await fetch('/api/drop/status', { cache: 'no-store' });
-    } catch (error) {
-    } finally {
-      starting = false;
-      updateControls();
-    }
+    starting = false;
     paused = false;
 
     var pendingItems = queue.filter(function (item) { return item.status === 'ready' || item.status === 'paused' || item.status === 'failed'; });
@@ -652,6 +647,27 @@
       if (windowOverlay) windowOverlay.classList.remove('is-active');
     });
 
+    var folderInput = element('folder-input');
+    var btnSelectFiles = element('btn-select-files');
+    var btnSelectFolder = element('btn-select-folder');
+
+    if (btnSelectFiles) {
+      btnSelectFiles.addEventListener('click', function (e) {
+        e.stopPropagation();
+        fileInput.click();
+      });
+    }
+    if (btnSelectFolder && folderInput) {
+      btnSelectFolder.addEventListener('click', function (e) {
+        e.stopPropagation();
+        folderInput.click();
+      });
+      folderInput.addEventListener('change', function (event) {
+        addFiles(event.target.files);
+        folderInput.value = '';
+      });
+    }
+
     dropZone.addEventListener('click', function (event) {
       if (event.target === dropZone || event.target.closest('#drop-default-prompt')) fileInput.click();
     });
@@ -668,8 +684,53 @@
         dropZone.classList.remove('dragover');
       });
     });
+
+    async function handleDropDataTransfer(dataTransfer) {
+      var items = dataTransfer.items;
+      var files = [];
+      if (items && items.length && items[0].webkitGetAsEntry) {
+        var entries = [];
+        for (var i = 0; i < items.length; i++) {
+          var entry = items[i].webkitGetAsEntry();
+          if (entry) entries.push(entry);
+        }
+        async function traverseEntry(entry, path) {
+          if (entry.isFile) {
+            await new Promise(function (resolve) {
+              entry.file(function (file) {
+                file.relativePathOverride = path ? path + '/' + file.name : file.name;
+                files.push(file);
+                resolve();
+              }, function () { resolve(); });
+            });
+          } else if (entry.isDirectory) {
+            var dirReader = entry.createReader();
+            var readEntries = await new Promise(function (resolve) {
+              var results = [];
+              function readBatch() {
+                dirReader.readEntries(function (batch) {
+                  if (!batch.length) resolve(results);
+                  else { results = results.concat(Array.from(batch)); readBatch(); }
+                }, function () { resolve(results); });
+              }
+              readBatch();
+            });
+            for (var j = 0; j < readEntries.length; j++) {
+              await traverseEntry(readEntries[j], path ? path + '/' + entry.name : entry.name);
+            }
+          }
+        }
+        for (var k = 0; k < entries.length; k++) {
+          await traverseEntry(entries[k], '');
+        }
+      } else {
+        files = Array.from(dataTransfer.files || []);
+      }
+      addFiles(files);
+    }
+
     dropZone.addEventListener('drop', function (event) {
-      if (event.dataTransfer && event.dataTransfer.files.length) {
+      if (event.dataTransfer) {
         // Shockwave ripple effect on drop
         var rect = dropZone.getBoundingClientRect();
         var ripple = document.createElement('div');
@@ -681,7 +742,7 @@
         dropZone.appendChild(ripple);
         setTimeout(function () { ripple.remove(); }, 600);
 
-        addFiles(event.dataTransfer.files);
+        handleDropDataTransfer(event.dataTransfer);
       }
     });
 

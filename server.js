@@ -1076,7 +1076,7 @@ async function scanFileVirus(filePath) {
     // 2. Query MalwareBazaar API (100% Free, NO API key required)
     try {
       const mbController = new AbortController();
-      const mbTimer = setTimeout(() => mbController.abort(), 2500);
+      const mbTimer = setTimeout(() => mbController.abort(), 600);
       const mbRes = await fetch('https://mb-api.abuse.ch/api/v1/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -1101,7 +1101,7 @@ async function scanFileVirus(filePath) {
     if (process.env.VIRUSTOTAL_API_KEY) {
       try {
         const vtController = new AbortController();
-        const vtTimer = setTimeout(() => vtController.abort(), 2500);
+        const vtTimer = setTimeout(() => vtController.abort(), 600);
         const vtRes = await fetch(`https://www.virustotal.com/api/v3/files/${sha256}`, {
           method: 'GET',
           headers: { 'x-apikey': process.env.VIRUSTOTAL_API_KEY },
@@ -1138,9 +1138,6 @@ app.post('/api/drop/upload', uploadLimiter, uploadMulter.single('file'), async (
       return res.status(400).json({ error: 'No file provided in upload request.' });
     }
 
-    // Scan uploaded file for threat telemetry (does NOT block upload — attaches warnings for downloaders)
-    const virusScan = await scanFileVirus(req.file.path, req.file.originalname);
-
     // Password verification for files > 1 GB
     if (req.file.size > ONE_GB && !verifyLargeFilePassword(req, req.file.size)) {
       return res.status(401).json({ error: 'Invalid or missing owner password for files over 1 GB.' });
@@ -1152,6 +1149,9 @@ app.post('/api/drop/upload', uploadLimiter, uploadMulter.single('file'), async (
     }
 
     const targetFolderCode = req.body.folderCode || null;
+
+    // Scan uploaded file for threat telemetry (capped at 600ms for speed)
+    const virusScan = await scanFileVirus(req.file.path, req.file.originalname);
 
     if (SERVER_ROOTZ_KEY) {
       try {

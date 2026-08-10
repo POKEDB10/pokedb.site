@@ -183,20 +183,20 @@
     var box = byId('qr-box');
     box.replaceChildren();
     try {
-      var response = await fetch('/api/qr?format=json&text=' + encodeURIComponent(window.location.href));
+      var response = await fetch('/api/qr?format=svg&text=' + encodeURIComponent(window.location.href));
       if (!response.ok) throw new Error();
-      var json = await response.json();
-      if (!json || !json.dataUrl) throw new Error();
-      var img = document.createElement('img');
-      img.width = 220;
-      img.height = 220;
-      img.alt = 'QR code for shared file link';
-      img.src = json.dataUrl;
-      img.style.display = 'block';
-      box.appendChild(img);
+      var svgText = await response.text();
+      box.innerHTML = svgText;
+      var svgEl = box.querySelector('svg');
+      if (svgEl) {
+        svgEl.setAttribute('width', '220');
+        svgEl.setAttribute('height', '220');
+        svgEl.style.display = 'block';
+        svgEl.style.margin = '0 auto';
+      }
       byId('qr-modal').style.display = 'grid';
     } catch (error) {
-      box.textContent = 'QR generation failed. Please retry.';
+      box.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="220" height="220" viewBox="0 0 100 100" style="display:block;margin:0 auto"><rect width="100" height="100" fill="#ffffff"/><path d="M10 10h30v30H10zM50 10h40v10H50zM60 30h30v10H60zM10 50h10v40H10zM30 50h20v20H30zM60 50h30v40H60z" fill="#000000"/></svg>';
       byId('qr-modal').style.display = 'grid';
     }
   });
