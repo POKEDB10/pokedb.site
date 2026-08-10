@@ -1213,7 +1213,7 @@ app.post('/api/drop/upload', uploadLimiter, uploadMulter.single('file'), async (
             name: dropRecord.name,
             size: dropRecord.size,
             mimeType: dropRecord.mimeType,
-            url: `https://rootz.so/d/${fileCode}`,
+            url: `${getBaseUrl(req)}/v/${fileCode}`,
             viewUrl: `${getBaseUrl(req)}/v/${fileCode}`,
             expiresAt: dropRecord.expiresAt,
             provider: 'rootz',
@@ -1268,12 +1268,10 @@ app.post('/api/drop/upload', uploadLimiter, uploadMulter.single('file'), async (
 
   } catch (err) {
     console.error('Error in direct upload endpoint:', err);
-    return res.status(500).json({ error: 'The upload could not be processed. Please retry.' });
+    return res.status(500).json({ success: false, error: 'Internal server error uploading file.' });
   } finally {
-    if (!isSavedLocally && req.file?.path) {
-      await fs.promises.unlink(req.file.path).catch((err) => {
-        if (err.code !== 'ENOENT') console.error('Failed to remove temporary upload:', err);
-      });
+    if (!isSavedLocally && req.file?.path && fs.existsSync(req.file.path)) {
+      fs.unlink(req.file.path, () => {});
     }
   }
 });
@@ -1774,13 +1772,13 @@ app.get(['/api/drop/file/:filename', '/api/drop/stream/:filename'], async (req, 
         if (!loc.includes('/login')) {
           rootzRes = await fetch(loc, { headers, signal: AbortSignal.timeout(15000) });
         } else {
-          return res.redirect(302, `https://rootz.so/d/${encodeURIComponent(fileCode)}`);
+          return res.status(404).sendFile(path.resolve(__dirname, 'templates/404.html'));
         }
       }
     }
 
     if (!rootzRes.ok) {
-      return res.redirect(302, `https://rootz.so/d/${encodeURIComponent(fileCode)}`);
+      return res.status(404).sendFile(path.resolve(__dirname, 'templates/404.html'));
     }
 
     const contentType = (rootzRes.headers.get('content-type') || '').toLowerCase();
@@ -1800,7 +1798,7 @@ app.get(['/api/drop/file/:filename', '/api/drop/stream/:filename'], async (req, 
           return undefined;
         }
       }
-      return res.redirect(302, directUrl || `https://rootz.so/d/${encodeURIComponent(fileCode)}`);
+      return res.status(404).sendFile(path.resolve(__dirname, 'templates/404.html'));
     }
 
     // Direct binary stream from Rootz CDN — pipe bytes directly while keeping browser on pokedb.site
