@@ -382,6 +382,24 @@ describe('URL Shortener API Suite', () => {
     }
   });
 
+  test('13b. Reject duplicate custom upload IDs with 409 Conflict and query multipart status', async () => {
+    const folderRes = await request(app)
+      .post('/api/drop/create-folder')
+      .send({ name: 'test-collision-folder', customId: 'duplicate123' });
+    expect(folderRes.status).toBe(200);
+
+    const dupRes = await request(app)
+      .post('/api/drop/create-folder')
+      .send({ name: 'test-collision-folder-2', customId: 'duplicate123' });
+    expect(dupRes.status).toBe(409);
+    expect(dupRes.body.error).toMatch(/already in use/i);
+
+    const statusRes = await request(app)
+      .get('/api/drop/multipart/status?id=duplicate123');
+    expect(statusRes.status).toBe(200);
+    expect(statusRes.body.isComplete).toBe(true);
+  });
+
   test('14. Enforce the shared API rate limit', async () => {
     const responses = await Promise.all(Array.from({ length: 130 }, () => request(app).get('/api/health/ping')));
     expect(responses.some((response) => response.status === 429)).toBe(true);

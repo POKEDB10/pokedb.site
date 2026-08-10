@@ -122,6 +122,7 @@
       navigator.clipboard.writeText(activeShortUrl).then(function () {
         var origText = copyBtn.textContent;
         copyBtn.textContent = 'Copied!';
+        if (window.showToast) window.showToast('Short URL copied to clipboard');
         setTimeout(function () { copyBtn.textContent = origText; }, 2000);
       });
     });

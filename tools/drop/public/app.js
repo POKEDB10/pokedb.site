@@ -163,6 +163,21 @@
     var pendingItems = queue.filter(function (item) { return item.status === 'ready' || item.status === 'paused' || item.status === 'failed'; });
     if (!pendingItems.length) { hideProgress(); updateControls(); return; }
 
+    if (pendingItems.length === 1 && !activeFolderBatch) {
+      var singleItem = pendingItems[0];
+      var preId = (Math.random().toString(36).substring(2, 10) + Math.random().toString(36).substring(2, 8)).substring(0, 14);
+      try {
+        localStorage.setItem('pokedb-upload-' + preId, JSON.stringify({
+          fileName: singleItem.file.name,
+          fileSize: singleItem.file.size,
+          createdAt: Date.now()
+        }));
+      } catch (e) {}
+      window.pendingUploadFile = singleItem.file;
+      window.location.href = '/upload/' + preId;
+      return;
+    }
+
     // If multiple items are selected in queue, create a server folder
     if (pendingItems.length > 1 && !activeFolderBatch) {
       try {
@@ -186,6 +201,8 @@
             viewUrl: folderData.viewUrl,
             fileCount: pendingItems.length
           };
+          window.location.href = '/upload/' + folderData.folderCode;
+          return;
         }
       } catch (e) {
         console.warn('Failed to create folder for batch upload:', e);
@@ -798,6 +815,7 @@
     element('copy-link-btn').addEventListener('click', function () {
       navigator.clipboard.writeText(element('res-share-link').value);
       this.textContent = 'Copied';
+      if (window.showToast) window.showToast('Link copied to clipboard');
       var button = this;
       setTimeout(function () { button.textContent = '$ copy'; }, 1500);
     });

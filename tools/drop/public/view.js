@@ -146,6 +146,29 @@
 
     if (meta.isFolder) {
       byId('download-btn').style.display = 'none';
+      var dlAllBtn = byId('download-all-btn');
+      if (dlAllBtn) {
+        dlAllBtn.textContent = 'Download All (' + (meta.files ? meta.files.length : 0) + ' files)';
+        dlAllBtn.style.display = 'inline-flex';
+        dlAllBtn.addEventListener('click', function () {
+          if (!meta.files || !meta.files.length) return;
+          meta.files.forEach(function (f, idx) {
+            setTimeout(function () {
+              var a = document.createElement('a');
+              a.style.display = 'none';
+              a.href = '/api/drop/stream/' + encodeURIComponent(f.id);
+              a.download = f.name || 'file';
+              a.target = '_blank';
+              a.rel = 'noopener';
+              document.body.appendChild(a);
+              a.click();
+              setTimeout(function () { a.remove(); }, 1000);
+            }, idx * 400);
+          });
+          if (window.showToast) window.showToast('Downloading all ' + meta.files.length + ' files…');
+        });
+      }
+
       var folderList = byId('folder-file-list');
       folderList.replaceChildren();
       var heading = document.createElement('div');
@@ -178,14 +201,21 @@
     }
   }
 
-  byId('copy-btn').addEventListener('click', function () { navigator.clipboard.writeText(window.location.href); this.textContent = 'Copied'; var button = this; setTimeout(function () { button.textContent = 'Copy link'; }, 1500); });
-  byId('qr-btn').addEventListener('click', async function () {
+  byId('copy-btn').addEventListener('click', function () {
+    navigator.clipboard.writeText(window.location.href);
+    this.textContent = 'Copied';
+    if (window.showToast) window.showToast('Link copied to clipboard');
+    var button = this;
+    setTimeout(function () { button.textContent = 'Copy link'; }, 1500);
+  });
+
+  byId('qr-btn').addEventListener('click', function () {
     var box = byId('qr-box');
     box.replaceChildren();
-    try {
-      var response = await fetch('/api/qr?format=svg&text=' + encodeURIComponent(window.location.href));
-      if (!response.ok) throw new Error();
-      var svgText = await response.text();
+    var targetUrl = window.location.href;
+
+    if (window.QRCodeLib && typeof window.QRCodeLib.generateSVG === 'function') {
+      var svgText = window.QRCodeLib.generateSVG(targetUrl, { dark: '#000000', light: '#ffffff', margin: 1 });
       box.innerHTML = svgText;
       var svgEl = box.querySelector('svg');
       if (svgEl) {
@@ -195,11 +225,32 @@
         svgEl.style.margin = '0 auto';
       }
       byId('qr-modal').style.display = 'grid';
-    } catch (error) {
-      box.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="220" height="220" viewBox="0 0 100 100" style="display:block;margin:0 auto"><rect width="100" height="100" fill="#ffffff"/><path d="M10 10h30v30H10zM50 10h40v10H50zM60 30h30v10H60zM10 50h10v40H10zM30 50h20v20H30zM60 50h30v40H60z" fill="#000000"/></svg>';
-      byId('qr-modal').style.display = 'grid';
+    } else {
+      fetch('/api/qr?format=svg&text=' + encodeURIComponent(targetUrl))
+        .then(function (res) { return res.text(); })
+        .then(function (svgText) {
+          box.innerHTML = svgText;
+          var svgEl = box.querySelector('svg');
+          if (svgEl) {
+            svgEl.setAttribute('width', '220');
+            svgEl.setAttribute('height', '220');
+            svgEl.style.display = 'block';
+            svgEl.style.margin = '0 auto';
+          }
+          byId('qr-modal').style.display = 'grid';
+        })
+        .catch(function () {
+          var img = document.createElement('img');
+          img.src = '/api/qr?format=png&text=' + encodeURIComponent(targetUrl);
+          img.width = 220;
+          img.height = 220;
+          img.alt = 'QR Code';
+          box.appendChild(img);
+          byId('qr-modal').style.display = 'grid';
+        });
     }
   });
+
   byId('close-qr-btn').addEventListener('click', function () { byId('qr-modal').style.display = 'none'; });
   load();
 }());

@@ -145,10 +145,10 @@ const getBaseUrl = (req) => {
 app.set('trust proxy', 1);
 
 // Security Middleware
-const allowedCorsOrigin = /^(?:https:\/\/)(?:[a-z0-9-]+\.)*pokedb\.site$/i;
+const allowedCorsOrigin = /^(?:https?:\/\/)(?:[a-z0-9-]+\.)*pokedb\.site$/i;
 app.use(cors({
   origin(origin, callback) {
-    if (!origin || allowedCorsOrigin.test(origin) || /^http:\/\/(?:localhost|127\.0\.0\.1)(?::\d+)?$/i.test(origin)) {
+    if (!origin || allowedCorsOrigin.test(origin) || /^https?:\/\/(?:localhost|127\.0\.0\.1)(?::\d+)?$/i.test(origin) || /^https?:\/\/pokedb-site\.onrender\.com$/i.test(origin)) {
       return callback(null, true);
     }
     return callback(new Error('Origin is not allowed by CORS'));
@@ -199,18 +199,26 @@ if (fs.existsSync(DATA_FILE)) {
   }
 }
 
-// Function to save memory store to data/store.json
-function savePersistentStore() {
+// Function to save memory store to data/store.json with serialized atomic async writes
+const TMP_DATA_FILE = path.join(DATA_DIR, 'store.json.tmp');
+let writeQueue = Promise.resolve();
+
+async function savePersistentStore() {
   if (process.env.NODE_ENV === 'test') return;
-  try {
-    const obj = {};
-    for (const [k, v] of inMemoryStore.entries()) {
-      obj[k] = v;
+  writeQueue = writeQueue.then(async () => {
+    try {
+      const obj = {};
+      for (const [k, v] of inMemoryStore.entries()) {
+        obj[k] = v;
+      }
+      const data = JSON.stringify(obj, null, 2);
+      await fs.promises.writeFile(TMP_DATA_FILE, data, 'utf8');
+      await fs.promises.rename(TMP_DATA_FILE, DATA_FILE);
+    } catch (err) {
+      console.error('Error saving persistent store to disk:', err);
     }
-    fs.writeFileSync(DATA_FILE, JSON.stringify(obj, null, 2), 'utf8');
-  } catch (err) {
-    console.error('Error saving persistent store to disk:', err);
-  }
+  });
+  return writeQueue;
 }
 
 // Redis Client Setup (with file-backed persistent fallback)
@@ -289,7 +297,7 @@ class ResilientRateLimitStore {
 
 const createRateLimitStore = (prefix) => new ResilientRateLimitStore(prefix);
 
-function cleanupInMemoryStore() {
+async function cleanupInMemoryStore() {
   const now = Date.now();
   let changed = false;
 
@@ -305,7 +313,10 @@ function cleanupInMemoryStore() {
 
     try {
       const record = JSON.parse(value);
-      if (record.expiresAt && Date.parse(record.expiresAt) <= now) {
+      const isExpired = record.expiresAt && Date.parse(record.expiresAt) <= now;
+      const isOrphanFolder = key.startsWith('drop:folder:') && Array.isArray(record.files) && record.files.length === 0 && record.createdAt && (now - Date.parse(record.createdAt) > 86400000);
+
+      if (isExpired || isOrphanFolder) {
         inMemoryStore.delete(key);
         inMemoryStore.delete(`${key}:clicks`);
         changed = true;
@@ -315,7 +326,7 @@ function cleanupInMemoryStore() {
     }
   }
 
-  if (changed) savePersistentStore();
+  if (changed) await savePersistentStore();
 }
 
 const cleanupTimer = setInterval(cleanupInMemoryStore, 60 * 60 * 1000);
@@ -381,7 +392,7 @@ if (process.env.NODE_ENV === 'test') {
       if (isInMemory) {
         if (options.nx && inMemoryStore.has(key)) return null;
         inMemoryStore.set(key, val);
-        savePersistentStore();
+        await savePersistentStore();
         return 'OK';
       }
       try {
@@ -393,7 +404,7 @@ if (process.env.NODE_ENV === 'test') {
         isInMemory = true;
         if (options.nx && inMemoryStore.has(key)) return null;
         inMemoryStore.set(key, val);
-        savePersistentStore();
+        await savePersistentStore();
         return 'OK';
       }
     },
@@ -401,14 +412,14 @@ if (process.env.NODE_ENV === 'test') {
       if (isInMemory) {
         const value = Number(inMemoryStore.get(key) || 0) + 1;
         inMemoryStore.set(key, String(value));
-        savePersistentStore();
+        await savePersistentStore();
         return value;
       }
       try { return await realRedis.incr(key); } catch (e) {
         isInMemory = true;
         const value = Number(inMemoryStore.get(key) || 0) + 1;
         inMemoryStore.set(key, String(value));
-        savePersistentStore();
+        await savePersistentStore();
         return value;
       }
     },
@@ -593,6 +604,12 @@ app.use((req, res, next) => {
       return staticHandlers.qr(req, res, notFound);
 
     case 'drop.pokedb.site':
+      if (req.path.startsWith('/upload/')) {
+        if (req.path.endsWith('.js') || req.path.endsWith('.css') || req.path.endsWith('.ico') || req.path.endsWith('.png') || req.path.endsWith('.jpg') || req.path.endsWith('.svg')) {
+          return staticHandlers.drop(req, res, notFound);
+        }
+        return res.sendFile(path.join(__dirname, 'tools/drop/public/upload.html'));
+      }
       if (req.path.startsWith('/v/') || req.path.startsWith('/view/')) {
         if (req.path.endsWith('.js') || req.path.endsWith('.css') || req.path.endsWith('.ico') || req.path.endsWith('.png') || req.path.endsWith('.jpg') || req.path.endsWith('.svg')) {
           return staticHandlers.drop(req, res, notFound);
@@ -898,7 +915,7 @@ function formatSizeAuto(bytes) {
   return num + 'B';
 }
 
-function attachFileToFolder(folderCode, fileItem) {
+async function attachFileToFolder(folderCode, fileItem) {
   if (!folderCode) return;
   try {
     const raw = inMemoryStore.get(`drop:folder:${folderCode}`);
@@ -907,7 +924,7 @@ function attachFileToFolder(folderCode, fileItem) {
       if (!Array.isArray(folderRecord.files)) folderRecord.files = [];
       folderRecord.files.push(fileItem);
       inMemoryStore.set(`drop:folder:${folderCode}`, JSON.stringify(folderRecord));
-      savePersistentStore();
+      await savePersistentStore();
     }
   } catch (e) {
     console.error('Failed to attach file to folder:', e);
@@ -929,7 +946,23 @@ app.post('/api/drop/create-folder', async (req, res) => {
     const sizeStr = formatSizeAuto(totalSize || 0);
     const randStr = nanoid(6).toLowerCase();
     const folderName = name || `pokedb-${randStr}-${sizeStr}`;
-    const folderCode = nanoid(8);
+    let folderCode = nanoid(8);
+
+    const requestedCustomId = req.body.customId || req.body.shortId || req.body.folderCode;
+    if (requestedCustomId) {
+      const cleanCustomId = String(requestedCustomId).trim();
+      if (!/^[a-zA-Z0-9_-]{3,64}$/.test(cleanCustomId)) {
+        return res.status(400).json({ error: 'Invalid customId format.' });
+      }
+      const isTaken = inMemoryStore.has(`drop:${cleanCustomId}`) ||
+                      inMemoryStore.has(`drop:folder:${cleanCustomId}`) ||
+                      (await redis.get(`drop:${cleanCustomId}`).catch(() => null)) ||
+                      (await redis.get(`drop:folder:${cleanCustomId}`).catch(() => null));
+      if (isTaken) {
+        return res.status(409).json({ success: false, error: 'Custom folder ID is already in use.' });
+      }
+      folderCode = cleanCustomId;
+    }
 
     let rootzFolderId = null;
     if (SERVER_ROOTZ_KEY) {
@@ -962,7 +995,7 @@ app.post('/api/drop/create-folder', async (req, res) => {
     };
 
     inMemoryStore.set(`drop:folder:${folderCode}`, JSON.stringify(folderRecord));
-    savePersistentStore();
+    await savePersistentStore();
 
     return res.status(200).json({
       success: true,
@@ -1074,16 +1107,15 @@ async function scanFileVirus(filePath) {
     const sha256 = hashSum.digest('hex');
 
     // 2. Query MalwareBazaar API (100% Free, NO API key required)
+    const mbController = new AbortController();
+    const mbTimer = setTimeout(() => mbController.abort(), 600);
     try {
-      const mbController = new AbortController();
-      const mbTimer = setTimeout(() => mbController.abort(), 600);
       const mbRes = await fetch('https://mb-api.abuse.ch/api/v1/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         signal: mbController.signal,
         body: new URLSearchParams({ query: 'get_info', hash: sha256 })
       });
-      clearTimeout(mbTimer);
 
       if (mbRes.ok) {
         const mbData = await mbRes.json();
@@ -1095,19 +1127,20 @@ async function scanFileVirus(filePath) {
       }
     } catch (mbErr) {
       // Safe fallback on timeout or network issue
+    } finally {
+      clearTimeout(mbTimer);
     }
 
     // 3. Query VirusTotal API v3 (if VIRUSTOTAL_API_KEY environment variable is configured)
     if (process.env.VIRUSTOTAL_API_KEY) {
+      const vtController = new AbortController();
+      const vtTimer = setTimeout(() => vtController.abort(), 600);
       try {
-        const vtController = new AbortController();
-        const vtTimer = setTimeout(() => vtController.abort(), 600);
         const vtRes = await fetch(`https://www.virustotal.com/api/v3/files/${sha256}`, {
           method: 'GET',
           headers: { 'x-apikey': process.env.VIRUSTOTAL_API_KEY },
           signal: vtController.signal
         });
-        clearTimeout(vtTimer);
 
         if (vtRes.ok) {
           const vtData = await vtRes.json();
@@ -1118,6 +1151,8 @@ async function scanFileVirus(filePath) {
         }
       } catch (vtErr) {
         // Safe fallback on timeout
+      } finally {
+        clearTimeout(vtTimer);
       }
     }
   } catch (err) {
@@ -1146,6 +1181,23 @@ app.post('/api/drop/upload', uploadLimiter, uploadMulter.single('file'), async (
     const expDays = parseExpiresInDays(req.body.expiresInDays);
     if (expDays === null) {
       return res.status(400).json({ error: 'expiresInDays must be an integer between 0 and 365.' });
+    }
+
+    let preAllocatedId = null;
+    const requestedCustomId = req.body.customId || req.body.shortId;
+    if (requestedCustomId) {
+      const cleanCustomId = String(requestedCustomId).trim();
+      if (!/^[a-zA-Z0-9_-]{3,64}$/.test(cleanCustomId)) {
+        return res.status(400).json({ error: 'Invalid customId format.' });
+      }
+      const isTaken = inMemoryStore.has(`drop:${cleanCustomId}`) ||
+                      inMemoryStore.has(`drop:folder:${cleanCustomId}`) ||
+                      (await redis.get(`drop:${cleanCustomId}`).catch(() => null)) ||
+                      (await redis.get(`drop:folder:${cleanCustomId}`).catch(() => null));
+      if (isTaken) {
+        return res.status(409).json({ success: false, error: 'Custom upload ID is already in use.' });
+      }
+      preAllocatedId = cleanCustomId;
     }
 
     const targetFolderCode = req.body.folderCode || null;
@@ -1179,7 +1231,7 @@ app.post('/api/drop/upload', uploadLimiter, uploadMulter.single('file'), async (
         if (rootzRes.ok) {
           const rootzData = await rootzRes.json();
           const resultObj = rootzData.data || rootzData.result || rootzData;
-          const fileCode = resultObj.short_id || resultObj.shortId || resultObj.filecode || resultObj.file_code || resultObj.id || nanoid();
+          const fileCode = preAllocatedId || resultObj.short_id || resultObj.shortId || resultObj.filecode || resultObj.file_code || resultObj.id || nanoid();
 
           const dropRecord = {
             id: fileCode,
@@ -1196,8 +1248,8 @@ app.post('/api/drop/upload', uploadLimiter, uploadMulter.single('file'), async (
           };
 
           inMemoryStore.set(`drop:${fileCode}`, JSON.stringify(dropRecord));
-          attachFileToFolder(targetFolderCode, dropRecord);
-          savePersistentStore();
+          await attachFileToFolder(targetFolderCode, dropRecord);
+          await savePersistentStore();
 
           return res.status(200).json({
             success: true,
@@ -1223,7 +1275,7 @@ app.post('/api/drop/upload', uploadLimiter, uploadMulter.single('file'), async (
 
     // High-Speed Local File Storage Fallback
     isSavedLocally = true;
-    const fileCode = nanoid();
+    const fileCode = preAllocatedId || nanoid();
     const dropRecord = {
       id: fileCode,
       name: req.file.originalname,
@@ -1240,8 +1292,8 @@ app.post('/api/drop/upload', uploadLimiter, uploadMulter.single('file'), async (
     };
 
     inMemoryStore.set(`drop:${fileCode}`, JSON.stringify(dropRecord));
-    attachFileToFolder(targetFolderCode, dropRecord);
-    savePersistentStore();
+    await attachFileToFolder(targetFolderCode, dropRecord);
+    await savePersistentStore();
 
     return res.status(200).json({
       success: true,
@@ -1337,7 +1389,7 @@ app.post('/api/drop/remote-upload', uploadLimiter, async (req, res) => {
           deletionToken: nanoid(32)
         };
         inMemoryStore.set(`drop:${fileCode}`, JSON.stringify(dropRecord));
-        savePersistentStore();
+        await savePersistentStore();
         rootzData.data.deletionToken = dropRecord.deletionToken;
       }
       rootzData.data.provider = 'rootz';
@@ -1382,7 +1434,7 @@ app.delete('/api/drop/delete', async (req, res) => {
     }
 
     inMemoryStore.delete(`drop:${fileId}`);
-    savePersistentStore();
+    await savePersistentStore();
 
     let rootzUrl = `https://rootz.so/api/files/delete?fileId=${encodeURIComponent(fileId)}`;
     if (token) {
@@ -1422,6 +1474,21 @@ app.post('/api/drop/multipart/init', multipartLimiter, async (req, res) => {
     const { fileName, fileSize, fileType, folderId: reqFolderId } = req.body;
     if (!fileName || !fileSize) {
       return res.status(400).json({ error: 'fileName and fileSize are required.' });
+    }
+
+    const requestedCustomId = req.body.customId || req.body.shortId;
+    if (requestedCustomId) {
+      const cleanCustomId = String(requestedCustomId).trim();
+      if (!/^[a-zA-Z0-9_-]{3,64}$/.test(cleanCustomId)) {
+        return res.status(400).json({ error: 'Invalid customId format.' });
+      }
+      const isTaken = inMemoryStore.has(`drop:${cleanCustomId}`) ||
+                      inMemoryStore.has(`drop:folder:${cleanCustomId}`) ||
+                      (await redis.get(`drop:${cleanCustomId}`).catch(() => null)) ||
+                      (await redis.get(`drop:folder:${cleanCustomId}`).catch(() => null));
+      if (isTaken) {
+        return res.status(409).json({ success: false, error: 'Custom upload ID is already in use.' });
+      }
     }
 
     // Password check for files over 1 GB.
@@ -1501,7 +1568,43 @@ app.post('/api/drop/multipart/batch-urls', multipartLimiter, async (req, res) =>
   }
 });
 
-// 4c. Complete a multipart upload and save file record
+// 4c. Query server-verified multipart status for upload resumption
+app.get('/api/drop/multipart/status', multipartLimiter, async (req, res) => {
+  try {
+    const { uploadId, key, id } = req.query;
+
+    if (id) {
+      const stored = inMemoryStore.get(`drop:${id}`) || inMemoryStore.get(`drop:folder:${id}`);
+      if (stored) {
+        try {
+          const rec = JSON.parse(stored);
+          return res.status(200).json({ success: true, isComplete: true, record: rec });
+        } catch (e) {}
+      }
+    }
+
+    if (!SERVER_ROOTZ_KEY || !uploadId || !key) {
+      return res.status(200).json({ success: true, isComplete: false, completedParts: [] });
+    }
+
+    try {
+      const rootzRes = await fetch(`https://rootz.so/api/files/multipart/status?uploadId=${encodeURIComponent(uploadId)}&key=${encodeURIComponent(key)}`, {
+        headers: rootzHeaders(),
+        signal: AbortSignal.timeout(10000)
+      });
+      if (rootzRes.ok) {
+        const data = await rootzRes.json();
+        return res.status(200).json(data);
+      }
+    } catch (e) {}
+
+    return res.status(200).json({ success: true, isComplete: false, completedParts: [] });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: 'Failed to retrieve multipart status.' });
+  }
+});
+
+// 4d. Complete a multipart upload and save file record
 app.post('/api/drop/multipart/complete', multipartLimiter, async (req, res) => {
   try {
     if (!SERVER_ROOTZ_KEY) {
@@ -1548,7 +1651,8 @@ app.post('/api/drop/multipart/complete', multipartLimiter, async (req, res) => {
 
     // Persist the file record locally (mirrors what direct upload does).
     const resultObj = data.file || data.data || {};
-    const fileCode = resultObj.shortId || resultObj.short_id || resultObj.id || nanoid();
+    const requestedCustomId = req.body.customId || req.body.shortId;
+    const fileCode = requestedCustomId ? String(requestedCustomId).trim() : (resultObj.shortId || resultObj.short_id || resultObj.id || nanoid());
     const targetFolderCode = req.body.folderCode || null;
     const dropRecord = {
       id: fileCode,
@@ -1562,8 +1666,8 @@ app.post('/api/drop/multipart/complete', multipartLimiter, async (req, res) => {
       folderCode: targetFolderCode
     };
     inMemoryStore.set(`drop:${fileCode}`, JSON.stringify(dropRecord));
-    attachFileToFolder(targetFolderCode, dropRecord);
-    savePersistentStore();
+    await attachFileToFolder(targetFolderCode, dropRecord);
+    await savePersistentStore();
 
     if (!data.file) data.file = {};
     data.file.shortId = fileCode;
@@ -1730,6 +1834,16 @@ app.get(['/api/drop/file/:filename', '/api/drop/stream/:filename'], async (req, 
   try {
     const fileCode = req.params.filename;
 
+    const render404 = () => {
+      return res.status(404).send(renderTemplate('404.html', {
+        title: '404 — File Not Found | pokedb.site',
+        command: `get /api/drop/stream/${htmlEscape(fileCode)}`,
+        message: 'Error 404: Shared file not found or expired.',
+        returnUrl: 'https://drop.pokedb.site/',
+        returnLabel: '← Return to Drop'
+      }));
+    };
+
     const memoryFileData = inMemoryStore.get(`drop:${fileCode}`);
     const localData = memoryFileData || (await redis.get(`drop:${fileCode}`).catch(() => null));
     let fileNameHint = fileCode;
@@ -1764,15 +1878,18 @@ app.get(['/api/drop/file/:filename', '/api/drop/stream/:filename'], async (req, 
           loc = 'https://rootz.so' + loc;
         }
         if (!loc.includes('/login')) {
-          rootzRes = await fetch(loc, { headers, signal: AbortSignal.timeout(15000) });
+          const cdnHeaders = { ...headers };
+          delete cdnHeaders['Authorization'];
+          delete cdnHeaders['authorization'];
+          rootzRes = await fetch(loc, { headers: cdnHeaders, signal: AbortSignal.timeout(15000) });
         } else {
-          return res.status(404).sendFile(path.resolve(__dirname, 'templates/404.html'));
+          return render404();
         }
       }
     }
 
     if (!rootzRes.ok) {
-      return res.status(404).sendFile(path.resolve(__dirname, 'templates/404.html'));
+      return render404();
     }
 
     const contentType = (rootzRes.headers.get('content-type') || '').toLowerCase();
@@ -1782,7 +1899,10 @@ app.get(['/api/drop/file/:filename', '/api/drop/stream/:filename'], async (req, 
       const json = await rootzRes.json();
       const directUrl = json.url || json.download_url || json.direct_url || (json.data && (json.data.url || json.data.download_url));
       if (directUrl) {
-        const cdnRes = await fetch(directUrl, { headers, signal: AbortSignal.timeout(15000) });
+        const cdnHeaders = { ...headers };
+        delete cdnHeaders['Authorization'];
+        delete cdnHeaders['authorization'];
+        const cdnRes = await fetch(directUrl, { headers: cdnHeaders, signal: AbortSignal.timeout(15000) });
         if (cdnRes.ok && cdnRes.body) {
           res.status(cdnRes.status);
           res.setHeader('Content-Type', cdnRes.headers.get('content-type') || 'application/octet-stream');
@@ -1792,7 +1912,7 @@ app.get(['/api/drop/file/:filename', '/api/drop/stream/:filename'], async (req, 
           return undefined;
         }
       }
-      return res.status(404).sendFile(path.resolve(__dirname, 'templates/404.html'));
+      return render404();
     }
 
     // Direct binary stream from Rootz CDN — pipe bytes directly while keeping browser on pokedb.site
@@ -1813,7 +1933,12 @@ app.get(['/api/drop/file/:filename', '/api/drop/stream/:filename'], async (req, 
       return res.status(502).json({ error: 'Rootz returned an empty download stream.' });
     }
 
-    const stream = Readable.fromWeb(rootzRes.body);
+    const stream = Readable.fromWeb(rootzRes.body, { highWaterMark: 1024 * 1024 });
+    res.on('close', () => {
+      if (!res.writableEnded) {
+        try { stream.destroy(); } catch (e) {}
+      }
+    });
     stream.on('error', (err) => {
       console.error('Error streaming Rootz file response:', err);
       if (!res.headersSent) res.status(502).end();
@@ -1872,9 +1997,9 @@ async function analyzeUrlRisk(urlStr) {
   // 1. Google Safe Browsing API v4
   if (gsbKey) {
     promises.push((async () => {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 2500);
       try {
-        const controller = new AbortController();
-        const timer = setTimeout(() => controller.abort(), 2500);
         const res = await fetch(`https://safebrowsing.googleapis.com/v4/threatMatches:find?key=${gsbKey}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -1889,7 +2014,6 @@ async function analyzeUrlRisk(urlStr) {
             }
           })
         });
-        clearTimeout(timer);
         if (res.ok) {
           const data = await res.json();
           if (data.matches && data.matches.length > 0) {
@@ -1897,7 +2021,9 @@ async function analyzeUrlRisk(urlStr) {
             return `Flagged by Google Safe Browsing API: ${matchType}`;
           }
         }
-      } catch (e) {}
+      } catch (e) {} finally {
+        clearTimeout(timer);
+      }
       return null;
     })());
   }
@@ -1905,15 +2031,14 @@ async function analyzeUrlRisk(urlStr) {
   // 2. VirusTotal API v3 (URL Analysis)
   if (vtKey) {
     promises.push((async () => {
+      const urlId = Buffer.from(urlStr).toString('base64').replace(/=/g, '');
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 2500);
       try {
-        const urlId = Buffer.from(urlStr).toString('base64').replace(/=/g, '');
-        const controller = new AbortController();
-        const timer = setTimeout(() => controller.abort(), 2500);
         const res = await fetch(`https://www.virustotal.com/api/v3/urls/${urlId}`, {
           headers: { 'x-apikey': vtKey },
           signal: controller.signal
         });
-        clearTimeout(timer);
         if (res.ok) {
           const data = await res.json();
           const stats = data?.data?.attributes?.last_analysis_stats;
@@ -1921,7 +2046,9 @@ async function analyzeUrlRisk(urlStr) {
             return `Flagged by VirusTotal API: Detected by ${stats.malicious + stats.suspicious} security engines`;
           }
         }
-      } catch (e) {}
+      } catch (e) {} finally {
+        clearTimeout(timer);
+      }
       return null;
     })());
   }
@@ -1929,14 +2056,13 @@ async function analyzeUrlRisk(urlStr) {
   // 3. URLScan.io API Threat Intelligence
   if (urlscanKey) {
     promises.push((async () => {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 2500);
       try {
-        const controller = new AbortController();
-        const timer = setTimeout(() => controller.abort(), 2500);
         const res = await fetch(`https://urlscan.io/api/v1/search/?q=page.url:"${encodeURIComponent(urlStr)}"`, {
           headers: { 'API-Key': urlscanKey },
           signal: controller.signal
         });
-        clearTimeout(timer);
         if (res.ok) {
           const data = await res.json();
           if (data.results && data.results.length > 0) {
@@ -1946,7 +2072,9 @@ async function analyzeUrlRisk(urlStr) {
             }
           }
         }
-      } catch (e) {}
+      } catch (e) {} finally {
+        clearTimeout(timer);
+      }
       return null;
     })());
   }
@@ -1957,35 +2085,35 @@ async function analyzeUrlRisk(urlStr) {
     const host = parsed.hostname;
 
     promises.push((async () => {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 2000);
       try {
-        const controller = new AbortController();
-        const timer = setTimeout(() => controller.abort(), 2000);
         const res = await fetch(`https://security.cloudflare-dns.com/dns-query?name=${encodeURIComponent(host)}&type=A`, {
           headers: { 'Accept': 'application/dns-json' },
           signal: controller.signal
         });
-        clearTimeout(timer);
         if (res.ok) {
           const data = await res.json();
           if (data.Status === 3 || (data.Answer && data.Answer.some(a => a.data === '0.0.0.0' || a.data === '127.0.0.1'))) {
             return `Flagged by Cloudflare 1.1.0.2 Security DNS: Malicious or phishing domain (${host})`;
           }
         }
-      } catch (e) {}
+      } catch (e) {} finally {
+        clearTimeout(timer);
+      }
       return null;
     })());
 
     // 5. AbuseIPDB API v2 (if host is IP address & API key set)
     if (abuseipdbKey && /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/.test(host)) {
       promises.push((async () => {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 2000);
         try {
-          const controller = new AbortController();
-          const timer = setTimeout(() => controller.abort(), 2000);
           const res = await fetch(`https://api.abuseipdb.com/api/v2/check?ipAddress=${host}`, {
             headers: { 'Key': abuseipdbKey, 'Accept': 'application/json' },
             signal: controller.signal
           });
-          clearTimeout(timer);
           if (res.ok) {
             const data = await res.json();
             const score = data?.data?.abuseConfidenceScore;
@@ -1993,7 +2121,9 @@ async function analyzeUrlRisk(urlStr) {
               return `Flagged by AbuseIPDB API: IP Abuse Confidence Score ${score}% (${host})`;
             }
           }
-        } catch (e) {}
+        } catch (e) {} finally {
+          clearTimeout(timer);
+        }
         return null;
       })());
     }
@@ -2001,23 +2131,24 @@ async function analyzeUrlRisk(urlStr) {
     // 6. PhishTank API (Phishing Database Lookup)
     if (phishtankKey) {
       promises.push((async () => {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 2000);
         try {
-          const controller = new AbortController();
-          const timer = setTimeout(() => controller.abort(), 2000);
           const res = await fetch('https://checkurl.phishtank.com/checkurl/', {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
             signal: controller.signal,
             body: `url=${encodeURIComponent(urlStr)}&format=json&app_key=${phishtankKey}`
           });
-          clearTimeout(timer);
           if (res.ok) {
             const data = await res.json();
             if (data?.results?.valid && data?.results?.in_database) {
               return 'Flagged by PhishTank API: Verified active phishing URL';
             }
           }
-        } catch (e) {}
+        } catch (e) {} finally {
+          clearTimeout(timer);
+        }
         return null;
       })());
     }
@@ -2114,9 +2245,9 @@ if (require.main === module) {
     console.log(`Healthcheck:    http://localhost:${PORT}/health`);
   });
 
-  const gracefulShutdown = (signal) => {
+  const gracefulShutdown = async (signal) => {
     console.log(`\nReceived ${signal}. Flushing store and shutting down server...`);
-    savePersistentStore();
+    await savePersistentStore();
     server.close(() => {
       console.log('Server closed successfully.');
       process.exit(0);

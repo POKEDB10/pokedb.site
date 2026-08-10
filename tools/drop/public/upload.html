@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="oled-black">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Upload Session — Drop — pokedb.site</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/shared/theme.css">
+<script src="/shared/theme-switcher.js"></script>
+<script src="/shared/utils.js"></script>
+<script src="/shared/site.js"></script>
+<script src="/shared/qrcode.js"></script>
+
+<style>
+.upload-container {
+  width: min(100% - 2rem, 840px);
+  margin: clamp(2rem, 6vw, 4.5rem) auto;
+}
+.upload-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: clamp(1.25rem, 4vw, 2.25rem);
+  box-shadow: var(--shadow);
+}
+.session-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: .5rem;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: .8rem;
+  color: var(--accent);
+  margin-bottom: 1.25rem;
+}
+.status-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1.25rem;
+  border-bottom: 1px solid var(--border);
+}
+.file-name-lg {
+  font-size: clamp(1.1rem, 3.2vw, 1.6rem);
+  font-weight: 600;
+  word-break: break-all;
+}
+.file-meta-sub {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: .82rem;
+  color: var(--muted);
+  margin-top: .35rem;
+}
+.progress-bar-wrap {
+  width: 100%;
+  height: 12px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  overflow: hidden;
+  margin: 1.25rem 0 .75rem 0;
+}
+.progress-bar-fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, var(--accent), color-mix(in srgb, var(--accent) 70%, #fff));
+  transition: width .2s ease;
+  border-radius: 999px;
+}
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 1rem;
+  margin: 1.5rem 0;
+  font-family: 'IBM Plex Mono', monospace;
+}
+.stat-box {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: .75rem 1rem;
+}
+.stat-label {
+  font-size: .72rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+.stat-value {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--text);
+  margin-top: .2rem;
+}
+.action-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .75rem;
+  margin-top: 1.5rem;
+}
+.reselect-box {
+  display: none;
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  border: 1px dashed var(--accent);
+  border-radius: 10px;
+  padding: 1.5rem;
+  text-align: center;
+  margin: 1.25rem 0;
+  font-family: 'IBM Plex Mono', monospace;
+}
+.result-card {
+  display: none;
+  background: var(--bg);
+  border: 1px solid var(--accent);
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-top: 1.5rem;
+}
+</style>
+</head>
+<body>
+  <header class="site-nav">
+    <a class="logo" href="https://pokedb.site/" data-nav="main">root<span>@</span>pokedb</a>
+    <nav class="nav-links">
+      <a class="nav-link" href="https://drop.pokedb.site/" data-nav="drop">Drop</a>
+      <a class="nav-link" href="https://tools.pokedb.site/" data-nav="tools">Tools hub</a>
+    </nav>
+    <div class="theme-switcher">
+      <span class="theme-swatch" id="theme-swatch"></span>
+      <select id="theme-select" aria-label="Choose a theme">
+        <option value="oled-black">OLED — Pitch Indigo</option>
+        <option value="matrix">Matrix — Phosphor Green</option>
+        <option value="cyberpunk">Cyberpunk — Neon Cyan</option>
+        <option value="paper">Paper — Editorial Light</option>
+      </select>
+    </div>
+  </header>
+
+  <main class="upload-container">
+    <article class="upload-card">
+      <div class="session-badge">$ drop --upload-session [<span id="session-id-display">…</span>]</div>
+      <div class="status-header">
+        <div>
+          <h1 class="file-name-lg" id="up-file-name">Initializing session…</h1>
+          <p class="file-meta-sub"><span id="up-file-size">—</span> · <span id="up-status-text">Preparing transfer…</span></p>
+        </div>
+      </div>
+
+      <!-- Reselect prompt when session is resumed across tab close -->
+      <div class="reselect-box" id="reselect-box">
+        <div style="font-weight:600; color:var(--accent); margin-bottom:.5rem;">📂 Resume Upload Session</div>
+        <div style="font-size:.85rem; color:var(--text); margin-bottom:1rem;">Browser tab was closed mid-upload. Re-select the file to verify completed chunks and resume remaining transfer.</div>
+        <input type="file" id="reselect-file-input" style="display:none;">
+        <button class="btn btn-solid" id="reselect-btn" type="button">Select File to Resume</button>
+      </div>
+
+      <!-- Progress bar -->
+      <div class="progress-bar-wrap" id="progress-bar-wrap">
+        <div class="progress-bar-fill" id="progress-bar-fill"></div>
+      </div>
+
+      <!-- Telemetry Stats -->
+      <div class="stats-grid">
+        <div class="stat-box">
+          <div class="stat-label">Progress</div>
+          <div class="stat-value" id="stat-percent">0%</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">Speed</div>
+          <div class="stat-value" id="stat-speed">0 MB/s</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">Transferred</div>
+          <div class="stat-value" id="stat-bytes">0 / 0 MB</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">ETA</div>
+          <div class="stat-value" id="stat-eta">--:--</div>
+        </div>
+      </div>
+
+      <!-- Controls -->
+      <div class="action-row" id="controls-row">
+        <button class="btn btn-solid" id="pause-btn" type="button" style="flex:1;">Pause Upload</button>
+        <button class="btn" id="stop-btn" type="button" style="flex:1;">Cancel Session</button>
+      </div>
+
+      <!-- Completed Result Box -->
+      <div class="result-card" id="upload-complete-card">
+        <span class="eyebrow" style="color:var(--accent); display:block; margin-bottom:.5rem;">✓ Upload Completed Successfully</span>
+        <div style="font-family:'IBM Plex Mono',monospace; font-size:.85rem; margin-bottom:.85rem; color:var(--text);">Sharable Download Link:</div>
+        <div style="display:flex; gap:.6rem; flex-wrap:wrap;">
+          <input type="text" id="up-share-url" readonly style="flex:1 1 240px; background:var(--surface); border:1px solid var(--border); border-radius:6px; padding:.6rem .8rem; font-family:'IBM Plex Mono',monospace; font-size:.85rem; color:var(--accent);">
+          <button class="btn btn-solid" id="up-copy-btn" type="button">$ copy</button>
+          <a class="btn" id="up-open-btn" target="_blank" rel="noopener">$ open ↗</a>
+        </div>
+      </div>
+    </article>
+  </main>
+
+  <script src="/upload.js"></script>
+</body>
+</html>
