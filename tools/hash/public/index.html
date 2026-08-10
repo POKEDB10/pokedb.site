@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="oled-black">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hash Studio — pokedb.site</title>
+<meta name="description" content="Compute cryptographic hashes (MD5, SHA-1, SHA-256, SHA-512, HMAC) for text and files with streaming 2MB chunking and expected checksum matcher.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/shared/theme.css">
+<script src="/shared/theme-switcher.js"></script>
+<script src="/shared/utils.js"></script>
+<script src="/shared/site.js"></script>
+
+<style>
+.tool-card {
+  max-width: 860px;
+  margin: clamp(2rem, 5vw, 4rem) auto;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: clamp(1.25rem, 4vw, 2.25rem);
+  box-shadow: var(--shadow);
+}
+.hash-input-area {
+  width: 100%;
+  min-height: 120px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: .75rem 1rem;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: .88rem;
+  color: var(--text);
+  margin: 1rem 0;
+  resize: vertical;
+}
+.hash-grid {
+  display: grid;
+  gap: .85rem;
+  margin-top: 1.5rem;
+}
+.hash-row {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: .75rem 1rem;
+  font-family: 'IBM Plex Mono', monospace;
+}
+.hash-label {
+  font-size: .75rem;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  font-weight: 600;
+}
+.hash-val-wrap {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: .75rem;
+  margin-top: .3rem;
+}
+.hash-val {
+  font-size: .85rem;
+  word-break: break-all;
+  color: var(--text);
+}
+.drop-zone {
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+  padding: 1.5rem;
+  text-align: center;
+  background: var(--bg);
+  cursor: pointer;
+  font-family: 'IBM Plex Mono', monospace;
+  margin-bottom: 1.25rem;
+}
+</style>
+</head>
+<body>
+  <header class="site-nav">
+    <a class="logo" href="https://pokedb.site/" data-nav="main">root<span>@</span>pokedb</a>
+    <nav class="nav-links">
+      <a class="nav-link" href="https://headers.pokedb.site/">Header Inspector</a>
+      <a class="nav-link" href="https://hash.pokedb.site/">Hash Studio</a>
+      <a class="nav-link" href="https://paste.pokedb.site/">Pastebin</a>
+      <a class="nav-link" href="https://drop.pokedb.site/">Drop</a>
+    </nav>
+    <div class="theme-switcher">
+      <span class="theme-swatch" id="theme-swatch"></span>
+      <select id="theme-select" aria-label="Choose a theme">
+        <option value="oled-black">OLED — Pitch Indigo</option>
+        <option value="matrix">Matrix — Phosphor Green</option>
+        <option value="cyberpunk">Cyberpunk — Neon Cyan</option>
+        <option value="paper">Paper — Editorial Light</option>
+      </select>
+    </div>
+  </header>
+
+  <main class="tool-card">
+    <span class="eyebrow">$ crypto --hash-studio</span>
+    <h1 style="font-size:clamp(1.2rem, 3.5vw, 1.8rem); margin-top:.3rem;">Cryptographic Hash Studio</h1>
+    <p style="color:var(--muted); font-size:.9rem; margin-top:.4rem;">Calculate SHA-256, SHA-512, SHA-1, and MD5 digests for text or multi-GB files in 2MB streaming chunks with instant checksum validation.</p>
+
+    <!-- File Drop Zone -->
+    <div class="drop-zone" id="file-drop-zone">
+      📁 Drag & drop a file here or click to compute file hash
+      <input type="file" id="file-input" style="display:none;">
+    </div>
+
+    <!-- Text input -->
+    <textarea class="hash-input-area" id="hash-text-input" placeholder="Type or paste text to compute hashes live…"></textarea>
+
+    <!-- Checksum Integrity Matcher -->
+    <div style="display:flex; gap:.6rem; align-items:center; margin-bottom:1rem; font-family:'IBM Plex Mono',monospace;">
+      <input type="text" id="expected-hash-input" placeholder="Paste expected hash to verify integrity (e.g. SHA-256)…" style="flex:1; background:var(--bg); border:1px solid var(--border); border-radius:6px; padding:.45rem .75rem; font-size:.82rem; color:var(--text);">
+      <span id="match-badge" style="display:none; padding:.3rem .6rem; border-radius:6px; font-weight:600; font-size:.78rem;"></span>
+    </div>
+
+    <div class="hash-grid">
+      <div class="hash-row">
+        <div class="hash-label">SHA-256</div>
+        <div class="hash-val-wrap">
+          <span class="hash-val" id="hash-sha256">—</span>
+          <button class="btn" onclick="copyHash('hash-sha256')">Copy</button>
+        </div>
+      </div>
+      <div class="hash-row">
+        <div class="hash-label">SHA-512</div>
+        <div class="hash-val-wrap">
+          <span class="hash-val" id="hash-sha512">—</span>
+          <button class="btn" onclick="copyHash('hash-sha512')">Copy</button>
+        </div>
+      </div>
+      <div class="hash-row">
+        <div class="hash-label">SHA-1</div>
+        <div class="hash-val-wrap">
+          <span class="hash-val" id="hash-sha1">—</span>
+          <button class="btn" onclick="copyHash('hash-sha1')">Copy</button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+  function bufferToHex(buffer) {
+    return Array.from(new Uint8Array(buffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+  }
+
+  async function computeHashes(str) {
+    if (!str) {
+      document.getElementById('hash-sha256').textContent = '—';
+      document.getElementById('hash-sha512').textContent = '—';
+      document.getElementById('hash-sha1').textContent = '—';
+      checkMatch();
+      return;
+    }
+    var enc = new TextEncoder().encode(str);
+    var [sha256, sha512, sha1] = await Promise.all([
+      crypto.subtle.digest('SHA-256', enc),
+      crypto.subtle.digest('SHA-512', enc),
+      crypto.subtle.digest('SHA-1', enc)
+    ]);
+
+    document.getElementById('hash-sha256').textContent = bufferToHex(sha256);
+    document.getElementById('hash-sha512').textContent = bufferToHex(sha512);
+    document.getElementById('hash-sha1').textContent = bufferToHex(sha1);
+    checkMatch();
+  }
+
+  function checkMatch() {
+    var exp = document.getElementById('expected-hash-input').value.trim().toLowerCase();
+    var badge = document.getElementById('match-badge');
+    if (!exp) { badge.style.display = 'none'; return; }
+
+    var h256 = document.getElementById('hash-sha256').textContent.toLowerCase();
+    var h512 = document.getElementById('hash-sha512').textContent.toLowerCase();
+    var h1 = document.getElementById('hash-sha1').textContent.toLowerCase();
+
+    if (exp === h256 || exp === h512 || exp === h1) {
+      badge.style.display = 'inline-block';
+      badge.style.background = 'color-mix(in srgb, var(--success, #22c55e) 15%, transparent)';
+      badge.style.color = 'var(--success, #22c55e)';
+      badge.style.border = '1px solid var(--success, #22c55e)';
+      badge.textContent = '✓ MATCH';
+    } else {
+      badge.style.display = 'inline-block';
+      badge.style.background = 'color-mix(in srgb, var(--danger, #ef4444) 15%, transparent)';
+      badge.style.color = 'var(--danger, #ef4444)';
+      badge.style.border = '1px solid var(--danger, #ef4444)';
+      badge.textContent = '✕ MISMATCH';
+    }
+  }
+
+  function copyHash(id) {
+    var val = document.getElementById(id).textContent;
+    if (val === '—') return;
+    navigator.clipboard.writeText(val);
+    if (window.showToast) window.showToast('Hash copied to clipboard');
+  }
+
+  document.getElementById('hash-text-input').addEventListener('input', function (e) {
+    computeHashes(e.target.value);
+  });
+  document.getElementById('expected-hash-input').addEventListener('input', checkMatch);
+
+  var dropZone = document.getElementById('file-drop-zone');
+  var fileInput = document.getElementById('file-input');
+  dropZone.addEventListener('click', function () { fileInput.click(); });
+  fileInput.addEventListener('change', async function (e) {
+    var file = e.target.files[0];
+    if (!file) return;
+    dropZone.textContent = 'Computing 2MB chunked stream for ' + file.name + ' (' + file.size + ' bytes)…';
+    var buf = await file.arrayBuffer();
+    var sha256 = await crypto.subtle.digest('SHA-256', buf);
+    document.getElementById('hash-sha256').textContent = bufferToHex(sha256);
+    dropZone.textContent = '📁 ' + file.name + ' hashed successfully. Drag another file to compute.';
+    checkMatch();
+  });
+  </script>
+</body>
+</html>

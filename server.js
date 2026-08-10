@@ -329,7 +329,7 @@ async function cleanupInMemoryStore() {
   if (changed) await savePersistentStore();
 }
 
-const cleanupTimer = setInterval(cleanupInMemoryStore, 60 * 60 * 1000);
+const cleanupTimer = setInterval(cleanupInMemoryStore, 5 * 60 * 1000);
 cleanupTimer.unref();
 
 if (process.env.NODE_ENV === 'test') {
@@ -345,6 +345,10 @@ if (process.env.NODE_ENV === 'test') {
       const value = Number(inMemoryStore.get(key) || 0) + 1;
       inMemoryStore.set(key, String(value));
       return value;
+    },
+    del: async (key) => {
+      inMemoryStore.delete(key);
+      return 1;
     },
     expire: async () => 1,
     ttl: async (key) => -1,
@@ -484,6 +488,30 @@ const shortenLimiter = rateLimit({
   message: { error: 'Too many requests, please try again after 15 minutes.' }
 });
 
+const headerInspectorLimiter = rateLimit({
+  ...sharedRateLimitOptions,
+  store: createRateLimitStore('header_inspector'),
+  windowMs: 15 * 60 * 1000,
+  max: 30,
+  message: { error: 'Too many header inspection requests, please try again after 15 minutes.' }
+});
+
+const pasteCreateLimiter = rateLimit({
+  ...sharedRateLimitOptions,
+  store: createRateLimitStore('paste_create'),
+  windowMs: 15 * 60 * 1000,
+  max: 30,
+  message: { error: 'Too many pastes created, please try again after 15 minutes.' }
+});
+
+const pasteAuthLimiter = rateLimit({
+  ...sharedRateLimitOptions,
+  store: createRateLimitStore('paste_auth'),
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  message: { error: 'Too many password attempts, please try again after 15 minutes.' }
+});
+
 function parseExpiresInDays(value, defaultValue = 30) {
   if (value === undefined || value === null) return defaultValue;
   if (typeof value === 'string' && value.trim() === '') return null;
@@ -531,7 +559,10 @@ const staticHandlers = {
   tinyurl: express.static(path.join(__dirname, 'tools/tinyurl/public'), { index: ['index.html'] }),
   qr: express.static(path.join(__dirname, 'tools/qr/public'), { index: ['index.html'] }),
   drop: express.static(path.join(__dirname, 'tools/drop/public'), { index: ['index.html'] }),
-  health: express.static(path.join(__dirname, 'tools/health/public'), { index: ['index.html'] })
+  health: express.static(path.join(__dirname, 'tools/health/public'), { index: ['index.html'] }),
+  paste: express.static(path.join(__dirname, 'tools/paste/public'), { index: ['index.html'] }),
+  headers: express.static(path.join(__dirname, 'tools/headers/public'), { index: ['index.html'] }),
+  hash: express.static(path.join(__dirname, 'tools/hash/public'), { index: ['index.html'] })
 };
 
 // Helper middleware to validate API host access per subdomain
@@ -620,6 +651,25 @@ app.use((req, res, next) => {
 
     case 'health.pokedb.site':
       return staticHandlers.health(req, res, notFound);
+
+    case 'paste.pokedb.site':
+      if (req.path.startsWith('/raw/')) {
+        req.url = '/api/paste/raw/' + req.path.slice(5);
+        return next();
+      }
+      if (req.path.startsWith('/p/')) {
+        if (req.path.endsWith('.js') || req.path.endsWith('.css') || req.path.endsWith('.ico') || req.path.endsWith('.png') || req.path.endsWith('.jpg') || req.path.endsWith('.svg')) {
+          return staticHandlers.paste(req, res, notFound);
+        }
+        return res.sendFile(path.join(__dirname, 'tools/paste/public/view.html'));
+      }
+      return staticHandlers.paste(req, res, notFound);
+
+    case 'headers.pokedb.site':
+      return staticHandlers.headers(req, res, notFound);
+
+    case 'hash.pokedb.site':
+      return staticHandlers.hash(req, res, notFound);
 
     case 'localhost':
     case '127.0.0.1':
@@ -1026,7 +1076,10 @@ function isPrivateIpv4(address) {
     (octets[0] === 100 && octets[1] >= 64 && octets[1] <= 127) ||
     (octets[0] === 169 && octets[1] === 254) ||
     (octets[0] === 172 && octets[1] >= 16 && octets[1] <= 31) ||
-    (octets[0] === 192 && octets[1] === 168);
+    (octets[0] === 192 && octets[1] === 0 && octets[2] === 0) ||
+    (octets[0] === 192 && octets[1] === 168) ||
+    (octets[0] === 198 && octets[1] >= 18 && octets[1] <= 19) ||
+    (octets[0] >= 224);
 }
 
 function ipv6Groups(address) {
@@ -1094,8 +1147,166 @@ const isValidRemoteUrl = async (rawUrl) => {
   }
 };
 
+async function inspectUrl(targetUrl, hopCount = 0) {
+  if (hopCount > 5) {
+    throw new Error('Too many redirects (maximum 5 hops allowed).');
+  }
+
+  let parsed;
+  try {
+    parsed = new URL(targetUrl);
+  } catch (e) {
+    throw new Error('Invalid target URL format.');
+  }
+
+  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+    throw new Error('Only HTTP and HTTPS URLs can be inspected.');
+  }
+
+  const hostname = parsed.hostname.toLowerCase().replace(/^\[|\]$/g, '');
+  if (await isPrivateHost(hostname)) {
+    throw new Error('Target resolves to a private, loopback, or restricted IP address.');
+  }
+
+  const addresses = await dns.lookup(hostname, { all: true, verbatim: true });
+  if (!addresses || !addresses.length) {
+    throw new Error('DNS resolution failed for target host.');
+  }
+
+  for (const addr of addresses) {
+    if (isPrivateIpAddress(addr.address)) {
+      throw new Error('Target resolves to a restricted IP address.');
+    }
+  }
+
+  const resolvedIp = addresses[0].address;
+  const isHttps = parsed.protocol === 'https:';
+  const port = parsed.port ? Number(parsed.port) : (isHttps ? 443 : 80);
+  const reqPath = (parsed.pathname || '/') + (parsed.search || '');
+
+  return new Promise((resolve, reject) => {
+    const transport = isHttps ? https : http;
+    const reqOptions = {
+      hostname: resolvedIp,
+      port: port,
+      path: reqPath,
+      method: 'GET',
+      headers: {
+        'Host': parsed.host,
+        'User-Agent': 'Pokedb-SecurityInspector/1.0 (+https://pokedb.site)',
+        'Accept': '*/*'
+      },
+      servername: isHttps ? hostname : undefined,
+      rejectUnauthorized: true,
+      timeout: 5000
+    };
+
+    const req = transport.request(reqOptions, async (res) => {
+      if ([301, 302, 303, 307, 308].includes(res.statusCode)) {
+        const loc = res.headers['location'];
+        req.destroy();
+        if (!loc) return reject(new Error('Redirect returned without Location header.'));
+        try {
+          const redirectUrl = new URL(loc, targetUrl).href;
+          return resolve(await inspectUrl(redirectUrl, hopCount + 1));
+        } catch (err) {
+          return reject(err);
+        }
+      }
+
+      let bodySnippet = '';
+      let bytesRead = 0;
+
+      res.on('data', (chunk) => {
+        bytesRead += chunk.length;
+        if (bodySnippet.length < 16384) {
+          bodySnippet += chunk.toString('utf8', 0, Math.min(chunk.length, 16384 - bodySnippet.length));
+        }
+        if (bytesRead > 65536) {
+          res.destroy();
+        }
+      });
+
+      res.on('end', () => {
+        resolve({
+          statusCode: res.statusCode,
+          statusMessage: res.statusMessage,
+          url: targetUrl,
+          finalUrl: targetUrl,
+          hopCount: hopCount,
+          headers: res.headers,
+          bodySnippet: bodySnippet
+        });
+      });
+
+      res.on('error', (err) => reject(err));
+    });
+
+    req.on('timeout', () => {
+      req.destroy(new Error('Request timed out after 5000ms.'));
+    });
+
+    req.on('error', (err) => reject(err));
+    req.end();
+  });
+}
+
+app.post('/api/tools/inspect-headers', headerInspectorLimiter, async (req, res) => {
+  try {
+    const { url: targetUrl } = req.body;
+    if (!targetUrl || typeof targetUrl !== 'string') {
+      return res.status(400).json({ error: 'A valid target URL string is required.' });
+    }
+
+    const result = await inspectUrl(targetUrl.trim());
+
+    const h = result.headers;
+    const checks = {
+      hsts: Boolean(h['strict-transport-security']),
+      csp: Boolean(h['content-security-policy']),
+      xfo: Boolean(h['x-frame-options']),
+      xcto: (h['x-content-type-options'] || '').toLowerCase().includes('nosniff'),
+      referrerPolicy: Boolean(h['referrer-policy']),
+      permissionsPolicy: Boolean(h['permissions-policy'] || h['feature-policy']),
+      coop: Boolean(h['cross-origin-opener-policy']),
+      coep: Boolean(h['cross-origin-embedder-policy']),
+      serverExposed: Boolean(h['server'] || h['x-powered-by'])
+    };
+
+    let score = 100;
+    if (!checks.hsts) score -= 20;
+    if (!checks.csp) score -= 25;
+    if (!checks.xfo) score -= 15;
+    if (!checks.xcto) score -= 15;
+    if (!checks.referrerPolicy) score -= 10;
+    if (!checks.permissionsPolicy) score -= 10;
+    if (checks.serverExposed) score -= 5;
+
+    let grade = 'F';
+    if (score >= 90) grade = 'A+';
+    else if (score >= 80) grade = 'A';
+    else if (score >= 70) grade = 'B';
+    else if (score >= 50) grade = 'C';
+
+    return res.status(200).json({
+      success: true,
+      url: result.url,
+      statusCode: result.statusCode,
+      statusMessage: result.statusMessage,
+      hopCount: result.hopCount,
+      headers: result.headers,
+      securityScore: Math.max(0, score),
+      grade: grade,
+      checks: checks
+    });
+  } catch (err) {
+    return res.status(400).json({ error: err.message || 'Header inspection failed.' });
+  }
+});
+
 async function scanFileVirus(filePath) {
   const flags = [];
+  let sha256 = null;
 
   try {
     // 1. Calculate SHA-256 hash of the uploaded file
@@ -1104,7 +1315,7 @@ async function scanFileVirus(filePath) {
     for await (const chunk of fileStream) {
       hashSum.update(chunk);
     }
-    const sha256 = hashSum.digest('hex');
+    sha256 = hashSum.digest('hex');
 
     // 2. Query MalwareBazaar API (100% Free, NO API key required)
     const mbController = new AbortController();
@@ -1161,7 +1372,8 @@ async function scanFileVirus(filePath) {
 
   return {
     isVirus: flags.length > 0,
-    flags
+    flags,
+    sha256
   };
 }
 
@@ -1244,14 +1456,15 @@ app.post('/api/drop/upload', uploadLimiter, uploadMulter.single('file'), async (
             relativePath: req.body.relativePath || req.file.originalname,
             deletionToken: nanoid(32),
             folderCode: targetFolderCode,
-            virusFlags: virusScan.flags
+            virusFlags: virusScan.flags,
+            sha256: virusScan.sha256
           };
 
           inMemoryStore.set(`drop:${fileCode}`, JSON.stringify(dropRecord));
           await attachFileToFolder(targetFolderCode, dropRecord);
           await savePersistentStore();
 
-          return res.status(200).json({
+          const respObj = {
             success: true,
             id: fileCode,
             shortId: fileCode,
@@ -1265,8 +1478,19 @@ app.post('/api/drop/upload', uploadLimiter, uploadMulter.single('file'), async (
             createdAt: dropRecord.createdAt,
             relativePath: dropRecord.relativePath,
             deletionToken: dropRecord.deletionToken,
-            virusFlags: dropRecord.virusFlags
-          });
+            virusFlags: dropRecord.virusFlags,
+            sha256: dropRecord.sha256,
+            file: {
+              id: fileCode,
+              shortId: fileCode,
+              name: dropRecord.name,
+              size: dropRecord.size,
+              sha256: dropRecord.sha256,
+              viewUrl: `${getBaseUrl(req)}/v/${fileCode}`
+            }
+          };
+
+          return res.status(200).json(respObj);
         }
       } catch (proxyErr) {
         console.warn('Rootz proxy failed, falling back to local file storage:', proxyErr.message);
@@ -1288,14 +1512,15 @@ app.post('/api/drop/upload', uploadLimiter, uploadMulter.single('file'), async (
       localPath: req.file.path,
       deletionToken: nanoid(32),
       folderCode: targetFolderCode,
-      virusFlags: virusScan.flags
+      virusFlags: virusScan.flags,
+      sha256: virusScan.sha256
     };
 
     inMemoryStore.set(`drop:${fileCode}`, JSON.stringify(dropRecord));
     await attachFileToFolder(targetFolderCode, dropRecord);
     await savePersistentStore();
 
-    return res.status(200).json({
+    const respObj = {
       success: true,
       id: fileCode,
       shortId: fileCode,
@@ -1309,8 +1534,19 @@ app.post('/api/drop/upload', uploadLimiter, uploadMulter.single('file'), async (
       createdAt: dropRecord.createdAt,
       relativePath: dropRecord.relativePath,
       deletionToken: dropRecord.deletionToken,
-      virusFlags: dropRecord.virusFlags
-    });
+      virusFlags: dropRecord.virusFlags,
+      sha256: dropRecord.sha256,
+      file: {
+        id: fileCode,
+        shortId: fileCode,
+        name: dropRecord.name,
+        size: dropRecord.size,
+        sha256: dropRecord.sha256,
+        viewUrl: `${getBaseUrl(req)}/v/${fileCode}`
+      }
+    };
+
+    return res.status(200).json(respObj);
 
   } catch (err) {
     console.error('Error in direct upload endpoint:', err);
@@ -1679,6 +1915,174 @@ app.post('/api/drop/multipart/complete', multipartLimiter, async (req, res) => {
   } catch (err) {
     console.error('Multipart complete error:', err);
     return res.status(502).json({ error: 'Failed to finalize multipart upload.' });
+  }
+});
+
+// ============================================================
+// 5. PASTEBIN ENDPOINTS (paste.pokedb.site)
+// ============================================================
+
+// 5a. Create a new paste
+app.post('/api/paste/create', pasteCreateLimiter, async (req, res) => {
+  try {
+    const { content, title, language, expiresInDays, burnOnRead, password } = req.body;
+    if (!content || typeof content !== 'string' || content.trim().length === 0) {
+      return res.status(400).json({ error: 'Paste content cannot be empty.' });
+    }
+
+    if (content.length > 5 * 1024 * 1024) {
+      return res.status(400).json({ error: 'Paste content exceeds the 5 MB limit.' });
+    }
+
+    const expDays = parseExpiresInDays(expiresInDays, 30);
+    if (expDays === null) {
+      return res.status(400).json({ error: 'expiresInDays must be between 0 and 365.' });
+    }
+
+    // NanoID collision retry up to 5 times
+    let pasteCode = '';
+    let attempts = 0;
+    while (attempts < 5) {
+      const candidate = nanoid(8);
+      if (!inMemoryStore.has(`paste:${candidate}`) && !(await redis.get(`paste:${candidate}`).catch(() => null))) {
+        pasteCode = candidate;
+        break;
+      }
+      attempts++;
+    }
+
+    if (!pasteCode) {
+      return res.status(500).json({ error: 'Failed to generate unique paste ID. Please retry.' });
+    }
+
+    let passwordMeta = null;
+    if (password && typeof password === 'string' && password.trim().length > 0) {
+      const salt = crypto.randomBytes(16).toString('hex');
+      const hash = crypto.scryptSync(password.trim(), salt, 64).toString('hex');
+      passwordMeta = { salt, hash };
+    }
+
+    const pasteRecord = {
+      id: pasteCode,
+      code: pasteCode,
+      title: (title || 'Untitled Paste').substring(0, 100),
+      language: (language || 'plaintext').substring(0, 30),
+      content: content,
+      size: Buffer.byteLength(content, 'utf8'),
+      createdAt: new Date().toISOString(),
+      expiresAt: expDays ? new Date(Date.now() + expDays * 86400000).toISOString() : null,
+      burnOnRead: Boolean(burnOnRead),
+      isProtected: Boolean(passwordMeta),
+      passwordMeta: passwordMeta,
+      views: 0
+    };
+
+    inMemoryStore.set(`paste:${pasteCode}`, JSON.stringify(pasteRecord));
+    await redis.set(`paste:${pasteCode}`, JSON.stringify(pasteRecord)).catch(() => {});
+    await savePersistentStore();
+
+    return res.status(200).json({
+      success: true,
+      code: pasteCode,
+      url: `${getBaseUrl(req)}/p/${pasteCode}`,
+      rawUrl: `${getBaseUrl(req)}/raw/${pasteCode}`,
+      title: pasteRecord.title,
+      language: pasteRecord.language,
+      expiresAt: pasteRecord.expiresAt,
+      burnOnRead: pasteRecord.burnOnRead,
+      isProtected: pasteRecord.isProtected
+    });
+  } catch (err) {
+    console.error('Paste creation error:', err);
+    return res.status(500).json({ error: 'Internal server error creating paste.' });
+  }
+});
+
+// 5b. Retrieve a paste (handles password auth & burn-on-read atomically)
+app.post('/api/paste/view/:code', pasteAuthLimiter, async (req, res) => {
+  try {
+    const code = req.params.code;
+    const stored = inMemoryStore.get(`paste:${code}`) || (await redis.get(`paste:${code}`).catch(() => null));
+    if (!stored) {
+      return res.status(404).json({ error: 'Paste not found or has expired.' });
+    }
+
+    let record;
+    try { record = JSON.parse(stored); } catch (e) {
+      return res.status(404).json({ error: 'Corrupted paste record.' });
+    }
+
+    if (record.expiresAt && Date.parse(record.expiresAt) <= Date.now()) {
+      inMemoryStore.delete(`paste:${code}`);
+      await redis.del(`paste:${code}`).catch(() => {});
+      return res.status(404).json({ error: 'Paste has expired.' });
+    }
+
+    if (record.isProtected && record.passwordMeta) {
+      const inputPass = req.body.password || '';
+      const computedHash = crypto.scryptSync(inputPass.trim(), record.passwordMeta.salt, 64);
+      const storedHash = Buffer.from(record.passwordMeta.hash, 'hex');
+
+      if (computedHash.length !== storedHash.length || !crypto.timingSafeEqual(computedHash, storedHash)) {
+        return res.status(401).json({ error: 'Incorrect password for protected paste.' });
+      }
+    }
+
+    record.views = (record.views || 0) + 1;
+
+    // Burn-on-read deletion occurs ONLY after password authentication succeeds!
+    if (record.burnOnRead) {
+      inMemoryStore.delete(`paste:${code}`);
+      await redis.del(`paste:${code}`).catch(() => {});
+      await savePersistentStore();
+    } else {
+      inMemoryStore.set(`paste:${code}`, JSON.stringify(record));
+    }
+
+    const safeRecord = { ...record };
+    delete safeRecord.passwordMeta;
+
+    return res.status(200).json({ success: true, paste: safeRecord });
+  } catch (err) {
+    console.error('Paste view error:', err);
+    return res.status(500).json({ error: 'Failed to retrieve paste.' });
+  }
+});
+
+app.get('/api/paste/view/:code', async (req, res) => {
+  req.body = {};
+  return app._router.handle(req, res, () => {});
+});
+
+// 5c. Serve raw plain text paste
+app.get('/api/paste/raw/:code', async (req, res) => {
+  try {
+    const code = req.params.code;
+    const stored = inMemoryStore.get(`paste:${code}`) || (await redis.get(`paste:${code}`).catch(() => null));
+    if (!stored) {
+      return res.status(404).set('Content-Type', 'text/plain; charset=utf-8').set('X-Content-Type-Options', 'nosniff').send('Error 404: Paste not found or expired.');
+    }
+
+    let record;
+    try { record = JSON.parse(stored); } catch (e) {
+      return res.status(404).set('Content-Type', 'text/plain; charset=utf-8').set('X-Content-Type-Options', 'nosniff').send('Error 404: Paste corrupted.');
+    }
+
+    if (record.isProtected) {
+      return res.status(403).set('Content-Type', 'text/plain; charset=utf-8').set('X-Content-Type-Options', 'nosniff').send('Error 403: Protected pastes cannot be viewed in raw mode without authentication.');
+    }
+
+    if (record.burnOnRead) {
+      inMemoryStore.delete(`paste:${code}`);
+      await redis.del(`paste:${code}`).catch(() => {});
+      await savePersistentStore();
+    }
+
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    return res.status(200).send(record.content);
+  } catch (err) {
+    return res.status(500).set('Content-Type', 'text/plain; charset=utf-8').set('X-Content-Type-Options', 'nosniff').send('Error 500: Server error retrieving raw paste.');
   }
 });
 

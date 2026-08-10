@@ -128,20 +128,49 @@
       });
     }
 
-    var cancelDlBtn = byId('cancel-download-btn');
-    if (cancelDlBtn) {
-      cancelDlBtn.addEventListener('click', function () {
-        var cautionModal = byId('download-caution-modal');
-        if (cautionModal) cautionModal.style.display = 'none';
-      });
-    }
+    if (meta.sha256) {
+      var shaBox = byId('file-sha256-box');
+      var shaHashSpan = byId('file-sha256-hash');
+      var copyShaBtn = byId('copy-sha256-btn');
+      var expectedInput = byId('expected-sha256-input');
+      var matchBadge = byId('sha256-match-badge');
 
-    var confirmDlBtn = byId('confirm-unsafe-download-btn');
-    if (confirmDlBtn) {
-      confirmDlBtn.addEventListener('click', function () {
-        var cautionModal = byId('download-caution-modal');
-        if (cautionModal) cautionModal.style.display = 'none';
-      });
+      if (shaBox && shaHashSpan) {
+        shaHashSpan.textContent = meta.sha256;
+        shaBox.style.display = 'block';
+
+        if (copyShaBtn) {
+          copyShaBtn.addEventListener('click', function () {
+            navigator.clipboard.writeText(meta.sha256);
+            copyShaBtn.textContent = 'Copied!';
+            if (window.showToast) window.showToast('SHA-256 copied!');
+            setTimeout(function () { copyShaBtn.textContent = 'Copy SHA-256'; }, 1500);
+          });
+        }
+
+        if (expectedInput && matchBadge) {
+          expectedInput.addEventListener('input', function () {
+            var val = expectedInput.value.trim().toLowerCase();
+            if (!val) {
+              matchBadge.style.display = 'none';
+              return;
+            }
+            if (val === meta.sha256.toLowerCase()) {
+              matchBadge.style.display = 'inline-block';
+              matchBadge.style.background = 'color-mix(in srgb, var(--success, #22c55e) 15%, transparent)';
+              matchBadge.style.color = 'var(--success, #22c55e)';
+              matchBadge.style.border = '1px solid var(--success, #22c55e)';
+              matchBadge.textContent = '✓ MATCH';
+            } else {
+              matchBadge.style.display = 'inline-block';
+              matchBadge.style.background = 'color-mix(in srgb, var(--danger, #ef4444) 15%, transparent)';
+              matchBadge.style.color = 'var(--danger, #ef4444)';
+              matchBadge.style.border = '1px solid var(--danger, #ef4444)';
+              matchBadge.textContent = '✕ MISMATCH';
+            }
+          });
+        }
+      }
     }
 
     if (meta.isFolder) {

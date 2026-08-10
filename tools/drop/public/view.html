@@ -42,6 +42,18 @@
         <ul id="warning-flag-list" style="margin:0 0 0 1.2rem; padding:0; color:var(--danger);"></ul>
       </div>
 
+      <!-- File SHA-256 Checksum & Integrity Verification Box -->
+      <div id="file-sha256-box" style="display:none; margin-top:1.25rem; padding:.85rem 1.1rem; border:1px solid var(--border); border-radius:10px; background:var(--bg); font-family:'IBM Plex Mono',monospace; font-size:.82rem;">
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:.5rem; flex-wrap:wrap; margin-bottom:.5rem;">
+          <span style="color:var(--accent); font-weight:600;">$ sha256: <span id="file-sha256-hash" style="color:var(--text); word-break:break-all;">—</span></span>
+          <button class="btn" id="copy-sha256-btn" type="button" style="padding:.2rem .5rem; font-size:.75rem;">Copy SHA-256</button>
+        </div>
+        <div style="display:flex; gap:.5rem; align-items:center; margin-top:.5rem;">
+          <input type="text" id="expected-sha256-input" placeholder="Paste expected SHA-256 to verify integrity…" style="flex:1; background:var(--surface); border:1px solid var(--border); border-radius:6px; padding:.35rem .6rem; font-family:'IBM Plex Mono',monospace; font-size:.78rem; color:var(--text);">
+          <span id="sha256-match-badge" style="display:none; padding:.2rem .5rem; border-radius:4px; font-weight:600; font-size:.75rem;"></span>
+        </div>
+      </div>
+
       <div class="media-preview" id="media-preview"></div>
       <div id="folder-file-list" style="display:none; margin-top:1.25rem; text-align:left; border-top:1px solid var(--border); padding-top:1rem;"></div>
       <div class="actions">

@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="oled-black">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pokedb Pastebin — paste.pokedb.site</title>
+<meta name="description" content="High-speed code & text pastebin. Supports syntax highlighting, raw plain-text output, burn-on-read pastes, and password protection.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/shared/theme.css">
+<script src="/shared/theme-switcher.js"></script>
+<script src="/shared/utils.js"></script>
+<script src="/shared/site.js"></script>
+
+<style>
+.paste-card {
+  max-width: 920px;
+  margin: clamp(2rem, 5vw, 4rem) auto;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: clamp(1.25rem, 4vw, 2.25rem);
+  box-shadow: var(--shadow);
+}
+.paste-textarea {
+  width: 100%;
+  min-height: 320px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1rem;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: .88rem;
+  color: var(--text);
+  margin: 1.25rem 0;
+  resize: vertical;
+  line-height: 1.5;
+}
+.options-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  font-family: 'IBM Plex Mono', monospace;
+}
+.opt-box {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: .75rem 1rem;
+}
+.opt-label {
+  font-size: .75rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  margin-bottom: .4rem;
+}
+.opt-select, .opt-input {
+  width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: .45rem .65rem;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: .85rem;
+  color: var(--text);
+}
+</style>
+</head>
+<body>
+  <header class="site-nav">
+    <a class="logo" href="https://pokedb.site/" data-nav="main">root<span>@</span>pokedb</a>
+    <nav class="nav-links">
+      <a class="nav-link" href="https://paste.pokedb.site/">Pastebin</a>
+      <a class="nav-link" href="https://drop.pokedb.site/">Drop</a>
+      <a class="nav-link" href="https://tools.pokedb.site/">Tools hub</a>
+    </nav>
+    <div class="theme-switcher">
+      <span class="theme-swatch" id="theme-swatch"></span>
+      <select id="theme-select" aria-label="Choose a theme">
+        <option value="oled-black">OLED — Pitch Indigo</option>
+        <option value="matrix">Matrix — Phosphor Green</option>
+        <option value="cyberpunk">Cyberpunk — Neon Cyan</option>
+        <option value="paper">Paper — Editorial Light</option>
+      </select>
+    </div>
+  </header>
+
+  <main class="paste-card">
+    <span class="eyebrow">$ paste --new</span>
+    <h1 style="font-size:clamp(1.2rem, 3.5vw, 1.8rem); margin-top:.3rem;">Pokedb Pastebin</h1>
+    <p style="color:var(--muted); font-size:.9rem; margin-top:.4rem;">Fast, secure, zero-logging code & text sharing. Supports raw view, burn-on-read, and password protection.</p>
+
+    <form id="paste-form">
+      <textarea class="paste-textarea" id="paste-content" placeholder="Paste your text or code here…" required></textarea>
+
+      <div class="options-grid">
+        <div class="opt-box">
+          <div class="opt-label">Paste Title</div>
+          <input type="text" class="opt-input" id="paste-title" placeholder="Untitled Paste">
+        </div>
+
+        <div class="opt-box">
+          <div class="opt-label">Syntax Highlighting</div>
+          <select class="opt-select" id="paste-language">
+            <option value="plaintext">Plain Text</option>
+            <option value="javascript">JavaScript / TypeScript</option>
+            <option value="python">Python</option>
+            <option value="html">HTML / CSS</option>
+            <option value="json">JSON</option>
+            <option value="sql">SQL</option>
+            <option value="rust">Rust</option>
+            <option value="go">Go</option>
+            <option value="bash">Shell / Bash</option>
+            <option value="markdown">Markdown</option>
+          </select>
+        </div>
+
+        <div class="opt-box">
+          <div class="opt-label">Expiration</div>
+          <select class="opt-select" id="paste-expiry">
+            <option value="30" selected>30 Days [Default]</option>
+            <option value="1">24 Hours</option>
+            <option value="7">7 Days</option>
+            <option value="365">1 Year</option>
+          </select>
+        </div>
+
+        <div class="opt-box">
+          <div class="opt-label">Privacy & Burn</div>
+          <label style="display:flex; align-items:center; gap:.5rem; cursor:pointer; margin-top:.3rem; font-size:.85rem;">
+            <input type="checkbox" id="paste-burn"> Burn on Read
+          </label>
+        </div>
+
+        <div class="opt-box" style="grid-column: 1 / -1;">
+          <div class="opt-label">Optional Password Protection</div>
+          <input type="password" class="opt-input" id="paste-password" placeholder="Leave empty for public paste">
+        </div>
+      </div>
+
+      <button class="btn btn-solid" type="submit" id="create-btn" style="width:100%; padding:.75rem;">Create Paste</button>
+    </form>
+  </main>
+
+  <script>
+  document.getElementById('paste-form').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    var btn = document.getElementById('create-btn');
+    var content = document.getElementById('paste-content').value;
+    if (!content.trim()) return;
+
+    btn.disabled = true;
+    btn.textContent = 'Creating Paste…';
+
+    try {
+      var res = await fetch('/api/paste/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          content: content,
+          title: document.getElementById('paste-title').value.trim(),
+          language: document.getElementById('paste-language').value,
+          expiresInDays: document.getElementById('paste-expiry').value,
+          burnOnRead: document.getElementById('paste-burn').checked,
+          password: document.getElementById('paste-password').value
+        })
+      });
+      var data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || 'Failed to create paste.');
+
+      window.location.href = data.url;
+    } catch (err) {
+      alert(err.message);
+      btn.disabled = false;
+      btn.textContent = 'Create Paste';
+    }
+  });
+  </script>
+</body>
+</html>

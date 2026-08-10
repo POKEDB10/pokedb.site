@@ -400,6 +400,85 @@ describe('URL Shortener API Suite', () => {
     expect(statusRes.body.isComplete).toBe(true);
   });
 
+  test('13c. Header Inspector SSRF defense blocks metadata, loopback, and userinfo @ bypasses', async () => {
+    const userinfoRes = await request(app)
+      .post('/api/tools/inspect-headers')
+      .send({ url: 'http://safe-domain.com@169.254.169.254/latest/meta-data/' });
+    expect(userinfoRes.status).toBe(400);
+    expect(userinfoRes.body.error).toMatch(/restricted|private/i);
+
+    const loopbackRes = await request(app)
+      .post('/api/tools/inspect-headers')
+      .send({ url: 'http://127.0.0.1:8080/admin' });
+    expect(loopbackRes.status).toBe(400);
+    expect(loopbackRes.body.error).toMatch(/restricted|private/i);
+  });
+
+  test('13d. Header Inspector unwraps IPv4-mapped IPv6 addresses to enforce IPv4 range blocklist', async () => {
+    const res = await request(app)
+      .post('/api/tools/inspect-headers')
+      .send({ url: 'http://[::ffff:10.0.0.1]/status' });
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/restricted|private/i);
+  });
+
+  test('13e. Pastebin raw endpoint returns plain text with X-Content-Type-Options: nosniff header', async () => {
+    const createRes = await request(app)
+      .post('/api/paste/create')
+      .send({
+        content: 'console.log("hello world");',
+        title: 'Test Paste',
+        language: 'javascript'
+      });
+    expect(createRes.status).toBe(200);
+    expect(createRes.body.code).toBeDefined();
+
+    const rawRes = await request(app).get(`/raw/${createRes.body.code}`).set('Host', 'paste.pokedb.site');
+    expect(rawRes.status).toBe(200);
+    expect(rawRes.headers['content-type']).toMatch(/text\/plain/);
+    expect(rawRes.headers['x-content-type-options']).toBe('nosniff');
+    expect(rawRes.text).toBe('console.log("hello world");');
+  });
+
+  test('13f. Password-protected burn-on-read paste leaves paste intact on wrong password and burns on correct password', async () => {
+    const createRes = await request(app)
+      .post('/api/paste/create')
+      .send({
+        content: 'Top secret content',
+        password: 'securePassword123',
+        burnOnRead: true
+      });
+    const code = createRes.body.code;
+
+    // Attempt 1: Wrong password -> 401 Unauthorized, paste MUST remain intact
+    const wrongAuthRes = await request(app)
+      .post(`/api/paste/view/${code}`)
+      .send({ password: 'wrongPassword' });
+    expect(wrongAuthRes.status).toBe(401);
+
+    // Attempt 2: Correct password -> 200 OK, returns content and burns paste
+    const correctAuthRes = await request(app)
+      .post(`/api/paste/view/${code}`)
+      .send({ password: 'securePassword123' });
+    expect(correctAuthRes.status).toBe(200);
+    expect(correctAuthRes.body.paste.content).toBe('Top secret content');
+
+    // Attempt 3: Subsequent request -> 404 Not Found (paste was burned)
+    const subsequentRes = await request(app)
+      .post(`/api/paste/view/${code}`)
+      .send({ password: 'securePassword123' });
+    expect(subsequentRes.status).toBe(404);
+  });
+
+  test('13g. Direct upload computes SHA-256 stream digest and attaches to drop record', async () => {
+    const uploadRes = await request(app)
+      .post('/api/drop/upload')
+      .attach('file', Buffer.from('Hello Pokedb Hash Studio'), 'test-hash.txt');
+    expect(uploadRes.status).toBe(200);
+    expect(uploadRes.body.file.sha256).toBeDefined();
+    expect(uploadRes.body.file.sha256).toHaveLength(64);
+  });
+
   test('14. Enforce the shared API rate limit', async () => {
     const responses = await Promise.all(Array.from({ length: 130 }, () => request(app).get('/api/health/ping')));
     expect(responses.some((response) => response.status === 429)).toBe(true);

@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="oled-black">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HTTP Header & Security Inspector — pokedb.site</title>
+<meta name="description" content="Inspect HTTP response headers, evaluate security policy enforcement (HSTS, CSP, CORS, X-Frame-Options), and detect infrastructure exposure.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/shared/theme.css">
+<script src="/shared/theme-switcher.js"></script>
+<script src="/shared/utils.js"></script>
+<script src="/shared/site.js"></script>
+
+<style>
+.tool-card {
+  max-width: 860px;
+  margin: clamp(2rem, 5vw, 4rem) auto;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: clamp(1.25rem, 4vw, 2.25rem);
+  box-shadow: var(--shadow);
+}
+.url-form {
+  display: flex;
+  gap: .65rem;
+  margin: 1.5rem 0;
+  flex-wrap: wrap;
+}
+.url-input {
+  flex: 1 1 300px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: .75rem 1rem;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: .9rem;
+  color: var(--text);
+}
+.result-card {
+  display: none;
+  margin-top: 2rem;
+  border-top: 1px solid var(--border);
+  padding-top: 1.5rem;
+}
+.score-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: .75rem;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 1.5rem;
+  font-weight: 600;
+  padding: .5rem 1.25rem;
+  border-radius: 10px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+}
+.checks-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: .75rem;
+  margin: 1.5rem 0;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: .82rem;
+}
+.check-item {
+  padding: .65rem .85rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.check-pass { color: var(--success, #22c55e); border-color: color-mix(in srgb, var(--success, #22c55e) 40%, transparent); }
+.check-fail { color: var(--danger, #ef4444); border-color: color-mix(in srgb, var(--danger, #ef4444) 40%, transparent); }
+.header-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: .8rem;
+}
+.header-table th, .header-table td {
+  padding: .6rem .8rem;
+  border: 1px solid var(--border);
+  text-align: left;
+  word-break: break-all;
+}
+.header-table th { background: var(--bg); color: var(--accent); }
+</style>
+</head>
+<body>
+  <header class="site-nav">
+    <a class="logo" href="https://pokedb.site/" data-nav="main">root<span>@</span>pokedb</a>
+    <nav class="nav-links">
+      <a class="nav-link" href="https://headers.pokedb.site/">Header Inspector</a>
+      <a class="nav-link" href="https://hash.pokedb.site/">Hash Studio</a>
+      <a class="nav-link" href="https://paste.pokedb.site/">Pastebin</a>
+      <a class="nav-link" href="https://drop.pokedb.site/">Drop</a>
+    </nav>
+    <div class="theme-switcher">
+      <span class="theme-swatch" id="theme-swatch"></span>
+      <select id="theme-select" aria-label="Choose a theme">
+        <option value="oled-black">OLED — Pitch Indigo</option>
+        <option value="matrix">Matrix — Phosphor Green</option>
+        <option value="cyberpunk">Cyberpunk — Neon Cyan</option>
+        <option value="paper">Paper — Editorial Light</option>
+      </select>
+    </div>
+  </header>
+
+  <main class="tool-card">
+    <span class="eyebrow">$ security --inspect-headers</span>
+    <h1 style="font-size:clamp(1.2rem, 3.5vw, 1.8rem); margin-top:.3rem;">HTTP Header & Security Inspector</h1>
+    <p style="color:var(--muted); font-size:.9rem; margin-top:.4rem;">Inspect HTTP response headers, evaluate security policy enforcement, and audit headers for infrastructure disclosure risks.</p>
+
+    <form class="url-form" id="inspect-form">
+      <input type="url" class="url-input" id="target-url" placeholder="https://example.com" required>
+      <button class="btn btn-solid" type="submit" id="inspect-btn">Inspect Headers</button>
+    </form>
+
+    <div class="result-card" id="result-card">
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem;">
+        <div>
+          <span class="eyebrow" id="res-status-code">HTTP 200 OK</span>
+          <div style="font-family:'IBM Plex Mono',monospace; font-size:.85rem; color:var(--muted); margin-top:.2rem;" id="res-target-url">https://example.com</div>
+        </div>
+        <div class="score-badge" id="score-badge">
+          Grade: <span id="res-grade" style="color:var(--accent);">A+</span> (<span id="res-score">100</span>/100)
+        </div>
+      </div>
+
+      <div class="checks-grid" id="checks-grid"></div>
+
+      <h3 style="font-family:'IBM Plex Mono',monospace; font-size:.95rem; color:var(--accent); margin-top:1.5rem;">$ cat /etc/headers.json</h3>
+      <table class="header-table">
+        <thead>
+          <tr>
+            <th style="width:30%;">Header Key</th>
+            <th>Header Value</th>
+          </tr>
+        </thead>
+        <tbody id="header-rows"></tbody>
+      </table>
+    </div>
+  </main>
+
+  <script class="tool-script">
+  document.getElementById('inspect-form').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    var btn = document.getElementById('inspect-btn');
+    var url = document.getElementById('target-url').value.trim();
+    if (!url) return;
+
+    btn.disabled = true;
+    btn.textContent = 'Inspecting…';
+
+    try {
+      var res = await fetch('/api/tools/inspect-headers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: url })
+      });
+      var data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || 'Header inspection failed.');
+
+      document.getElementById('result-card').style.display = 'block';
+      document.getElementById('res-status-code').textContent = 'HTTP ' + data.statusCode + ' ' + (data.statusMessage || '');
+      document.getElementById('res-target-url').textContent = data.url + ' (' + data.hopCount + ' redirect hops)';
+      document.getElementById('res-grade').textContent = data.grade;
+      document.getElementById('res-score').textContent = data.securityScore;
+
+      var checksGrid = document.getElementById('checks-grid');
+      checksGrid.replaceChildren();
+
+      var checkLabels = {
+        hsts: 'Strict-Transport-Security (HSTS)',
+        csp: 'Content-Security-Policy (CSP)',
+        xfo: 'X-Frame-Options (Clickjacking)',
+        xcto: 'X-Content-Type-Options (MIME)',
+        referrerPolicy: 'Referrer-Policy',
+        permissionsPolicy: 'Permissions-Policy',
+        coop: 'Cross-Origin-Opener-Policy',
+        coep: 'Cross-Origin-Embedder-Policy',
+        serverExposed: 'Server Software Disclosed'
+      };
+
+      Object.keys(checkLabels).forEach(function (key) {
+        var isPass = key === 'serverExposed' ? !data.checks[key] : Boolean(data.checks[key]);
+        var div = document.createElement('div');
+        div.className = 'check-item ' + (isPass ? 'check-pass' : 'check-fail');
+        div.innerHTML = '<span>' + checkLabels[key] + '</span> <strong>' + (isPass ? '✓ PASS' : '✕ MISSING') + '</strong>';
+        checksGrid.appendChild(div);
+      });
+
+      var tbody = document.getElementById('header-rows');
+      tbody.replaceChildren();
+      Object.keys(data.headers).forEach(function (k) {
+        var tr = document.createElement('tr');
+        var tdK = document.createElement('td'); tdK.style.fontWeight = '600'; tdK.textContent = k;
+        var tdV = document.createElement('td'); tdV.textContent = data.headers[k];
+        tr.append(tdK, tdV);
+        tbody.appendChild(tr);
+      });
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Inspect Headers';
+    }
+  });
+  </script>
+</body>
+</html>

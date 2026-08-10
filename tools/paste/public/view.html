@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="oled-black">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>View Paste — paste.pokedb.site</title>
+<meta name="description" content="View paste content on Pokedb Pastebin with syntax highlighting, raw download, and QR code sharing.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/shared/theme.css">
+<script src="/shared/theme-switcher.js"></script>
+<script src="/shared/utils.js"></script>
+<script src="/shared/site.js"></script>
+<script src="/shared/qrcode.js"></script>
+
+<style>
+.paste-view-card {
+  max-width: 920px;
+  margin: clamp(2rem, 5vw, 4rem) auto;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: clamp(1.25rem, 4vw, 2.25rem);
+  box-shadow: var(--shadow);
+}
+.paste-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+  padding-bottom: 1.25rem;
+  border-bottom: 1px solid var(--border);
+}
+.paste-code-box {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1.25rem;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: .88rem;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-all;
+  overflow-x: auto;
+  margin: 1.5rem 0;
+  color: var(--text);
+}
+.actions-row {
+  display: flex;
+  gap: .6rem;
+  flex-wrap: wrap;
+}
+.modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.75);
+  backdrop-filter: blur(4px);
+  z-index: 1000;
+  place-items: center;
+}
+.modal-box {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.75rem;
+  max-width: 420px;
+  width: 90%;
+  text-align: center;
+  box-shadow: var(--shadow);
+}
+</style>
+</head>
+<body>
+  <header class="site-nav">
+    <a class="logo" href="https://pokedb.site/" data-nav="main">root<span>@</span>pokedb</a>
+    <nav class="nav-links">
+      <a class="nav-link" href="https://paste.pokedb.site/">Pastebin</a>
+      <a class="nav-link" href="https://drop.pokedb.site/">Drop</a>
+      <a class="nav-link" href="https://tools.pokedb.site/">Tools hub</a>
+    </nav>
+    <div class="theme-switcher">
+      <span class="theme-swatch" id="theme-swatch"></span>
+      <select id="theme-select" aria-label="Choose a theme">
+        <option value="oled-black">OLED — Pitch Indigo</option>
+        <option value="matrix">Matrix — Phosphor Green</option>
+        <option value="cyberpunk">Cyberpunk — Neon Cyan</option>
+        <option value="paper">Paper — Editorial Light</option>
+      </select>
+    </div>
+  </header>
+
+  <main class="paste-view-card">
+    <div class="paste-header">
+      <div>
+        <h1 style="font-size:clamp(1.2rem, 3.5vw, 1.6rem); margin:0;" id="paste-title">Loading paste…</h1>
+        <div style="font-family:'IBM Plex Mono',monospace; font-size:.8rem; color:var(--muted); margin-top:.3rem;">
+          <span id="paste-lang">plaintext</span> · <span id="paste-size">— bytes</span> · <span id="paste-views">0 views</span> · <span id="paste-burn-status"></span>
+        </div>
+      </div>
+      <div class="actions-row">
+        <a class="btn btn-solid" id="raw-btn" target="_blank" rel="noopener">Raw Text</a>
+        <button class="btn" id="copy-btn">Copy Text</button>
+        <button class="btn" id="qr-btn">Show QR</button>
+      </div>
+    </div>
+
+    <!-- Password Modal for Protected Pastes -->
+    <div id="pass-auth-box" style="display:none; margin:2rem 0; padding:1.5rem; background:var(--bg); border:1px solid var(--border); border-radius:10px; text-align:center;">
+      <h3 style="font-family:'IBM Plex Mono',monospace; margin-bottom:.5rem;">🔒 Password Protected Paste</h3>
+      <p style="color:var(--muted); font-size:.88rem; margin-bottom:1rem;">Enter the password set by the author to unlock this paste.</p>
+      <form id="pass-form" style="display:inline-flex; gap:.5rem; max-width:400px; width:100%;">
+        <input type="password" id="pass-input" placeholder="Enter password…" style="flex:1; background:var(--surface); border:1px solid var(--border); border-radius:6px; padding:.5rem .75rem; font-family:'IBM Plex Mono',monospace; font-size:.85rem; color:var(--text);" required>
+        <button class="btn btn-solid" type="submit">Unlock</button>
+      </form>
+    </div>
+
+    <pre class="paste-code-box" id="paste-body-box" style="display:none;"></pre>
+  </main>
+
+  <!-- QR Modal -->
+  <div class="modal-overlay" id="qr-modal">
+    <div class="modal-box">
+      <h3 style="font-family:'IBM Plex Mono',monospace; margin-bottom:1rem;">QR Code</h3>
+      <div id="qr-svg-wrap" style="width:200px; height:200px; margin:0 auto 1rem auto; background:#fff; padding:10px; border-radius:8px;"></div>
+      <button class="btn btn-solid" id="close-qr-btn">Close</button>
+    </div>
+  </div>
+
+  <script src="/view.js"></script>
+</body>
+</html>
