@@ -1754,8 +1754,14 @@ app.get(['/api/drop/file/:filename', '/api/drop/stream/:filename'], async (req, 
 
     // Handle HTTP Redirects from Rootz API
     if ([301, 302, 303, 307, 308].includes(rootzRes.status)) {
-      const loc = rootzRes.headers.get('location');
+      let loc = rootzRes.headers.get('location');
       if (loc) {
+        if (loc.startsWith('/')) {
+          loc = 'https://rootz.so' + loc;
+        }
+        if (loc.includes('/login')) {
+          loc = `https://rootz.so/d/${encodeURIComponent(fileCode)}`;
+        }
         return res.redirect(302, loc);
       }
     }

@@ -18,11 +18,23 @@
     var kind = isMedia(name, type);
     if (!kind) return;
     var wrapper = byId('media-preview');
+    wrapper.replaceChildren();
     var media = document.createElement(kind === 'image' ? 'img' : kind === 'video' ? 'video' : 'audio');
     media.src = streamUrl;
-    media.preload = 'metadata';
-    if (kind === 'image') media.alt = name;
-    if (kind !== 'image') media.controls = true;
+    if (kind === 'image') {
+      media.alt = name;
+      media.loading = 'eager';
+      media.decoding = 'async';
+    }
+    if (kind === 'video') {
+      media.controls = true;
+      media.preload = 'metadata';
+      media.playsInline = true;
+    }
+    if (kind === 'audio') {
+      media.controls = true;
+      media.preload = 'metadata';
+    }
     wrapper.appendChild(media);
     wrapper.style.display = 'block';
   }
@@ -36,6 +48,9 @@
     byId('file-size').textContent = 'Ready';
     byId('file-downloads').textContent = 'Direct Link';
     byId('file-expiry').textContent = 'Checking expiry…';
+
+    // Fast media preview triggering immediately if file extension indicates image/video/audio
+    renderPreview(id || '', '');
 
     var meta = { name: id, size: 0, mimeType: '', downloads: 0, expiresAt: null, isFolder: false, files: [] };
     try {
@@ -164,7 +179,24 @@
   }
 
   byId('copy-btn').addEventListener('click', function () { navigator.clipboard.writeText(window.location.href); this.textContent = 'Copied'; var button = this; setTimeout(function () { button.textContent = 'Copy link'; }, 1500); });
-  byId('qr-btn').addEventListener('click', async function () { var box = byId('qr-box'); box.replaceChildren(); try { var response = await fetch('/api/qr?format=png&text=' + encodeURIComponent(window.location.href)); if (!response.ok) throw new Error(); var image = document.createElement('img'); image.width = 220; image.height = 220; image.alt = 'QR code for this file'; image.src = URL.createObjectURL(await response.blob()); box.appendChild(image); byId('qr-modal').style.display = 'grid'; } catch (error) { box.textContent = 'QR generation failed. Please retry.'; byId('qr-modal').style.display = 'grid'; } });
+  byId('qr-btn').addEventListener('click', async function () {
+    var box = byId('qr-box');
+    box.replaceChildren();
+    try {
+      var response = await fetch('/api/qr?format=svg&text=' + encodeURIComponent(window.location.href));
+      if (!response.ok) throw new Error();
+      var svgText = await response.text();
+      box.innerHTML = svgText;
+      var svgEl = box.querySelector('svg');
+      if (svgEl) {
+        svgEl.setAttribute('width', '220');
+        svgEl.setAttribute('height', '220');
+        svgEl.style.display = 'block';
+      }
+      byId('qr-modal').style.display = 'grid';
+    } catch (error) {
+      box.textContent = 'QR generation failed. Please retry.';
+      byId('qr-modal').style.display = 'grid';
   byId('close-qr-btn').addEventListener('click', function () { byId('qr-modal').style.display = 'none'; });
   load();
 }());
