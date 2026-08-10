@@ -516,11 +516,11 @@
       activeUpload = null;
       if (err.name === 'AbortError') {
         item.status = paused ? 'paused' : 'cancelled';
+        renderQueue();
       } else {
-        item.status = 'failed';
-        showNotice('Upload failed: ' + (err.message || 'Unknown error'));
+        console.warn('Multipart presigned upload failed, falling back to direct upload:', err.message || err);
+        uploadItemDirect(item);
       }
-      renderQueue();
     }
   }
 
