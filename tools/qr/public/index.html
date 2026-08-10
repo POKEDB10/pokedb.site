@@ -15,13 +15,15 @@
 
 <style>
 .studio-wrapper {
-  max-width: 800px;
+  max-width: 1120px;
   margin: 0 auto;
-  transition: max-width 0.45s cubic-bezier(0.16, 1, 0.3, 1);
   width: 100%;
 }
+.studio-wrapper:not(.is-generated) #settings-col {
+  max-width: 800px;
+  margin: 0 auto;
+}
 .studio-wrapper.is-generated {
-  max-width: 1120px;
   display: grid;
   grid-template-columns: minmax(0, 1.25fr) minmax(300px, .75fr);
   gap: 1.75rem;

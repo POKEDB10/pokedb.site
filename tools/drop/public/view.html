@@ -35,10 +35,10 @@
       </div>
 
       <!-- Security Warning Box (Shown if file has threat flags or executable warnings) -->
-      <div id="security-warning-box" style="display:none; margin-top:1.25rem; padding:.9rem 1.1rem; border:1px solid rgba(255,85,85,0.4); border-radius:10px; background:rgba(255,85,85,0.08); font-family:'IBM Plex Mono',monospace; font-size:.84rem; color:#ff7777;">
-        <strong style="color:#ff5555; display:block; margin-bottom:.3rem; font-size:.9rem;">⚠️ Security Caution Telemetry</strong>
+      <div id="security-warning-box" style="display:none; margin-top:1.25rem; padding:.9rem 1.1rem; border:1px solid color-mix(in srgb,var(--danger) 40%,transparent); border-radius:10px; background:color-mix(in srgb,var(--danger) 8%,transparent); font-family:'IBM Plex Mono',monospace; font-size:.84rem; color:var(--danger);">
+        <strong style="color:var(--danger); display:block; margin-bottom:.3rem; font-size:.9rem;">⚠️ Security Caution Telemetry</strong>
         <div style="color:var(--text); margin-bottom:.4rem;">Automated security scanning detected potential risk flags on this file:</div>
-        <ul id="warning-flag-list" style="margin:0 0 0 1.2rem; padding:0; color:#ff7777;"></ul>
+        <ul id="warning-flag-list" style="margin:0 0 0 1.2rem; padding:0; color:var(--danger);"></ul>
       </div>
 
       <div class="media-preview" id="media-preview"></div>
@@ -53,13 +53,13 @@
 
   <!-- Downloader Caution Modal -->
   <div class="modal" id="download-caution-modal" role="dialog" aria-modal="true" aria-label="Security Caution Confirmation">
-    <div class="modal-box" style="width:min(100%, 480px); text-align:left; border-color:rgba(255,85,85,0.5);">
-      <span class="eyebrow" style="color:#ff5555; font-weight:600;">⚠️ Security Caution: Downloader Choice</span>
+    <div class="modal-box" style="width:min(100%, 480px); text-align:left; border-color:color-mix(in srgb,var(--danger) 50%,transparent);">
+      <span class="eyebrow" style="color:var(--danger); font-weight:600;">⚠️ Security Caution: Downloader Choice</span>
       <h3 style="font-size:1.1rem; margin:.5rem 0; color:var(--text);">Confirm Download of Flagged File</h3>
       <p style="font-size:.86rem; color:var(--text); line-height:1.4;">
         This file triggered automated threat telemetry or executable advisories:
       </p>
-      <div style="background:rgba(255,85,85,0.08); border:1px solid rgba(255,85,85,0.3); border-radius:8px; padding:.75rem; margin:.75rem 0; font-family:'IBM Plex Mono',monospace; font-size:.8rem; color:#ff7777;">
+      <div style="background:color-mix(in srgb,var(--danger) 8%,transparent); border:1px solid color-mix(in srgb,var(--danger) 30%,transparent); border-radius:8px; padding:.75rem; margin:.75rem 0; font-family:'IBM Plex Mono',monospace; font-size:.8rem; color:var(--danger);">
         <ul id="modal-caution-flag-list" style="margin:0 0 0 1.2rem; padding:0;"></ul>
       </div>
       <p style="font-size:.8rem; color:var(--muted); margin-bottom:1.25rem;">
@@ -67,7 +67,7 @@
       </p>
       <div style="display:flex; gap:.75rem; justify-content:flex-end; flex-wrap:wrap;">
         <button class="btn" id="cancel-download-btn" type="button">Cancel</button>
-        <a class="btn btn-solid" id="confirm-unsafe-download-btn" href="#" target="_blank" rel="noopener" style="background:#ff5555; color:#ffffff; border-color:#ff5555;">$ download --unsafe →</a>
+        <a class="btn btn-solid" id="confirm-unsafe-download-btn" href="#" target="_blank" rel="noopener" style="background:var(--danger); color:var(--accent-text); border-color:var(--danger);">$ download --unsafe →</a>
       </div>
     </div>
   </div>

@@ -61,10 +61,10 @@
     .modal-card {
       width: min(100%, 540px);
       padding: 1.85rem;
-      border: 1px solid rgba(255, 85, 85, 0.45);
+      border: 1px solid color-mix(in srgb, var(--danger) 45%, transparent);
       border-radius: 14px;
       background: var(--surface);
-      box-shadow: 0 16px 48px rgba(255, 85, 85, 0.2);
+      box-shadow: 0 16px 48px color-mix(in srgb, var(--danger) 20%, transparent);
       text-align: left;
       font-family: 'IBM Plex Sans', sans-serif;
     }
@@ -73,14 +73,14 @@
       align-items: center;
       gap: .75rem;
       margin-bottom: 1rem;
-      color: #ff5555;
+      color: var(--danger);
       font-family: 'IBM Plex Mono', monospace;
       font-size: 1.15rem;
       font-weight: 600;
     }
     .flag-box {
-      background: rgba(255, 85, 85, 0.08);
-      border: 1px solid rgba(255, 85, 85, 0.3);
+      background: color-mix(in srgb, var(--danger) 8%, transparent);
+      border: 1px solid color-mix(in srgb, var(--danger) 30%, transparent);
       border-radius: 8px;
       padding: .85rem 1rem;
       margin: 1rem 0;
@@ -94,7 +94,7 @@
     }
     .flag-box li {
       margin-bottom: .3rem;
-      color: #ff7777;
+      color: var(--danger);
     }
     .modal-actions {
       display: flex;
@@ -125,7 +125,7 @@
       {{{flagListHtml}}}
 
       <div style="margin-top: 1.25rem;">
-        <span class="prompt">$</span> <span class="out" id="countdown-status-line">Auto-redirecting in <strong id="countdown-num" style="color:var(--accent); font-size:1.3rem;">10</strong> seconds...</span>
+        <span class="prompt">$</span> <span class="out" id="countdown-status-line">Auto-redirecting in <strong id="countdown-num" style="color:var(--accent); font-size:1.3rem;">10</strong> seconds…</span>
         <div class="progress-bar-wrap" id="progress-bar-wrap"><div class="progress-bar-fill" id="progress-bar-fill"></div></div>
       </div>
     </div>
@@ -155,7 +155,7 @@
     </p>
     <div class="modal-actions">
       <button class="btn" id="cancel-modal-btn" type="button">Cancel & Return to Safety</button>
-      <a class="btn" id="unsafe-proceed-btn" href="{{safeUrl}}" style="background:#ff5555; color:#ffffff; border-color:#ff5555;">$ proceed --unsafe →</a>
+      <a class="btn" id="unsafe-proceed-btn" href="{{safeUrl}}" style="background:var(--danger); color:var(--accent-text); border-color:var(--danger);">$ proceed --unsafe →</a>
     </div>
   </div>
 </div>
@@ -179,7 +179,7 @@
 
   if (isSuspicious) {
     if (statusLineEl) {
-      statusLineEl.innerHTML = '<span style="color:#ff5555; font-weight:600;">⚠️ Auto-redirect PAUSED due to security flag. Manual confirmation required below.</span>';
+      statusLineEl.innerHTML = '<span style="color:var(--danger); font-weight:600;">⚠️ Auto-redirect PAUSED due to security flag. Manual confirmation required below.</span>';
     }
     if (progressBarWrap) {
       progressBarWrap.style.display = 'none';

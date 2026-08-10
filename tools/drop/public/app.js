@@ -113,6 +113,7 @@
       removeBtn.type = 'button';
       removeBtn.className = 'remove-queue-btn';
       removeBtn.title = 'Remove item from queue';
+      removeBtn.setAttribute('aria-label', 'Remove ' + (item.file.name || 'item') + ' from queue');
       removeBtn.textContent = '✕';
       removeBtn.addEventListener('click', function (e) {
         e.stopPropagation();
