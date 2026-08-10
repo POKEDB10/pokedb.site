@@ -48,9 +48,11 @@
       <div class="term-titlebar mono">~/tools/directory.txt</div>
       <div class="term-body">
         <div><span class="prompt">$</span> <span class="out">ls -la ~/tools</span></div>
+        <div class="out">drwxr-xr-x  headers/   [HTTP Header & Security Inspector] -> LIVE</div>
+        <div class="out">drwxr-xr-x  hash/      [Cryptographic Hash Studio]       -> LIVE</div>
+        <div class="out">drwxr-xr-x  pastebin/  [Pokedb Security Pastebin]        -> LIVE</div>
         <div class="out">drwxr-xr-x  tinyurl/   [TinyURL Shortener & Optional QR] -> LIVE</div>
         <div class="out">drwxr-xr-x  qr/        [Standalone QR Code Generator]    -> LIVE</div>
-        <div class="out">drwxr-xr-x  pastebin/  [Encrypted Code & Text Paste]     -> PART 2</div>
         <div class="out">drwxr-xr-x  drop/      [Fast File Drop & Remote Upload]  -> LIVE<span class="cursor"></span></div>
       </div>
     </div>
@@ -66,7 +68,49 @@
 
     <div class="tools-grid">
 
-      <!-- Tool 1: TinyURL Shortener -->
+      <!-- Tool 1: Header Inspector -->
+      <a class="tool-card" href="https://headers.pokedb.site/" data-nav="headers">
+        <div>
+          <div class="tool-header">
+            <span class="tool-title">Header Inspector</span>
+            <span class="status-pill">● LIVE</span>
+          </div>
+          <p class="tool-desc" style="margin-top: .75rem;">
+            SSRF-hardened HTTP response header inspector with security policy grading (HSTS, CSP, CORS, X-Frame-Options) and TLS SNI handshakes.
+          </p>
+        </div>
+        <div class="tool-footer">Launch Inspector →</div>
+      </a>
+
+      <!-- Tool 2: Hash Studio -->
+      <a class="tool-card" href="https://hash.pokedb.site/" data-nav="hash">
+        <div>
+          <div class="tool-header">
+            <span class="tool-title">Hash Studio</span>
+            <span class="status-pill">● LIVE</span>
+          </div>
+          <p class="tool-desc" style="margin-top: .75rem;">
+            Cryptographic hasher for SHA-256, SHA-512, SHA-1, and MD5 with 2MB streaming chunking and checksum integrity matching.
+          </p>
+        </div>
+        <div class="tool-footer">Launch Hash Studio →</div>
+      </a>
+
+      <!-- Tool 3: Pastebin -->
+      <a class="tool-card" href="https://paste.pokedb.site/" data-nav="paste">
+        <div>
+          <div class="tool-header">
+            <span class="tool-title">Pokedb Pastebin</span>
+            <span class="status-pill">● LIVE</span>
+          </div>
+          <p class="tool-desc" style="margin-top: .75rem;">
+            Fast code & text pastebin with syntax highlighting, raw plain-text view, nosniff headers, burn-on-read, and scrypt password protection.
+          </p>
+        </div>
+        <div class="tool-footer">Launch Pastebin →</div>
+      </a>
+
+      <!-- Tool 4: TinyURL Shortener -->
       <a class="tool-card" href="https://tinyurl.pokedb.site/" data-nav="tinyurl">
         <div>
           <div class="tool-header">
@@ -80,7 +124,7 @@
         <div class="tool-footer">Launch TinyURL →</div>
       </a>
 
-      <!-- Tool 2: QR Generator -->
+      <!-- Tool 5: QR Generator -->
       <a class="tool-card" href="https://qr.pokedb.site/" data-nav="qr">
         <div>
           <div class="tool-header">
@@ -94,7 +138,7 @@
         <div class="tool-footer">Launch QR Generator →</div>
       </a>
 
-      <!-- Tool 3: File Storage Drop (Rootz) -->
+      <!-- Tool 6: File Storage Drop (Rootz) -->
       <a class="tool-card" href="https://drop.pokedb.site/" data-nav="drop">
         <div>
           <div class="tool-header">
@@ -102,13 +146,13 @@
             <span class="status-pill">● LIVE</span>
           </div>
           <p class="tool-desc" style="margin-top: .75rem;">
-            Fast file drop & remote URL upload powered by Rootz API & local fallback. Progress bars & instant links.
+            Fast file drop & remote URL upload powered by Rootz API & local fallback. SHA-256 stream integrity, progress bars & instant links.
           </p>
         </div>
         <div class="tool-footer">Launch Drop →</div>
       </a>
 
-      <!-- Tool 4: System Health Dashboard -->
+      <!-- Tool 7: System Health Dashboard -->
       <a class="tool-card" href="https://health.pokedb.site/" data-nav="health">
         <div>
           <div class="tool-header">
@@ -121,20 +165,6 @@
         </div>
         <div class="tool-footer">Launch Health Dashboard →</div>
       </a>
-
-      <!-- Tool 4: Encrypted Pastebin -->
-      <div class="tool-card disabled">
-        <div>
-          <div class="tool-header">
-            <span class="tool-title">Pastebin</span>
-            <span class="status-pill upcoming">Part 2</span>
-          </div>
-          <p class="tool-desc" style="margin-top: .75rem;">
-            Zero-knowledge encrypted code snippet & text sharing with syntax highlighting and auto-expiring links.
-          </p>
-        </div>
-        <div class="tool-footer" style="color:var(--muted);">Coming Soon</div>
-      </div>
 
     </div>
   </section>
