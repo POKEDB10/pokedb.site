@@ -183,20 +183,23 @@
     var box = byId('qr-box');
     box.replaceChildren();
     try {
-      var response = await fetch('/api/qr?format=svg&text=' + encodeURIComponent(window.location.href));
+      var response = await fetch('/api/qr?format=json&text=' + encodeURIComponent(window.location.href));
       if (!response.ok) throw new Error();
-      var svgText = await response.text();
-      box.innerHTML = svgText;
-      var svgEl = box.querySelector('svg');
-      if (svgEl) {
-        svgEl.setAttribute('width', '220');
-        svgEl.setAttribute('height', '220');
-        svgEl.style.display = 'block';
-      }
+      var json = await response.json();
+      if (!json || !json.dataUrl) throw new Error();
+      var img = document.createElement('img');
+      img.width = 220;
+      img.height = 220;
+      img.alt = 'QR code for shared file link';
+      img.src = json.dataUrl;
+      img.style.display = 'block';
+      box.appendChild(img);
       byId('qr-modal').style.display = 'grid';
     } catch (error) {
       box.textContent = 'QR generation failed. Please retry.';
       byId('qr-modal').style.display = 'grid';
+    }
+  });
   byId('close-qr-btn').addEventListener('click', function () { byId('qr-modal').style.display = 'none'; });
   load();
 }());

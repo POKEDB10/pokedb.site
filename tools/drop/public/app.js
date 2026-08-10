@@ -2,7 +2,7 @@
   'use strict';
 
   // ─── Constants ────────────────────────────────────────────────────────────
-  var MULTIPART_THRESHOLD = 50 * 1024 * 1024; // 50 MB
+  var MULTIPART_THRESHOLD = 0; // Direct presigned upload to Rootz for 100% of files (uses Rootz bandwidth exclusively)
   var ONE_GB = 1073741824;
 
   // ─── State ────────────────────────────────────────────────────────────────
