@@ -1838,7 +1838,7 @@ async function analyzeUrlRisk(urlStr) {
 
   const lowerUrl = urlStr.toLowerCase();
 
-  // 1. Built-in Security Test Patterns (Firefox/Mozilla & Google test suites)
+  // 1. Built-in Threat Intelligence for Security Test Domains (Mozilla & Google)
   const knownTestThreats = [
     { pattern: 'itisatrap.org', name: 'Firefox Attack Test Site (Malware/Badware)' },
     { pattern: 'testsafebrowsing.appspot.com', name: 'Google Safe Browsing Test Site (Phishing/Malware)' },
@@ -1853,7 +1853,7 @@ async function analyzeUrlRisk(urlStr) {
     }
   }
 
-  // 2. Google Safe Browsing API (if API key is configured in environment)
+  // 2. Google Safe Browsing API (if GOOGLE_SAFE_BROWSING_KEY is set)
   if (process.env.GOOGLE_SAFE_BROWSING_KEY) {
     try {
       const controller = new AbortController();
@@ -1882,22 +1882,63 @@ async function analyzeUrlRisk(urlStr) {
         }
       }
     } catch (gsbErr) {
-      // Safe browsing API call failed or timed out — proceed cleanly
+      // API lookup failed or timed out — fallback to heuristics
     }
   }
 
-  // 3. Fallback Heuristic Risk Checks (raw IP address, suspicious file extensions)
+  // 3. URLScan.io API Threat Intelligence (if URLSCAN_API_KEY is set)
+  if (process.env.URLSCAN_API_KEY) {
+    try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 2500);
+      const urlscanRes = await fetch(`https://urlscan.io/api/v1/search/?q=page.url:"${encodeURIComponent(urlStr)}"`, {
+        headers: { 'API-Key': process.env.URLSCAN_API_KEY },
+        signal: controller.signal
+      });
+      clearTimeout(timer);
+      if (urlscanRes.ok) {
+        const data = await urlscanRes.json();
+        if (data.results && data.results.length > 0) {
+          const maliciousHits = data.results.filter(r => r.verdicts && r.verdicts.overall && r.verdicts.overall.malicious);
+          if (maliciousHits.length > 0) {
+            flags.push('Flagged by URLScan.io API: Known malicious scan verdict');
+            riskLevel = 'high';
+          }
+        }
+      }
+    } catch (urlscanErr) {
+      // API lookup failed or timed out — fallback to heuristics
+    }
+  }
+
+  // 4. Heuristic & Structural Threat Checks
   try {
     const parsed = new URL(urlStr);
-    const host = parsed.hostname;
+    const host = parsed.hostname.toLowerCase();
 
+    // High-risk top-level domains frequently abused for phishing
+    const highRiskTLDs = ['.zip', '.mov', '.kim', '.top', '.country', '.stream', '.download', '.su'];
+    if (highRiskTLDs.some(tld => host.endsWith(tld))) {
+      flags.push(`Heuristic Warning: Destination uses high-risk top-level domain (${host.slice(host.lastIndexOf('.'))})`);
+      if (riskLevel !== 'high') riskLevel = 'medium';
+    }
+
+    // Direct IPv4 address hostname
     if (/^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/.test(host)) {
       flags.push('Heuristic Warning: Target uses raw IP address instead of domain name');
       if (riskLevel !== 'high') riskLevel = 'medium';
     }
 
-    if (/\.(exe|scr|vbs|bat|cmd|msi|ps1|jar|pif)$/i.test(parsed.pathname)) {
+    // Executable binary file extensions
+    if (/\.(exe|scr|vbs|bat|cmd|msi|ps1|jar|pif|iso)$/i.test(parsed.pathname)) {
       flags.push('Heuristic Warning: Direct download link for executable binary');
+      if (riskLevel !== 'high') riskLevel = 'medium';
+    }
+
+    // Suspicious credential harvesting query parameters
+    const searchLower = parsed.search.toLowerCase();
+    if (searchLower.includes('password=') || searchLower.includes('account_verify=') || searchLower.includes('bank_auth=') || searchLower.includes('login_token=')) {
+      flags.push('Heuristic Warning: URL parameters contain potential credential-harvesting signatures');
       if (riskLevel !== 'high') riskLevel = 'medium';
     }
   } catch (e) {}
