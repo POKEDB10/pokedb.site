@@ -14,8 +14,36 @@
     return { accent: accent, surface: surface };
   }
 
+  var ALL_THEMES = [
+    { value: 'paper', label: 'Paper — Editorial Light' },
+    { value: 'matrix', label: 'Matrix — Phosphor Green' },
+    { value: 'cyberpunk', label: 'Cyberpunk — Neon Cyan' },
+    { value: 'synthwave', label: 'Synthwave — 80s Magenta' },
+    { value: 'nordic-ice', label: 'Nordic — Glacier Blue' },
+    { value: 'dracula-neon', label: 'Dracula — Electric Violet' },
+    { value: 'gruvbox-retro', label: 'Gruvbox — Warm Retro' },
+    { value: 'emerald-forest', label: 'Emerald — Deep Woods' },
+    { value: 'sunset-amber', label: 'Sunset — Rose Amber' },
+    { value: 'solarized-gold', label: 'Solarized — Solar Gold' },
+    { value: 'oled-black', label: 'OLED — Pitch Indigo' },
+    { value: 'tokyo-neon', label: 'Tokyo — Neon Coral' }
+  ];
+
+  function populateThemeOptions() {
+    var select = document.getElementById('theme-select');
+    if (!select) return;
+    if (select.options.length < ALL_THEMES.length) {
+      var current = select.value || savedTheme;
+      select.innerHTML = ALL_THEMES.map(function (t) {
+        return '<option value="' + t.value + '"' + (t.value === current ? ' selected' : '') + '>' + t.label + '</option>';
+      }).join('');
+      select.value = current;
+    }
+  }
+
   function applyTheme(theme, persist) {
     root.setAttribute('data-theme', theme);
+    populateThemeOptions();
     var select = document.getElementById('theme-select');
     var swatch = document.getElementById('theme-swatch');
     
@@ -87,6 +115,9 @@
     if (host.includes('tinyurl.') || path.includes('/tools/tinyurl')) activeKey = 'tinyurl';
     else if (host.includes('qr.') || path.includes('/tools/qr')) activeKey = 'qr';
     else if (host.includes('drop.') || path.includes('/tools/drop')) activeKey = 'drop';
+    else if (host.includes('paste.') || path.includes('/tools/paste')) activeKey = 'paste';
+    else if (host.includes('headers.') || path.includes('/tools/headers')) activeKey = 'headers';
+    else if (host.includes('hash.') || path.includes('/tools/hash')) activeKey = 'hash';
     else if (host.includes('health.') || path.includes('/tools/health')) activeKey = 'health';
     else if (host.includes('tools.') || path.startsWith('/tools')) activeKey = 'tools';
     else activeKey = 'main';
@@ -116,6 +147,9 @@
       '<a class="nav-link' + (activeKey === 'tinyurl' ? ' active' : '') + '" href="' + getNavUrl('tinyurl') + '" data-nav="tinyurl">TinyURL</a>' +
       '<a class="nav-link' + (activeKey === 'qr' ? ' active' : '') + '" href="' + getNavUrl('qr') + '" data-nav="qr">QR studio</a>' +
       '<a class="nav-link' + (activeKey === 'drop' ? ' active' : '') + '" href="' + getNavUrl('drop') + '" data-nav="drop">Drop</a>' +
+      '<a class="nav-link' + (activeKey === 'paste' ? ' active' : '') + '" href="' + getNavUrl('paste') + '" data-nav="paste">Pastebin</a>' +
+      '<a class="nav-link' + (activeKey === 'headers' ? ' active' : '') + '" href="' + getNavUrl('headers') + '" data-nav="headers">Headers</a>' +
+      '<a class="nav-link' + (activeKey === 'hash' ? ' active' : '') + '" href="' + getNavUrl('hash') + '" data-nav="hash">Hash</a>' +
       '<a class="nav-link' + (activeKey === 'health' ? ' active' : '') + '" href="' + getNavUrl('health') + '" data-nav="health">Health</a>';
   }
 
@@ -125,6 +159,7 @@
     navInitialized = true;
     renderSharedNav();
     resolveNavLinks();
+    populateThemeOptions();
   }
 
   if (document.readyState === 'interactive' || document.readyState === 'complete') {

@@ -1,6 +1,8 @@
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
+const http = require('http');
+const https = require('https');
 const cors = require('cors');
 const helmet = require('helmet');
 const crypto = require('crypto');
@@ -152,7 +154,10 @@ app.use(cors({
       return callback(null, true);
     }
     return callback(new Error('Origin is not allowed by CORS'));
-  }
+  },
+  maxAge: 86400,
+  preflightContinue: false,
+  optionsSuccessStatus: 204
 }));
 app.use((req, res, next) => {
   res.locals.cspNonce = crypto.randomBytes(16).toString('base64');
@@ -199,26 +204,46 @@ if (fs.existsSync(DATA_FILE)) {
   }
 }
 
-// Function to save memory store to data/store.json with serialized atomic async writes
+// Function to save memory store to data/store.json with serialized atomic async writes & trailing debounce
 const TMP_DATA_FILE = path.join(DATA_DIR, 'store.json.tmp');
 let writeQueue = Promise.resolve();
+let saveTimeout = null;
 
-async function savePersistentStore() {
+async function savePersistentStore(flushNow = false) {
   if (process.env.NODE_ENV === 'test') return;
-  writeQueue = writeQueue.then(async () => {
-    try {
-      const obj = {};
-      for (const [k, v] of inMemoryStore.entries()) {
-        obj[k] = v;
+
+  if (saveTimeout) {
+    clearTimeout(saveTimeout);
+    saveTimeout = null;
+  }
+
+  const performWrite = () => {
+    writeQueue = writeQueue.then(async () => {
+      try {
+        const obj = {};
+        for (const [k, v] of inMemoryStore.entries()) {
+          obj[k] = v;
+        }
+        const data = JSON.stringify(obj);
+        await fs.promises.writeFile(TMP_DATA_FILE, data, 'utf8');
+        await fs.promises.rename(TMP_DATA_FILE, DATA_FILE);
+      } catch (err) {
+        console.error('Error saving persistent store to disk:', err);
       }
-      const data = JSON.stringify(obj, null, 2);
-      await fs.promises.writeFile(TMP_DATA_FILE, data, 'utf8');
-      await fs.promises.rename(TMP_DATA_FILE, DATA_FILE);
-    } catch (err) {
-      console.error('Error saving persistent store to disk:', err);
-    }
+    });
+    return writeQueue;
+  };
+
+  if (flushNow) {
+    return performWrite();
+  }
+
+  return new Promise((resolve) => {
+    saveTimeout = setTimeout(() => {
+      saveTimeout = null;
+      performWrite().then(resolve);
+    }, 300);
   });
-  return writeQueue;
 }
 
 // Redis Client Setup (with file-backed persistent fallback)
@@ -362,7 +387,11 @@ if (process.env.NODE_ENV === 'test') {
   };
 
   if (REDIS_URL.startsWith('rediss://')) {
-    redisOptions.tls = { rejectUnauthorized: false };
+    const rejectUnauthorized = process.env.REDIS_REJECT_UNAUTHORIZED === 'false' ? false : true;
+    redisOptions.tls = {
+      rejectUnauthorized,
+      ca: process.env.REDIS_CA_CERT ? process.env.REDIS_CA_CERT : undefined
+    };
   }
 
   redis = new Redis(REDIS_URL, redisOptions);
@@ -549,8 +578,10 @@ function isValidTargetUrl(targetUrl, reqHost) {
 // ============================================================
 
 // Shared Theme CSS/JS Assets (/tools/shared/* or /shared/*)
-app.use('/tools/shared', express.static(path.join(__dirname, 'tools/shared')));
-app.use('/shared', express.static(path.join(__dirname, 'tools/shared')));
+const sharedStaticOptions = { maxAge: '1y', immutable: true };
+const sharedStaticMiddleware = express.static(path.join(__dirname, 'tools/shared'), sharedStaticOptions);
+app.use('/tools/shared', sharedStaticMiddleware);
+app.use('/shared', sharedStaticMiddleware);
 
 // Pre-configured static handlers with built-in path traversal & dotfile security
 const staticHandlers = {
@@ -620,7 +651,7 @@ app.use((req, res, next) => {
   };
 
   if (req.path.startsWith('/shared/')) {
-    return express.static(path.join(__dirname, 'tools/shared'))(req, res, notFound);
+    return sharedStaticMiddleware(req, res, notFound);
   }
   if (req.path.startsWith('/api/')) {
     return next();
@@ -2006,7 +2037,7 @@ app.post('/api/paste/create', pasteCreateLimiter, async (req, res) => {
 });
 
 // 5b. Retrieve a paste (handles password auth & burn-on-read atomically)
-app.post('/api/paste/view/:code', pasteAuthLimiter, async (req, res) => {
+async function handlePasteView(req, res) {
   try {
     const code = req.params.code;
     const key = `paste:${code}`;
@@ -2037,7 +2068,7 @@ app.post('/api/paste/view/:code', pasteAuthLimiter, async (req, res) => {
     }
 
     if (record.isProtected && record.passwordMeta) {
-      const inputPass = req.body.password || '';
+      const inputPass = (req.body && req.body.password) ? String(req.body.password) : '';
       const computedHash = crypto.scryptSync(inputPass.trim(), record.passwordMeta.salt, 64);
       const storedHash = Buffer.from(record.passwordMeta.hash, 'hex');
 
@@ -2067,12 +2098,10 @@ app.post('/api/paste/view/:code', pasteAuthLimiter, async (req, res) => {
     console.error('Paste view error:', err);
     return res.status(500).json({ error: 'Failed to retrieve paste.' });
   }
-});
+}
 
-app.get('/api/paste/view/:code', async (req, res) => {
-  req.body = {};
-  return app._router.handle(req, res, () => {});
-});
+app.post('/api/paste/view/:code', pasteAuthLimiter, handlePasteView);
+app.get('/api/paste/view/:code', handlePasteView);
 
 // 5c. Serve raw plain text paste
 app.get('/api/paste/raw/:code', async (req, res) => {
@@ -2276,6 +2305,11 @@ app.get(['/api/drop/file/:filename', '/api/drop/stream/:filename'], async (req, 
         const rec = typeof localData === 'string' ? JSON.parse(localData) : localData;
         if (rec.name) fileNameHint = rec.name;
         if (rec.localPath && fs.existsSync(rec.localPath)) {
+          rec.downloads = (rec.downloads || 0) + 1;
+          const jsonStr = JSON.stringify(rec);
+          inMemoryStore.set(`drop:${fileCode}`, jsonStr);
+          redis.set(`drop:${fileCode}`, jsonStr).catch(() => {});
+          await savePersistentStore();
           res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(rec.name || fileCode)}"`);
           return res.sendFile(path.resolve(rec.localPath));
         }
@@ -2651,7 +2685,7 @@ app.get('/:code', async (req, res) => {
       riskLevel: risk.riskLevel,
       securityAuditStatus: auditStatusHtml,
       primaryButtonLabel,
-      serializedFlags: serializeForInlineScript(JSON.stringify(risk.flags)),
+      serializedFlags: serializeForInlineScript(risk.flags),
       flagListHtml: risk.flags.map(f => `<div><span class="prompt">[!]</span> Threat Flag: <span style="color:#ff5555;">${htmlEscape(f)}</span></div>`).join('')
     }));
   } catch (err) {
@@ -2671,7 +2705,7 @@ if (require.main === module) {
 
   const gracefulShutdown = async (signal) => {
     console.log(`\nReceived ${signal}. Flushing store and shutting down server...`);
-    await savePersistentStore();
+    await savePersistentStore(true);
     server.close(() => {
       console.log('Server closed successfully.');
       process.exit(0);

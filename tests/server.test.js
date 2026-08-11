@@ -1,4 +1,5 @@
 process.env.NODE_ENV = 'test';
+process.env.ROOTZ_API_KEY = process.env.ROOTZ_API_KEY || 'test-rootz-key';
 const fs = require('fs');
 const path = require('path');
 const { spawnSync } = require('child_process');
@@ -501,6 +502,61 @@ describe('URL Shortener API Suite', () => {
     spy.mockRestore();
     expect(res.status).toBe(400);
     expect(res.body.error).toMatch(/restricted|private/i);
+  });
+
+  test('13j. Header Inspector successfully inspects a valid public HTTP target', async () => {
+    const dns = require('dns').promises;
+    const http = require('http');
+    const EventEmitter = require('events');
+
+    const dnsSpy = jest.spyOn(dns, 'lookup').mockImplementation(async (host) => {
+      if (host === 'public-mock-target.com') {
+        return [{ address: '93.184.216.34', family: 4 }];
+      }
+      return dns.lookup(host);
+    });
+
+    const origHttpRequest = http.request;
+    const httpSpy = jest.spyOn(http, 'request').mockImplementation((...args) => {
+      const options = typeof args[0] === 'string' ? { host: args[0] } : (args[0] || {});
+      const host = options.hostname || options.host;
+      if (host === '93.184.216.34' || host === 'public-mock-target.com') {
+        const cb = typeof args[1] === 'function' ? args[1] : args[2];
+        const req = new EventEmitter();
+        req.end = jest.fn();
+        req.destroy = jest.fn();
+        req.setTimeout = jest.fn();
+        req.setNoDelay = jest.fn();
+        req.setSocketKeepAlive = jest.fn();
+        req.setHeader = jest.fn();
+        req.getHeader = jest.fn();
+
+        const res = new EventEmitter();
+        res.statusCode = 200;
+        res.statusMessage = 'OK';
+        res.headers = { 'server': 'MockServer/1.0', 'content-type': 'text/html' };
+
+        process.nextTick(() => {
+          if (typeof cb === 'function') cb(res);
+          res.emit('data', Buffer.from('<html><body>Hello</body></html>'));
+          res.emit('end');
+        });
+
+        return req;
+      }
+      return origHttpRequest.apply(http, args);
+    });
+
+    const res = await request(app)
+      .post('/api/tools/inspect-headers')
+      .send({ url: 'http://public-mock-target.com/page' });
+
+    dnsSpy.mockRestore();
+    httpSpy.mockRestore();
+
+    expect(res.status).toBe(200);
+    expect(res.body.statusCode).toBe(200);
+    expect(res.body.headers['server']).toBe('MockServer/1.0');
   });
 
   test('13i. Parallel concurrent requests to password-protected burn-on-read paste result in exactly one 200 OK', async () => {

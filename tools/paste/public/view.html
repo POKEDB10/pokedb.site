@@ -16,7 +16,7 @@
 
 <style>
 .paste-view-card {
-  max-width: 920px;
+  max-width: 960px;
   margin: clamp(2rem, 5vw, 4rem) auto;
   background: var(--surface);
   border: 1px solid var(--border);
@@ -46,6 +46,7 @@
   overflow-x: auto;
   margin: 1.5rem 0;
   color: var(--text);
+  tab-size: 2;
 }
 .actions-row {
   display: flex;
@@ -77,18 +78,18 @@
   <header class="site-nav">
     <a class="logo" href="https://pokedb.site/" data-nav="main">root<span>@</span>pokedb</a>
     <nav class="nav-links">
-      <a class="nav-link" href="https://paste.pokedb.site/">Pastebin</a>
-      <a class="nav-link" href="https://drop.pokedb.site/">Drop</a>
-      <a class="nav-link" href="https://tools.pokedb.site/">Tools hub</a>
+      <a class="nav-link" href="https://tools.pokedb.site/" data-nav="tools">Tools hub</a>
+      <a class="nav-link" href="https://tinyurl.pokedb.site/" data-nav="tinyurl">TinyURL</a>
+      <a class="nav-link" href="https://qr.pokedb.site/" data-nav="qr">QR studio</a>
+      <a class="nav-link" href="https://drop.pokedb.site/" data-nav="drop">Drop</a>
+      <a class="nav-link active" href="https://paste.pokedb.site/" data-nav="paste">Pastebin</a>
+      <a class="nav-link" href="https://headers.pokedb.site/" data-nav="headers">Headers</a>
+      <a class="nav-link" href="https://hash.pokedb.site/" data-nav="hash">Hash</a>
+      <a class="nav-link" href="https://health.pokedb.site/" data-nav="health">Health</a>
     </nav>
     <div class="theme-switcher">
       <span class="theme-swatch" id="theme-swatch"></span>
-      <select id="theme-select" aria-label="Choose a theme">
-        <option value="oled-black">OLED — Pitch Indigo</option>
-        <option value="matrix">Matrix — Phosphor Green</option>
-        <option value="cyberpunk">Cyberpunk — Neon Cyan</option>
-        <option value="paper">Paper — Editorial Light</option>
-      </select>
+      <select id="theme-select" aria-label="Choose a theme"></select>
     </div>
   </header>
 
@@ -111,7 +112,7 @@
     <div id="pass-auth-box" style="display:none; margin:2rem 0; padding:1.5rem; background:var(--bg); border:1px solid var(--border); border-radius:10px; text-align:center;">
       <h3 style="font-family:'IBM Plex Mono',monospace; margin-bottom:.5rem;">🔒 Password Protected Paste</h3>
       <p style="color:var(--muted); font-size:.88rem; margin-bottom:1rem;">Enter the password set by the author to unlock this paste.</p>
-      <form id="pass-form" style="display:inline-flex; gap:.5rem; max-width:400px; width:100%;">
+      <form id="pass-form" action="javascript:void(0);" onsubmit="event.preventDefault();" style="display:inline-flex; gap:.5rem; max-width:400px; width:100%;">
         <input type="password" id="pass-input" placeholder="Enter password…" style="flex:1; background:var(--surface); border:1px solid var(--border); border-radius:6px; padding:.5rem .75rem; font-family:'IBM Plex Mono',monospace; font-size:.85rem; color:var(--text);" required>
         <button class="btn btn-solid" type="submit">Unlock</button>
       </form>

@@ -15,13 +15,24 @@
 
 <style>
 .paste-card {
-  max-width: 920px;
+  max-width: 960px;
   margin: clamp(2rem, 5vw, 4rem) auto;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 14px;
   padding: clamp(1.25rem, 4vw, 2.25rem);
   box-shadow: var(--shadow);
+}
+.editor-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: .5rem;
+  margin: 1.25rem 0 .5rem 0;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: .8rem;
+  color: var(--muted);
 }
 .paste-textarea {
   width: 100%;
@@ -33,9 +44,10 @@
   font-family: 'IBM Plex Mono', monospace;
   font-size: .88rem;
   color: var(--text);
-  margin: 1.25rem 0;
+  margin-bottom: 1.25rem;
   resize: vertical;
-  line-height: 1.5;
+  line-height: 1.55;
+  tab-size: 2;
 }
 .options-grid {
   display: grid;
@@ -72,18 +84,18 @@
   <header class="site-nav">
     <a class="logo" href="https://pokedb.site/" data-nav="main">root<span>@</span>pokedb</a>
     <nav class="nav-links">
-      <a class="nav-link" href="https://paste.pokedb.site/">Pastebin</a>
-      <a class="nav-link" href="https://drop.pokedb.site/">Drop</a>
-      <a class="nav-link" href="https://tools.pokedb.site/">Tools hub</a>
+      <a class="nav-link" href="https://tools.pokedb.site/" data-nav="tools">Tools hub</a>
+      <a class="nav-link" href="https://tinyurl.pokedb.site/" data-nav="tinyurl">TinyURL</a>
+      <a class="nav-link" href="https://qr.pokedb.site/" data-nav="qr">QR studio</a>
+      <a class="nav-link" href="https://drop.pokedb.site/" data-nav="drop">Drop</a>
+      <a class="nav-link active" href="https://paste.pokedb.site/" data-nav="paste">Pastebin</a>
+      <a class="nav-link" href="https://headers.pokedb.site/" data-nav="headers">Headers</a>
+      <a class="nav-link" href="https://hash.pokedb.site/" data-nav="hash">Hash</a>
+      <a class="nav-link" href="https://health.pokedb.site/" data-nav="health">Health</a>
     </nav>
     <div class="theme-switcher">
       <span class="theme-swatch" id="theme-swatch"></span>
-      <select id="theme-select" aria-label="Choose a theme">
-        <option value="oled-black">OLED — Pitch Indigo</option>
-        <option value="matrix">Matrix — Phosphor Green</option>
-        <option value="cyberpunk">Cyberpunk — Neon Cyan</option>
-        <option value="paper">Paper — Editorial Light</option>
-      </select>
+      <select id="theme-select" aria-label="Choose a theme"></select>
     </div>
   </header>
 
@@ -92,7 +104,11 @@
     <h1 style="font-size:clamp(1.2rem, 3.5vw, 1.8rem); margin-top:.3rem;">Pokedb Pastebin</h1>
     <p style="color:var(--muted); font-size:.9rem; margin-top:.4rem;">Fast, secure, zero-logging code & text sharing. Supports raw view, burn-on-read, and password protection.</p>
 
-    <form id="paste-form">
+    <form id="paste-form" action="javascript:void(0);" onsubmit="event.preventDefault();">
+      <div class="editor-header">
+        <span>$ editor --buffer</span>
+        <span id="char-counter">0 chars · 0 lines</span>
+      </div>
       <textarea class="paste-textarea" id="paste-content" placeholder="Paste your text or code here…" required></textarea>
 
       <div class="options-grid">
@@ -145,38 +161,51 @@
   </main>
 
   <script>
-  document.getElementById('paste-form').addEventListener('submit', async function (e) {
-    e.preventDefault();
-    var btn = document.getElementById('create-btn');
-    var content = document.getElementById('paste-content').value;
-    if (!content.trim()) return;
+  (function () {
+    var textarea = document.getElementById('paste-content');
+    var charCounter = document.getElementById('char-counter');
 
-    btn.disabled = true;
-    btn.textContent = 'Creating Paste…';
+    textarea.addEventListener('input', function () {
+      var text = textarea.value;
+      var lines = text ? text.split('\n').length : 0;
+      var bytes = new Blob([text]).size;
+      charCounter.textContent = text.length + ' chars · ' + lines + ' lines · ' + bytes + ' bytes';
+    });
 
-    try {
-      var res = await fetch('/api/paste/create', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          content: content,
-          title: document.getElementById('paste-title').value.trim(),
-          language: document.getElementById('paste-language').value,
-          expiresInDays: document.getElementById('paste-expiry').value,
-          burnOnRead: document.getElementById('paste-burn').checked,
-          password: document.getElementById('paste-password').value
-        })
-      });
-      var data = await res.json();
-      if (!res.ok || !data.success) throw new Error(data.error || 'Failed to create paste.');
+    document.getElementById('paste-form').addEventListener('submit', async function (e) {
+      if (e) e.preventDefault();
+      var btn = document.getElementById('create-btn');
+      var content = textarea.value;
+      if (!content.trim()) return;
 
-      window.location.href = data.url;
-    } catch (err) {
-      alert(err.message);
-      btn.disabled = false;
-      btn.textContent = 'Create Paste';
-    }
-  });
+      btn.disabled = true;
+      btn.textContent = 'Creating Paste…';
+
+      try {
+        var res = await fetch('/api/paste/create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            content: content,
+            title: document.getElementById('paste-title').value.trim(),
+            language: document.getElementById('paste-language').value,
+            expiresInDays: document.getElementById('paste-expiry').value,
+            burnOnRead: document.getElementById('paste-burn').checked,
+            password: document.getElementById('paste-password').value
+          })
+        });
+        var data = await res.json();
+        if (!res.ok || !data.success) throw new Error(data.error || 'Failed to create paste.');
+
+        window.location.href = data.url;
+      } catch (err) {
+        if (window.showToast) window.showToast('Error: ' + err.message);
+        else alert(err.message);
+        btn.disabled = false;
+        btn.textContent = 'Create Paste';
+      }
+    });
+  })();
   </script>
 </body>
 </html>

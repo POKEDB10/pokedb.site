@@ -503,10 +503,20 @@
 
     generateSVG: function (text, options) {
       options = options || {};
-      var fg = options.dark || '#000000';
-      var bg = options.light || '#ffffff';
+      var hexRegex = /^#[0-9a-f]{3,8}$/i;
+      var fg = (options.dark && hexRegex.test(options.dark)) ? options.dark : '#000000';
+      var bg = (options.light && (options.light === 'transparent' || hexRegex.test(options.light))) ? options.light : '#ffffff';
       var margin = options.margin != undefined ? options.margin : 1;
-      var icon = options.icon || ''; // optional text icon or symbol in center
+
+      var escapeHtml = function (str) {
+        return String(str)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;');
+      };
+      var icon = options.icon ? escapeHtml(options.icon) : '';
 
       var matrix = this.generateMatrix(text, options.ecLevel || 'H');
       var size = matrix.length;
