@@ -20,7 +20,7 @@
   function openUploadDb() {
     return new Promise(function (resolve, reject) {
       if (!root.indexedDB) return reject(new Error('IndexedDB not supported'));
-      var req = root.indexedDB.open('pokedb_upload_db', 1);
+      var req = root.indexedDB.open('pokedb_upload_store_v2', 1);
       req.onupgradeneeded = function (e) {
         var db = e.target.result;
         if (!db.objectStoreNames.contains('files')) {
@@ -28,7 +28,7 @@
         }
       };
       req.onsuccess = function (e) { resolve(e.target.result); };
-      req.onerror = function (e) { reject(e.target.error); };
+      req.onerror = function (e) { reject(e.target ? e.target.error : e); };
     });
   }
 
@@ -37,11 +37,15 @@
       return new Promise(function (resolve, reject) {
         var tx = db.transaction('files', 'readwrite');
         var store = tx.objectStore('files');
-        var req = store.put(file, id);
-        req.onsuccess = function () { resolve(true); };
-        req.onerror = function (e) { reject(e.target.error); };
+        store.put(file, id);
+        tx.oncomplete = function () { resolve(true); };
+        tx.onerror = function (e) { reject(e.target ? e.target.error : e); };
+        tx.onabort = function (e) { reject(e.target ? e.target.error : e); };
       });
-    }).catch(function () { return false; });
+    }).catch(function (err) {
+      console.warn('saveFileToIndexedDb failed:', err);
+      return false;
+    });
   }
 
   function getFileFromIndexedDb(id) {
@@ -51,9 +55,12 @@
         var store = tx.objectStore('files');
         var req = store.get(id);
         req.onsuccess = function () { resolve(req.result || null); };
-        req.onerror = function () { resolve(null); };
+        req.onerror = function (e) { resolve(null); };
       });
-    }).catch(function () { return null; });
+    }).catch(function (err) {
+      console.warn('getFileFromIndexedDb failed:', err);
+      return null;
+    });
   }
 
   function deleteFileFromIndexedDb(id) {

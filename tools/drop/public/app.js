@@ -177,12 +177,11 @@
       } catch (e) {}
 
       if (window.PokeDbUtils && window.PokeDbUtils.saveFileToIndexedDb) {
-        window.PokeDbUtils.saveFileToIndexedDb(preId, singleItem.file);
+        await window.PokeDbUtils.saveFileToIndexedDb(preId, singleItem.file);
       }
 
-      try {
-        history.pushState({ sessionId: preId }, '', '/upload/' + preId);
-      } catch (e) {}
+      window.location.href = '/upload/' + preId;
+      return;
     }
 
     // If multiple items are selected in queue, create a server folder
