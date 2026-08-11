@@ -619,6 +619,13 @@ app.use((req, res, next) => {
     }));
   };
 
+  if (req.path.startsWith('/shared/')) {
+    return express.static(path.join(__dirname, 'tools/shared'))(req, res, notFound);
+  }
+  if (req.path.startsWith('/api/')) {
+    return next();
+  }
+
   switch (host) {
     case 'pokedb.site':
     case 'www.pokedb.site':

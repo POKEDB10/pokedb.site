@@ -74,8 +74,17 @@
     }).catch(function () {});
   }
 
+  function formatSpeedAuto(bytesPerSec) {
+    var bytes = Number(bytesPerSec) || 0;
+    if (bytes >= 1073741824) return (bytes / 1073741824).toFixed(2) + ' GB/s';
+    if (bytes >= 1048576) return (bytes / 1048576).toFixed(2) + ' MB/s';
+    if (bytes >= 1024) return (bytes / 1024).toFixed(2) + ' KB/s';
+    return bytes.toFixed(0) + ' B/s';
+  }
+
   root.PokeDbUtils = {
     formatBytes: formatBytes,
+    formatSpeedAuto: formatSpeedAuto,
     getFileIcon: getFileIcon,
     saveFileToIndexedDb: saveFileToIndexedDb,
     getFileFromIndexedDb: getFileFromIndexedDb,

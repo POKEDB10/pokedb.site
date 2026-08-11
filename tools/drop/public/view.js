@@ -87,6 +87,9 @@
     byId('file-downloads').textContent = meta.isFolder ? 'Folder Batch' : meta.downloads + ' downloads';
     byId('file-expiry').textContent = meta.expiresAt ? 'Expires ' + new Date(meta.expiresAt).toLocaleString() : 'Permanent link';
 
+    // Render media preview (image, video, audio, SVG) as soon as metadata resolves
+    renderPreview(meta.name, meta.mimeType);
+
     // Render security caution warning box if file has threat flags
     if (meta.virusFlags && meta.virusFlags.length > 0) {
       var warnBox = byId('security-warning-box');

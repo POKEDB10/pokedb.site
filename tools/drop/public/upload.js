@@ -39,11 +39,13 @@
   }
 
   function updateProgressUI(pct, speedBps, current, total) {
-    byId('progress-bar-fill').style.width = Math.min(100, Math.max(0, pct)) + '%';
-    byId('stat-percent').textContent = Math.round(pct) + '%';
-    byId('stat-speed').textContent = (speedBps / (1024 * 1024)).toFixed(2) + ' MB/s';
-    byId('stat-bytes').textContent = formatBytes(current) + ' / ' + formatBytes(total);
-    var remainingBytes = total - current;
+    var cappedCurrent = Math.min(current, total);
+    var cappedPct = total > 0 ? Math.min(100, Math.max(0, (cappedCurrent / total) * 100)) : 0;
+    byId('progress-bar-fill').style.width = cappedPct + '%';
+    byId('stat-percent').textContent = Math.round(cappedPct) + '%';
+    byId('stat-speed').textContent = window.PokeDbUtils && window.PokeDbUtils.formatSpeedAuto ? window.PokeDbUtils.formatSpeedAuto(speedBps) : formatBytes(speedBps) + '/s';
+    byId('stat-bytes').textContent = formatBytes(cappedCurrent) + ' / ' + formatBytes(total);
+    var remainingBytes = total - cappedCurrent;
     var eta = speedBps > 0 ? remainingBytes / speedBps : 0;
     byId('stat-eta').textContent = formatEta(eta);
   }
