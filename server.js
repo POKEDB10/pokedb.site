@@ -1236,7 +1236,7 @@ async function inspectUrl(targetUrl, hopCount = 0) {
       },
       servername: isHttps ? hostname : undefined,
       rejectUnauthorized: true,
-      timeout: 5000
+      timeout: 10000
     };
 
     const req = transport.request(reqOptions, async (res) => {
@@ -1281,7 +1281,7 @@ async function inspectUrl(targetUrl, hopCount = 0) {
     });
 
     req.on('timeout', () => {
-      req.destroy(new Error('Request timed out after 5000ms.'));
+      req.destroy(new Error('Request timed out after 10000ms.'));
     });
 
     req.on('error', (err) => reject(err));
