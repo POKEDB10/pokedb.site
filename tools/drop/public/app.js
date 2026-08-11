@@ -838,47 +838,6 @@
       showNotice('Delete controls require the file deletion token returned with this upload.');
     });
 
-    if (element('res-qr-btn')) {
-      element('res-qr-btn').addEventListener('click', function () {
-        var box = element('res-qr-box');
-        box.replaceChildren();
-        var shareUrl = element('res-share-link').value || window.location.href;
-        element('res-qr-modal').style.display = 'grid';
-
-        try {
-          if (window.QRCodeLib && typeof window.QRCodeLib.generateSVG === 'function') {
-            var svgText = window.QRCodeLib.generateSVG(shareUrl, { dark: '#000000', light: '#ffffff', margin: 1 });
-            box.innerHTML = svgText;
-            var svgEl = box.querySelector('svg');
-            if (svgEl) {
-              svgEl.setAttribute('width', '220');
-              svgEl.setAttribute('height', '220');
-              svgEl.style.display = 'block';
-              svgEl.style.margin = '0 auto';
-            }
-            return;
-          }
-        } catch (e) {
-          console.warn('Local QR SVG generation failed, using fallback:', e);
-        }
-
-        var img = document.createElement('img');
-        img.src = '/api/qr?format=png&text=' + encodeURIComponent(shareUrl);
-        img.width = 220;
-        img.height = 220;
-        img.alt = 'QR Code';
-        img.style.display = 'block';
-        img.style.margin = '0 auto';
-        box.appendChild(img);
-      });
-    }
-
-    if (element('res-close-qr-btn')) {
-      element('res-close-qr-btn').addEventListener('click', function () {
-        element('res-qr-modal').style.display = 'none';
-      });
-    }
-
     renderQueue();
   });
 }());
