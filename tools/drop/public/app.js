@@ -166,6 +166,8 @@
     if (pendingItems.length === 1 && !activeFolderBatch) {
       var singleItem = pendingItems[0];
       var preId = (Math.random().toString(36).substring(2, 10) + Math.random().toString(36).substring(2, 8)).substring(0, 14);
+      singleItem.customId = preId;
+
       try {
         localStorage.setItem('pokedb-upload-' + preId, JSON.stringify({
           fileName: singleItem.file.name,
@@ -175,11 +177,12 @@
       } catch (e) {}
 
       if (window.PokeDbUtils && window.PokeDbUtils.saveFileToIndexedDb) {
-        await window.PokeDbUtils.saveFileToIndexedDb(preId, singleItem.file);
+        window.PokeDbUtils.saveFileToIndexedDb(preId, singleItem.file);
       }
 
-      window.location.href = '/upload/' + preId;
-      return;
+      try {
+        history.pushState({ sessionId: preId }, '', '/upload/' + preId);
+      } catch (e) {}
     }
 
     // If multiple items are selected in queue, create a server folder
@@ -205,8 +208,9 @@
             viewUrl: folderData.viewUrl,
             fileCount: pendingItems.length
           };
-          window.location.href = '/upload/' + folderData.folderCode;
-          return;
+          try {
+            history.pushState({ folderCode: folderData.folderCode }, '', '/upload/' + folderData.folderCode);
+          } catch (e) {}
         }
       } catch (e) {
         console.warn('Failed to create folder for batch upload:', e);
@@ -238,6 +242,9 @@
     formData.append('file', item.file);
     formData.append('expiresInDays', element('expires-in-select').value);
     formData.append('relativePath', item.path);
+    if (item.customId) {
+      formData.append('customId', item.customId);
+    }
     if (activeFolderBatch) {
       formData.append('folderCode', activeFolderBatch.folderCode);
       if (activeFolderBatch.folderId) formData.append('folderId', activeFolderBatch.folderId);
@@ -326,6 +333,9 @@
         fileSize: fileSize,
         fileType: mimeType
       };
+      if (item.customId) {
+        initBody.customId = item.customId;
+      }
       if (activeFolderBatch) {
         initBody.folderCode = activeFolderBatch.folderCode;
         if (activeFolderBatch.folderId) initBody.folderId = activeFolderBatch.folderId;
