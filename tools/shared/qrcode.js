@@ -10,7 +10,7 @@
   } else {
     root.QRCodeLib = factory();
   }
-}(this, function () {
+}(typeof window !== 'undefined' ? window : this, function () {
 
   // Minimalist QR Code Generator Engine (supports Byte Mode, EC Level L/M/Q/H)
   var QRMode = { MODE_NUMBER: 1, MODE_ALPHA_NUM: 2, MODE_8BIT_BYTE: 4, MODE_KANJI: 8 };
@@ -483,7 +483,7 @@
   };
 
   // High-Level Public API: QRCodeLib
-  return {
+  var QRCodeLibApi = {
     generateMatrix: function (text, ecLevel) {
       var ec = QRErrorCorrectLevel[ecLevel || 'M'] || QRErrorCorrectLevel.M;
       var qr = new QRCodeModel(0, ec);
@@ -554,7 +554,7 @@
   };
 
   if (typeof window !== 'undefined') {
-    window.QRCodeLib = exports;
+    window.QRCodeLib = QRCodeLibApi;
   }
-  return exports;
+  return QRCodeLibApi;
 }));

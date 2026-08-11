@@ -258,12 +258,13 @@
     var lastLoaded = 0;
     xhr.upload.addEventListener('progress', function (event) {
       if (!event.lengthComputable) return;
-      item.progress = Math.round((event.loaded / event.total) * 100);
+      item.progress = Math.min(100, Math.max(0, Math.round((event.loaded / event.total) * 100)));
       var now = Date.now();
       var elapsed = (now - lastTime) / 1000;
-      var speed = elapsed ? (event.loaded - lastLoaded) / elapsed : 0;
-      if (elapsed > 0.2 || event.loaded === event.total) { lastTime = now; lastLoaded = event.loaded; }
-      setProgress(item.progress, 'Uploading ' + item.file.name + ' · ' + formatBytes(event.loaded) + ' / ' + formatBytes(event.total) + (speed ? ' · ' + formatBytes(speed) + '/s' : ''));
+      var currentBytes = Math.min(event.loaded, event.total);
+      var speed = elapsed ? (currentBytes - lastLoaded) / elapsed : 0;
+      if (elapsed > 0.2 || event.loaded >= event.total) { lastTime = now; lastLoaded = currentBytes; }
+      setProgress(item.progress, 'Uploading ' + item.file.name + ' · ' + formatBytes(currentBytes) + ' / ' + formatBytes(event.total) + (speed ? ' · ' + formatBytes(speed) + '/s' : ''));
       renderQueue();
     });
 

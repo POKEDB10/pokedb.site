@@ -75,6 +75,40 @@
     setTimeout(function () { btn.textContent = '$ copy'; }, 1500);
   });
 
+  if (byId('up-qr-btn')) {
+    byId('up-qr-btn').addEventListener('click', function () {
+      var box = byId('up-qr-box');
+      box.replaceChildren();
+      var shareUrl = byId('up-share-url').value || (window.location.origin + '/v/' + sessionId);
+
+      if (window.QRCodeLib && typeof window.QRCodeLib.generateSVG === 'function') {
+        var svgText = window.QRCodeLib.generateSVG(shareUrl, { dark: '#000000', light: '#ffffff', margin: 1 });
+        box.innerHTML = svgText;
+        var svgEl = box.querySelector('svg');
+        if (svgEl) {
+          svgEl.setAttribute('width', '220');
+          svgEl.setAttribute('height', '220');
+          svgEl.style.display = 'block';
+          svgEl.style.margin = '0 auto';
+        }
+      } else {
+        var img = document.createElement('img');
+        img.src = '/api/qr?format=png&text=' + encodeURIComponent(shareUrl);
+        img.width = 220;
+        img.height = 220;
+        img.alt = 'QR Code';
+        box.appendChild(img);
+      }
+      byId('up-qr-modal').style.display = 'grid';
+    });
+  }
+
+  if (byId('up-close-qr-btn')) {
+    byId('up-close-qr-btn').addEventListener('click', function () {
+      byId('up-qr-modal').style.display = 'none';
+    });
+  }
+
   // Check server status first
   async function checkServerStatus() {
     try {
@@ -108,10 +142,10 @@
 
     xhr.upload.onprogress = function (e) {
       if (e.lengthComputable) {
-        loadedBytes = e.loaded;
+        loadedBytes = Math.min(e.loaded, totalBytes);
         var elapsed = (Date.now() - startTime) / 1000;
         var speed = elapsed > 0 ? loadedBytes / elapsed : 0;
-        var pct = (loadedBytes / totalBytes) * 100;
+        var pct = totalBytes > 0 ? Math.min(100, Math.max(0, (loadedBytes / totalBytes) * 100)) : 0;
         updateProgressUI(pct, speed, loadedBytes, totalBytes);
       }
     };
