@@ -61,6 +61,9 @@
     byId('up-open-btn').href = viewerUrl;
 
     try { localStorage.removeItem(sessionKey); } catch (e) {}
+    if (window.PokeDbUtils && window.PokeDbUtils.deleteFileFromIndexedDb) {
+      window.PokeDbUtils.deleteFileFromIndexedDb(sessionId);
+    }
   }
 
   byId('up-copy-btn').addEventListener('click', function () {
@@ -145,6 +148,9 @@
       xhr.abort();
       byId('up-status-text').textContent = 'Cancelled';
       try { localStorage.removeItem(sessionKey); } catch (e) {}
+      if (window.PokeDbUtils && window.PokeDbUtils.deleteFileFromIndexedDb) {
+        window.PokeDbUtils.deleteFileFromIndexedDb(sessionId);
+      }
     });
 
     xhr.send(formData);
@@ -154,12 +160,22 @@
     var alreadyComplete = await checkServerStatus();
     if (alreadyComplete) return;
 
-    // Check window transient file payload or re-select state
+    // Check transient memory or IndexedDB for auto-resume without asking for re-selection
     if (window.pendingUploadFile) {
       currentFile = window.pendingUploadFile;
       window.pendingUploadFile = null;
       startDirectUpload(currentFile);
       return;
+    }
+
+    // Retrieve file from IndexedDB if saved during session redirect
+    if (window.PokeDbUtils && window.PokeDbUtils.getFileFromIndexedDb) {
+      var idbFile = await window.PokeDbUtils.getFileFromIndexedDb(sessionId);
+      if (idbFile) {
+        currentFile = idbFile;
+        startDirectUpload(currentFile);
+        return;
+      }
     }
 
     if (sessionData && sessionData.fileName) {

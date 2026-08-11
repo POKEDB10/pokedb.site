@@ -173,7 +173,11 @@
           createdAt: Date.now()
         }));
       } catch (e) {}
-      window.pendingUploadFile = singleItem.file;
+
+      if (window.PokeDbUtils && window.PokeDbUtils.saveFileToIndexedDb) {
+        await window.PokeDbUtils.saveFileToIndexedDb(preId, singleItem.file);
+      }
+
       window.location.href = '/upload/' + preId;
       return;
     }
