@@ -401,28 +401,6 @@ describe('URL Shortener API Suite', () => {
     expect(statusRes.body.isComplete).toBe(true);
   });
 
-  test('13c. Header Inspector SSRF defense blocks metadata, loopback, and userinfo @ bypasses', async () => {
-    const userinfoRes = await request(app)
-      .post('/api/tools/inspect-headers')
-      .send({ url: 'http://safe-domain.com@169.254.169.254/latest/meta-data/' });
-    expect(userinfoRes.status).toBe(400);
-    expect(userinfoRes.body.error).toMatch(/restricted|private/i);
-
-    const loopbackRes = await request(app)
-      .post('/api/tools/inspect-headers')
-      .send({ url: 'http://127.0.0.1:8080/admin' });
-    expect(loopbackRes.status).toBe(400);
-    expect(loopbackRes.body.error).toMatch(/restricted|private/i);
-  });
-
-  test('13d. Header Inspector unwraps IPv4-mapped IPv6 addresses to enforce IPv4 range blocklist', async () => {
-    const res = await request(app)
-      .post('/api/tools/inspect-headers')
-      .send({ url: 'http://[::ffff:10.0.0.1]/status' });
-    expect(res.status).toBe(400);
-    expect(res.body.error).toMatch(/restricted|private/i);
-  });
-
   test('13e. Pastebin raw endpoint returns plain text with X-Content-Type-Options: nosniff header', async () => {
     const createRes = await request(app)
       .post('/api/paste/create')
@@ -480,84 +458,7 @@ describe('URL Shortener API Suite', () => {
     expect(uploadRes.body.file.sha256).toHaveLength(64);
   });
 
-  test('13h. Header Inspector rejects multi-A-record responses if ANY returned IP is restricted', async () => {
-    const dns = require('dns').promises;
-    const origLookup = dns.lookup;
 
-    // Mock dns.lookup to return 1 public IP and 1 private IP (Multi-A rebinding attempt)
-    const spy = jest.spyOn(dns, 'lookup').mockImplementation(async (host, options) => {
-      if (host === 'rebinding-test.com') {
-        return [
-          { address: '93.184.216.34', family: 4 },
-          { address: '127.0.0.1', family: 4 }
-        ];
-      }
-      return origLookup(host, options);
-    });
-
-    const res = await request(app)
-      .post('/api/tools/inspect-headers')
-      .send({ url: 'http://rebinding-test.com/login' });
-
-    spy.mockRestore();
-    expect(res.status).toBe(400);
-    expect(res.body.error).toMatch(/restricted|private/i);
-  });
-
-  test('13j. Header Inspector successfully inspects a valid public HTTP target', async () => {
-    const dns = require('dns').promises;
-    const http = require('http');
-    const EventEmitter = require('events');
-
-    const dnsSpy = jest.spyOn(dns, 'lookup').mockImplementation(async (host) => {
-      if (host === 'public-mock-target.com') {
-        return [{ address: '93.184.216.34', family: 4 }];
-      }
-      return dns.lookup(host);
-    });
-
-    const origHttpRequest = http.request;
-    const httpSpy = jest.spyOn(http, 'request').mockImplementation((...args) => {
-      const options = typeof args[0] === 'string' ? { host: args[0] } : (args[0] || {});
-      const host = options.hostname || options.host;
-      if (host === '93.184.216.34' || host === 'public-mock-target.com') {
-        const cb = typeof args[1] === 'function' ? args[1] : args[2];
-        const req = new EventEmitter();
-        req.end = jest.fn();
-        req.destroy = jest.fn();
-        req.setTimeout = jest.fn();
-        req.setNoDelay = jest.fn();
-        req.setSocketKeepAlive = jest.fn();
-        req.setHeader = jest.fn();
-        req.getHeader = jest.fn();
-
-        const res = new EventEmitter();
-        res.statusCode = 200;
-        res.statusMessage = 'OK';
-        res.headers = { 'server': 'MockServer/1.0', 'content-type': 'text/html' };
-
-        process.nextTick(() => {
-          if (typeof cb === 'function') cb(res);
-          res.emit('data', Buffer.from('<html><body>Hello</body></html>'));
-          res.emit('end');
-        });
-
-        return req;
-      }
-      return origHttpRequest.apply(http, args);
-    });
-
-    const res = await request(app)
-      .post('/api/tools/inspect-headers')
-      .send({ url: 'http://public-mock-target.com/page' });
-
-    dnsSpy.mockRestore();
-    httpSpy.mockRestore();
-
-    expect(res.status).toBe(200);
-    expect(res.body.statusCode).toBe(200);
-    expect(res.body.headers['server']).toBe('MockServer/1.0');
-  });
 
   test('13i. Parallel concurrent requests to password-protected burn-on-read paste result in exactly one 200 OK', async () => {
     const createRes = await request(app)

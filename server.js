@@ -517,14 +517,6 @@ const shortenLimiter = rateLimit({
   message: { error: 'Too many requests, please try again after 15 minutes.' }
 });
 
-const headerInspectorLimiter = rateLimit({
-  ...sharedRateLimitOptions,
-  store: createRateLimitStore('header_inspector'),
-  windowMs: 15 * 60 * 1000,
-  max: 30,
-  message: { error: 'Too many header inspection requests, please try again after 15 minutes.' }
-});
-
 const pasteCreateLimiter = rateLimit({
   ...sharedRateLimitOptions,
   store: createRateLimitStore('paste_create'),
@@ -591,9 +583,7 @@ const staticHandlers = {
   qr: express.static(path.join(__dirname, 'tools/qr/public'), { index: ['index.html'] }),
   drop: express.static(path.join(__dirname, 'tools/drop/public'), { index: ['index.html'] }),
   health: express.static(path.join(__dirname, 'tools/health/public'), { index: ['index.html'] }),
-  paste: express.static(path.join(__dirname, 'tools/paste/public'), { index: ['index.html'] }),
-  headers: express.static(path.join(__dirname, 'tools/headers/public'), { index: ['index.html'] }),
-  hash: express.static(path.join(__dirname, 'tools/hash/public'), { index: ['index.html'] })
+  paste: express.static(path.join(__dirname, 'tools/paste/public'), { index: ['index.html'] })
 };
 
 // Helper middleware to validate API host access per subdomain
@@ -702,12 +692,6 @@ app.use((req, res, next) => {
         return res.sendFile(path.join(__dirname, 'tools/paste/public/view.html'));
       }
       return staticHandlers.paste(req, res, notFound);
-
-    case 'headers.pokedb.site':
-      return staticHandlers.headers(req, res, notFound);
-
-    case 'hash.pokedb.site':
-      return staticHandlers.hash(req, res, notFound);
 
     case 'localhost':
     case '127.0.0.1':
@@ -1288,59 +1272,6 @@ async function inspectUrl(targetUrl, hopCount = 0) {
     req.end();
   });
 }
-
-app.post('/api/tools/inspect-headers', headerInspectorLimiter, async (req, res) => {
-  try {
-    const { url: targetUrl } = req.body;
-    if (!targetUrl || typeof targetUrl !== 'string') {
-      return res.status(400).json({ error: 'A valid target URL string is required.' });
-    }
-
-    const result = await inspectUrl(targetUrl.trim());
-
-    const h = result.headers;
-    const checks = {
-      hsts: Boolean(h['strict-transport-security']),
-      csp: Boolean(h['content-security-policy']),
-      xfo: Boolean(h['x-frame-options']),
-      xcto: (h['x-content-type-options'] || '').toLowerCase().includes('nosniff'),
-      referrerPolicy: Boolean(h['referrer-policy']),
-      permissionsPolicy: Boolean(h['permissions-policy'] || h['feature-policy']),
-      coop: Boolean(h['cross-origin-opener-policy']),
-      coep: Boolean(h['cross-origin-embedder-policy']),
-      serverExposed: Boolean(h['server'] || h['x-powered-by'])
-    };
-
-    let score = 100;
-    if (!checks.hsts) score -= 20;
-    if (!checks.csp) score -= 25;
-    if (!checks.xfo) score -= 15;
-    if (!checks.xcto) score -= 15;
-    if (!checks.referrerPolicy) score -= 10;
-    if (!checks.permissionsPolicy) score -= 10;
-    if (checks.serverExposed) score -= 5;
-
-    let grade = 'F';
-    if (score >= 90) grade = 'A+';
-    else if (score >= 80) grade = 'A';
-    else if (score >= 70) grade = 'B';
-    else if (score >= 50) grade = 'C';
-
-    return res.status(200).json({
-      success: true,
-      url: result.url,
-      statusCode: result.statusCode,
-      statusMessage: result.statusMessage,
-      hopCount: result.hopCount,
-      headers: result.headers,
-      securityScore: Math.max(0, score),
-      grade: grade,
-      checks: checks
-    });
-  } catch (err) {
-    return res.status(400).json({ error: err.message || 'Header inspection failed.' });
-  }
-});
 
 async function scanFileVirus(filePath) {
   const flags = [];

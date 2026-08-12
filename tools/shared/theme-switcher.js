@@ -116,8 +116,6 @@
     else if (host.includes('qr.') || path.includes('/tools/qr')) activeKey = 'qr';
     else if (host.includes('drop.') || path.includes('/tools/drop')) activeKey = 'drop';
     else if (host.includes('paste.') || path.includes('/tools/paste')) activeKey = 'paste';
-    else if (host.includes('headers.') || path.includes('/tools/headers')) activeKey = 'headers';
-    else if (host.includes('hash.') || path.includes('/tools/hash')) activeKey = 'hash';
     else if (host.includes('health.') || path.includes('/tools/health')) activeKey = 'health';
     else if (host.includes('tools.') || path.startsWith('/tools')) activeKey = 'tools';
     else activeKey = 'main';
@@ -148,8 +146,6 @@
       '<a class="nav-link' + (activeKey === 'qr' ? ' active' : '') + '" href="' + getNavUrl('qr') + '" data-nav="qr">QR studio</a>' +
       '<a class="nav-link' + (activeKey === 'drop' ? ' active' : '') + '" href="' + getNavUrl('drop') + '" data-nav="drop">Drop</a>' +
       '<a class="nav-link' + (activeKey === 'paste' ? ' active' : '') + '" href="' + getNavUrl('paste') + '" data-nav="paste">Pastebin</a>' +
-      '<a class="nav-link' + (activeKey === 'headers' ? ' active' : '') + '" href="' + getNavUrl('headers') + '" data-nav="headers">Headers</a>' +
-      '<a class="nav-link' + (activeKey === 'hash' ? ' active' : '') + '" href="' + getNavUrl('hash') + '" data-nav="hash">Hash</a>' +
       '<a class="nav-link' + (activeKey === 'health' ? ' active' : '') + '" href="' + getNavUrl('health') + '" data-nav="health">Health</a>';
   }
 
