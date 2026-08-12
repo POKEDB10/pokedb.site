@@ -570,7 +570,7 @@ function isValidTargetUrl(targetUrl, reqHost) {
 // ============================================================
 
 // Shared Theme CSS/JS Assets (/tools/shared/* or /shared/*)
-const sharedStaticOptions = { maxAge: '1y', immutable: true };
+const sharedStaticOptions = { maxAge: '5m' };
 const sharedStaticMiddleware = express.static(path.join(__dirname, 'tools/shared'), sharedStaticOptions);
 app.use('/tools/shared', sharedStaticMiddleware);
 app.use('/shared', sharedStaticMiddleware);
