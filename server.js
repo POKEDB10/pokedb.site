@@ -178,6 +178,25 @@ app.use(helmet({
   referrerPolicy: { policy: 'strict-origin-when-cross-origin' }
 }));
 app.use(express.json());
+
+// Search engine privacy protection: Prevent indexing of dynamic routes, user uploads, pastes, and API endpoints
+app.use((req, res, next) => {
+  if (req.path.startsWith('/v/') || req.path.startsWith('/p/') || req.path.startsWith('/api/') || req.path.length > 1) {
+    res.setHeader('X-Robots-Tag', 'noindex, nofollow, noarchive');
+  }
+  next();
+});
+
+app.get('/robots.txt', (req, res) => {
+  res.type('text/plain');
+  res.send(`User-agent: *
+Disallow: /v/
+Disallow: /p/
+Disallow: /api/
+Disallow: /tools/
+Allow: /$
+`);
+});
 app.use(express.urlencoded({ extended: true }));
 
 // Persistent File Store Setup (data/store.json)
