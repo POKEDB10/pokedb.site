@@ -987,20 +987,31 @@ function formatSizeAuto(bytes) {
   return num + 'B';
 }
 
+const folderAttachQueues = new Map();
+
 async function attachFileToFolder(folderCode, fileItem) {
   if (!folderCode) return;
-  try {
-    const raw = inMemoryStore.get(`drop:folder:${folderCode}`);
-    if (raw) {
-      const folderRecord = JSON.parse(raw);
-      if (!Array.isArray(folderRecord.files)) folderRecord.files = [];
-      folderRecord.files.push(fileItem);
-      inMemoryStore.set(`drop:folder:${folderCode}`, JSON.stringify(folderRecord));
-      await savePersistentStore();
+  const currentQueue = folderAttachQueues.get(folderCode) || Promise.resolve();
+  const nextQueue = currentQueue.then(async () => {
+    try {
+      const raw = (await redis.get(`drop:folder:${folderCode}`).catch(() => null)) || inMemoryStore.get(`drop:folder:${folderCode}`);
+      if (raw) {
+        const folderRecord = typeof raw === 'string' ? JSON.parse(raw) : raw;
+        if (!Array.isArray(folderRecord.files)) folderRecord.files = [];
+        folderRecord.files.push(fileItem);
+        const jsonStr = JSON.stringify(folderRecord);
+        await redis.set(`drop:folder:${folderCode}`, jsonStr);
+        if (isInMemory) {
+          inMemoryStore.set(`drop:folder:${folderCode}`, jsonStr);
+          await savePersistentStore();
+        }
+      }
+    } catch (e) {
+      console.error('Failed to attach file to folder:', e);
     }
-  } catch (e) {
-    console.error('Failed to attach file to folder:', e);
-  }
+  });
+  folderAttachQueues.set(folderCode, nextQueue);
+  await nextQueue;
 }
 
 app.get('/api/drop/status', async (req, res) => {
@@ -1026,11 +1037,9 @@ app.post('/api/drop/create-folder', async (req, res) => {
       if (!/^[a-zA-Z0-9_-]{3,64}$/.test(cleanCustomId)) {
         return res.status(400).json({ error: 'Invalid customId format.' });
       }
-      const isTaken = inMemoryStore.has(`drop:${cleanCustomId}`) ||
-                      inMemoryStore.has(`drop:folder:${cleanCustomId}`) ||
-                      (await redis.get(`drop:${cleanCustomId}`).catch(() => null)) ||
-                      (await redis.get(`drop:folder:${cleanCustomId}`).catch(() => null));
-      if (isTaken) {
+      const resFile = await redis.set(`drop:${cleanCustomId}`, 'RESERVED', { nx: true });
+      const resFolder = await redis.set(`drop:folder:${cleanCustomId}`, 'RESERVED', { nx: true });
+      if (!resFile || !resFolder) {
         return res.status(409).json({ success: false, error: 'Custom folder ID is already in use.' });
       }
       folderCode = cleanCustomId;
@@ -1066,8 +1075,14 @@ app.post('/api/drop/create-folder', async (req, res) => {
       createdAt: new Date().toISOString()
     };
 
-    inMemoryStore.set(`drop:folder:${folderCode}`, JSON.stringify(folderRecord));
-    await savePersistentStore();
+    const jsonStr = JSON.stringify(folderRecord);
+    await redis.set(`drop:folder:${folderCode}`, jsonStr);
+    await redis.set(`drop:${folderCode}`, jsonStr);
+    if (isInMemory) {
+      inMemoryStore.set(`drop:folder:${folderCode}`, jsonStr);
+      inMemoryStore.set(`drop:${folderCode}`, jsonStr);
+      await savePersistentStore();
+    }
 
     return res.status(200).json({
       success: true,
@@ -1371,11 +1386,9 @@ app.post('/api/drop/upload', uploadLimiter, uploadMulter.single('file'), async (
       if (!/^[a-zA-Z0-9_-]{3,64}$/.test(cleanCustomId)) {
         return res.status(400).json({ error: 'Invalid customId format.' });
       }
-      const isTaken = inMemoryStore.has(`drop:${cleanCustomId}`) ||
-                      inMemoryStore.has(`drop:folder:${cleanCustomId}`) ||
-                      (await redis.get(`drop:${cleanCustomId}`).catch(() => null)) ||
-                      (await redis.get(`drop:folder:${cleanCustomId}`).catch(() => null));
-      if (isTaken) {
+      const resFile = await redis.set(`drop:${cleanCustomId}`, 'RESERVED', { nx: true });
+      const resFolder = await redis.set(`drop:folder:${cleanCustomId}`, 'RESERVED', { nx: true });
+      if (!resFile || !resFolder) {
         return res.status(409).json({ success: false, error: 'Custom upload ID is already in use.' });
       }
       preAllocatedId = cleanCustomId;
@@ -2236,13 +2249,18 @@ app.get(['/api/drop/file/:filename', '/api/drop/stream/:filename'], async (req, 
         const rec = typeof localData === 'string' ? JSON.parse(localData) : localData;
         if (rec.name) fileNameHint = rec.name;
         if (rec.localPath && fs.existsSync(rec.localPath)) {
+          const resolvedPath = path.resolve(rec.localPath);
+          const resolvedUploadsDir = path.resolve(UPLOADS_DIR);
+          if (!resolvedPath.startsWith(resolvedUploadsDir + path.sep) && resolvedPath !== resolvedUploadsDir) {
+            return render404();
+          }
           rec.downloads = (rec.downloads || 0) + 1;
           const jsonStr = JSON.stringify(rec);
           inMemoryStore.set(`drop:${fileCode}`, jsonStr);
           redis.set(`drop:${fileCode}`, jsonStr).catch(() => {});
           await savePersistentStore();
           res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(rec.name || fileCode)}"`);
-          return res.sendFile(path.resolve(rec.localPath));
+          return res.sendFile(resolvedPath);
         }
       } catch (e) {}
     }
