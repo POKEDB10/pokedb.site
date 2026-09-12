@@ -179,45 +179,31 @@ input:focus, select:focus {
 
 <main class="container">
 
-  <section class="section" style="border-top:none; padding-top:2.5rem;">
-    <div class="term-window" style="margin-bottom:2rem;">
-      <div class="term-header">
-        <div class="term-dots">
-          <span class="dot dot-red"></span>
-          <span class="dot dot-yellow"></span>
-          <span class="dot dot-green"></span>
-        </div>
-        <span class="term-title">p10@node-01: ~/tinyurl/shorten.sh</span>
-        <span class="term-status badge-ok">LIVE</span>
+  <section class="section" style="border-top:none; padding-top:2.5rem; max-width:820px; margin:0 auto;">
+    <div style="margin-bottom: 1.5rem;">
+      <span class="eyebrow">$ tinyurl --create</span>
+      <div style="display:flex; align-items:center; gap:0.75rem; flex-wrap:wrap; margin-top:0.25rem;">
+        <h1 style="font-size:clamp(1.4rem, 3.5vw, 1.85rem); margin:0;">TinyURL Shortener</h1>
+        <span class="status-pill">● LIVE</span>
       </div>
-      <div class="term-body">
-        <div class="term-line">
-          <span class="term-prompt">$</span>
-          <span class="term-cmd">./shorten.sh --rate-limit=adaptive --qr=enabled</span>
-        </div>
-        <div class="term-output">
-          <div>[init] Non-sequential link shortener initialized</div>
-          <div>[ready] Enter URL, custom alias, and expiration to generate clean short link</div>
-        </div>
-      </div>
+      <p style="color:var(--muted); font-size:0.9rem; margin-top:0.4rem; max-width:60ch;">
+        Fast link shortener with non-sequential codes, custom aliases, expiration controls, and instant QR export.
+      </p>
     </div>
 
-    <span class="eyebrow">$ tinyurl --create</span>
-    <h2 style="font-size:1.5rem; margin-bottom: 1.5rem;">TinyURL Shortener</h2>
-
-    <form id="shorten-form">
+    <form id="shorten-form" class="card-box">
       <div class="form-group">
-        <label for="long-url">Long Destination URL *</label>
+        <label for="long-url">Destination URL *</label>
         <input type="url" id="long-url" placeholder="https://example.com/very-long-url-path" required>
       </div>
 
       <div class="form-row">
         <div class="form-group">
           <label for="custom-alias">Custom Alias (Optional)</label>
-          <input type="text" id="custom-alias" placeholder="e.g. packspliter" maxlength="30">
+          <input type="text" id="custom-alias" placeholder="e.g. project-beta" maxlength="30">
         </div>
         <div class="form-group">
-          <label for="expires-in">Expiration (Optional)</label>
+          <label for="expires-in">Expiration Period</label>
           <select id="expires-in">
             <option value="30" selected>30 Days (1 Month) [Default]</option>
             <option value="1">1 Day</option>
@@ -233,7 +219,10 @@ input:focus, select:focus {
         <span>Generate QR Code for short link</span>
       </label>
 
-      <button type="submit" class="btn btn-solid" id="shorten-btn">$ tinyurl --exec</button>
+      <button type="submit" class="btn btn-solid" id="shorten-btn" style="width:100%; min-height:44px; font-size:.9rem;">
+        <svg class="icon-svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+        Create Short Link
+      </button>
       <div class="error-msg" id="shorten-error"></div>
       <div class="alias-suggestions" id="alias-suggestions" aria-live="polite"></div>
     </form>

@@ -79,6 +79,22 @@
   font-size: .85rem;
   color: var(--text);
 }
+
+@media (max-width: 640px) {
+  .paste-card {
+    width: calc(100% - 1.5rem);
+    margin: 1.25rem auto;
+    padding: 1.15rem;
+  }
+  .paste-textarea {
+    min-height: 220px;
+    font-size: 16px !important;
+  }
+  .options-grid {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+}
 </style>
 </head>
 <body>
@@ -99,31 +115,16 @@
   </header>
 
   <main class="paste-card">
-    <div class="term-window" style="margin-bottom:1.75rem;">
-      <div class="term-header">
-        <div class="term-dots">
-          <span class="dot dot-red"></span>
-          <span class="dot dot-yellow"></span>
-          <span class="dot dot-green"></span>
-        </div>
-        <span class="term-title">p10@node-01: ~/paste/editor.sh</span>
-        <span class="term-status badge-ok">LIVE</span>
+    <div style="margin-bottom: 1.5rem;">
+      <span class="eyebrow">$ pastebin --new</span>
+      <div style="display:flex; align-items:center; gap:0.75rem; flex-wrap:wrap; margin-top:0.25rem;">
+        <h1 style="font-size:clamp(1.4rem, 3.5vw, 1.85rem); margin:0;">Pokedb Pastebin</h1>
+        <span class="status-pill">● LIVE</span>
       </div>
-      <div class="term-body">
-        <div class="term-line">
-          <span class="term-prompt">$</span>
-          <span class="term-cmd">./editor.sh --syntax=auto --burn-on-read=supported</span>
-        </div>
-        <div class="term-output">
-          <div>[init] Ephemeral encrypted paste store ready</div>
-          <div>[ready] Write or paste code buffer below. Raw endpoints and burn triggers armed.</div>
-        </div>
-      </div>
+      <p style="color:var(--muted); font-size:0.9rem; margin-top:0.4rem; max-width:60ch;">
+        Fast, zero-logging code &amp; text sharing with syntax highlighting, raw view, burn-on-read, and optional scrypt encryption.
+      </p>
     </div>
-
-    <span class="eyebrow">$ paste --new</span>
-    <h1 style="font-size:clamp(1.2rem, 3.5vw, 1.8rem); margin-top:.3rem;">Pokedb Pastebin</h1>
-    <p style="color:var(--muted); font-size:.9rem; margin-top:.4rem;">Fast, secure, zero-logging code & text sharing. Supports raw view, burn-on-read, and password protection.</p>
 
     <form id="paste-form" action="javascript:void(0);" onsubmit="event.preventDefault();">
       <div class="editor-header">

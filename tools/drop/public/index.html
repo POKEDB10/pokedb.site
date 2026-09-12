@@ -272,10 +272,18 @@ input:focus-visible {
   100% { transform: scale(3); opacity: 0; }
 }
 
-@media (max-width:560px) {
-  .drop-card { padding:1rem; }
-  .drop-zone { padding:2rem 1rem; }
-  .link-output-group { align-items:stretch; flex-direction:column; }
+@media (max-width:640px) {
+  .drop-container { width: 100%; }
+  .drop-card { padding: 1.15rem; }
+  .drop-zone { padding: 2rem 1rem; }
+  .drop-hint { display: flex; flex-direction: column; gap: .4rem; }
+  .drop-hint button { width: 100%; margin: 0 !important; min-height: 44px; }
+  .upload-controls { flex-direction: column; }
+  .upload-controls .btn { width: 100%; min-height: 44px; }
+  .link-output-group { align-items: stretch; flex-direction: column; gap: .5rem; }
+  .link-output-group .btn { width: 100%; min-height: 44px; }
+  .queue-item { grid-template-columns: auto 1fr auto !important; row-gap: .4rem; }
+  .queue-status { grid-column: 2 / -1; }
 }
 </style>
 </head>
@@ -318,26 +326,18 @@ input:focus-visible {
 
 <main class="container">
 
-  <section class="hero container" style="max-width:820px; padding: clamp(2rem, 5vw, 4rem) 0 1.5rem 0;">
-    <div class="term-window">
-      <div class="term-titlebar mono">~/drop/client.sh</div>
-      <div class="term-body">
-        <div><span class="prompt">$</span> <span class="out">drop --status</span></div>
-        <div class="out">drop gateway · Rootz S3 mesh + fast local buffer</div>
-        <div><span class="prompt">$</span> <span class="out">drop --capabilities</span></div>
-        <div class="out">drag &amp; drop · folder batching · parallel transfer · short links · no retention logging</div>
-        <div><span class="prompt">$</span> <span class="out">echo $STATUS</span></div>
-        <div class="out">Gateway ready for files.<span class="cursor"></span></div>
-      </div>
-    </div>
-
-    <p class="hero-bio" style="margin-top:1.25rem;">
-      High-speed file transfer and remote URL upload gateway. Files are streamed with cryptographic SHA-256 integrity verification, instant short links, and zero tracking.
-    </p>
-  </section>
-
-  <section class="section" style="border-top:1px solid var(--border); padding-top:2rem;">
+  <section class="section" style="border-top:none; padding-top:2.5rem;">
     <div class="drop-container">
+      <div style="margin-bottom: 1.5rem;">
+        <span class="eyebrow">$ drop --gateway</span>
+        <div style="display:flex; align-items:center; gap:0.75rem; flex-wrap:wrap; margin-top:0.25rem;">
+          <h1 style="font-size:clamp(1.4rem, 3.5vw, 1.85rem); margin:0;">Drop — File Storage &amp; Transfer</h1>
+          <span class="status-pill">● LIVE</span>
+        </div>
+        <p style="color:var(--muted); font-size:0.9rem; margin-top:0.4rem; max-width:60ch;">
+          Encrypted high-speed file transfer and remote URL upload gateway. Direct streaming, SHA-256 integrity verification, and ephemeral short links.
+        </p>
+      </div>
 
       <!-- Large File Password Protection Modal (Triggered for files > 1 GB) -->
       <div id="large-file-modal" style="display:none;" class="drop-card" style="border-color:var(--accent);">
@@ -353,8 +353,8 @@ input:focus-visible {
           <input type="password" id="large-file-pass-input" placeholder="Enter owner password..." autocomplete="off">
         </div>
         <div style="display:flex; gap:.75rem;">
-          <button class="btn btn-solid" id="submit-large-pass-btn">$ confirm --upload</button>
-          <button class="btn" id="cancel-large-pass-btn">$ cancel</button>
+          <button class="btn btn-solid" id="submit-large-pass-btn">Confirm Upload</button>
+          <button class="btn" id="cancel-large-pass-btn">Cancel</button>
         </div>
         <div id="large-pass-status" style="font-family:'IBM Plex Mono',monospace; font-size:.78rem; color:var(--danger); margin-top:.5rem;"></div>
       </div>
@@ -401,7 +401,6 @@ input:focus-visible {
               </div>
             </div>
           </div>
-          </div>
           <div class="upload-controls">
             <button class="btn btn-solid" id="start-upload-btn" type="button" disabled>Start upload</button>
             <button class="btn" id="pause-upload-btn" type="button" disabled>Pause queue</button>
@@ -426,7 +425,7 @@ input:focus-visible {
             <input type="url" id="remote-url-input" placeholder="https://example.com/large-video.mp4">
           </div>
           <button class="btn btn-solid" id="remote-upload-btn" style="width:100%; justify-content:center; padding:.8rem;">
-            $ rootz --remote-upload
+            Upload from Remote URL
           </button>
         </div>
 
@@ -476,14 +475,14 @@ input:focus-visible {
           <label>Shareable Download Link</label>
           <div class="link-output-group">
             <input type="text" id="res-share-link" readonly>
-            <button class="btn btn-solid" id="copy-link-btn">$ copy</button>
-            <a class="btn" id="open-link-btn" target="_blank" rel="noopener">$ open &rarr;</a>
+            <button class="btn btn-solid" id="copy-link-btn">Copy Link</button>
+            <a class="btn" id="open-link-btn" target="_blank" rel="noopener">Open Link &rarr;</a>
           </div>
         </div>
 
         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:.5rem; margin-top: .75rem;">
           <div id="res-expiry-info" style="font-family:'IBM Plex Mono',monospace; font-size:.78rem; color:var(--muted);"></div>
-          <button class="btn" id="delete-res-file-btn" style="border-color:var(--danger); color:var(--danger); font-size:.82rem;">$ delete --file</button>
+          <button class="btn" id="delete-res-file-btn" style="border-color:var(--danger); color:var(--danger); font-size:.82rem;">Delete File</button>
         </div>
       </div>
 

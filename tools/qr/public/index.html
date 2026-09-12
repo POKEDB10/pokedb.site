@@ -33,6 +33,8 @@
 }
 @media (max-width: 860px) {
   .studio-wrapper.is-generated { grid-template-columns: 1fr; }
+  .preview-sticky { position: static !important; top: auto !important; margin-top: 1.25rem; }
+  .qr-frame { margin: 0 auto; }
 }
 
 .card-box {
@@ -197,34 +199,17 @@ input:focus, select:focus {
 
 <main class="container">
 
-  <section class="section" style="border-top:none; padding-top:2rem;">
-    <div class="term-window" style="margin-bottom:2rem;">
-      <div class="term-header">
-        <div class="term-dots">
-          <span class="dot dot-red"></span>
-          <span class="dot dot-yellow"></span>
-          <span class="dot dot-green"></span>
-        </div>
-        <span class="term-title">p10@node-01: ~/qr/studio.sh</span>
-        <span class="term-status badge-ok">LIVE</span>
+  <section class="section" style="border-top:none; padding-top:2.5rem;">
+    <div style="margin-bottom: 1.5rem;">
+      <span class="eyebrow">$ qrcode --studio</span>
+      <div style="display:flex; align-items:center; gap:0.75rem; flex-wrap:wrap; margin-top:0.25rem;">
+        <h1 style="font-size:clamp(1.4rem, 3.5vw, 1.85rem); margin:0;">QR Code Studio</h1>
+        <span class="status-pill">● LIVE</span>
       </div>
-      <div class="term-body">
-        <div class="term-line">
-          <span class="term-prompt">$</span>
-          <span class="term-cmd">./studio.sh --mode=vector --ecc=H --palette=theme</span>
-        </div>
-        <div class="term-output">
-          <div>[init] QR Code Studio engine loaded (ecc: level-H, formats: svg, png)</div>
-          <div>[ready] High-contrast vector engine active. Select payload &amp; styling below.</div>
-        </div>
-      </div>
+      <p style="color:var(--muted); font-size:0.9rem; margin-top:0.4rem; max-width:60ch;">
+        High-contrast QR code generator with vector SVG and PNG export, color palettes, and custom emblem embedding.
+      </p>
     </div>
-
-    <span class="eyebrow">$ qrcode --studio</span>
-    <h2 style="font-size:1.5rem; margin-bottom: .4rem;">QR Code Studio</h2>
-    <p style="color:var(--muted); font-size:.95rem; margin-bottom: 1.5rem;">
-      Configure payloads, colors, and badges, then click Generate to create your high-contrast QR code.
-    </p>
 
     <div class="studio-wrapper" id="studio-wrapper">
 
@@ -360,13 +345,14 @@ input:focus, select:focus {
           </div>
 
           <!-- GENERATE BUTTON -->
-          <button class="btn btn-solid" id="generate-btn" style="width:100%; justify-content:center; padding: .85rem 1.25rem; font-size: 1rem; margin-top: .75rem;">
-            $ qr --generate (Generate QR Code)
+          <button class="btn btn-solid" id="generate-btn" style="width:100%; justify-content:center; padding: .85rem 1.25rem; font-size: .95rem; margin-top: .75rem;">
+            <svg class="icon-svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+            Generate QR Code
           </button>
         </div>
       </div>
 
-      <!-- Right Column: Live Preview & Exports (Hidden until $ qr --generate is clicked) -->
+      <!-- Right Column: Live Preview & Exports (Hidden until QR code is generated) -->
       <div class="card-box preview-sticky" id="preview-col">
         <span class="eyebrow">$ qr --live-preview</span>
 
@@ -375,8 +361,8 @@ input:focus, select:focus {
         </div>
 
         <div style="width:100%; display:flex; flex-direction:column; gap:.65rem; margin-top:.5rem;">
-          <button class="btn btn-solid" id="export-png-btn" style="width:100%; justify-content:center;">$ export --png (HD Image)</button>
-          <button class="btn" id="export-svg-btn" style="width:100%; justify-content:center;">$ export --svg (Vector Print)</button>
+          <button class="btn btn-solid" id="export-png-btn" style="width:100%; justify-content:center;">Download PNG</button>
+          <button class="btn" id="export-svg-btn" style="width:100%; justify-content:center;">Download SVG (Vector)</button>
         </div>
       </div>
 
