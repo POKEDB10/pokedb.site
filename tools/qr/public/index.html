@@ -11,6 +11,8 @@
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/shared/theme.css">
 <script src="/shared/theme-switcher.js?v=3"></script>
+<script src="/shared/utils.js"></script>
+<script src="/shared/site.js"></script>
 <script src="/shared/qrcode.js"></script>
 
 <style>
@@ -165,12 +167,15 @@ input:focus, select:focus {
 <body>
 
 <header class="site-nav">
-  <div class="logo">
-    <a class="logo" href="https://pokedb.site/" data-nav="main">root<span>@</span>pokedb</a>
-    <div class="nav-links">
-      <a class="nav-link" href="https://tools.pokedb.site/" data-nav="tools">← Tools Hub</a>
-    </div>
-  </div>
+  <a class="logo" href="https://pokedb.site/" data-nav="main">root<span>@</span>pokedb</a>
+  <nav class="nav-links" aria-label="Tools navigation">
+    <a class="nav-link" href="https://tools.pokedb.site/" data-nav="tools">Tools hub</a>
+    <a class="nav-link" href="https://tinyurl.pokedb.site/" data-nav="tinyurl">TinyURL</a>
+    <a class="nav-link active" href="https://qr.pokedb.site/" data-nav="qr">QR studio</a>
+    <a class="nav-link" href="https://drop.pokedb.site/" data-nav="drop">Drop</a>
+    <a class="nav-link" href="https://paste.pokedb.site/" data-nav="paste">Pastebin</a>
+    <a class="nav-link" href="https://health.pokedb.site/" data-nav="health">Health</a>
+  </nav>
   <div class="theme-switcher">
     <span class="theme-swatch" id="theme-swatch"></span>
     <select id="theme-select" aria-label="Choose a color theme">
@@ -193,6 +198,28 @@ input:focus, select:focus {
 <main class="container">
 
   <section class="section" style="border-top:none; padding-top:2rem;">
+    <div class="term-window" style="margin-bottom:2rem;">
+      <div class="term-header">
+        <div class="term-dots">
+          <span class="dot dot-red"></span>
+          <span class="dot dot-yellow"></span>
+          <span class="dot dot-green"></span>
+        </div>
+        <span class="term-title">p10@node-01: ~/qr/studio.sh</span>
+        <span class="term-status badge-ok">LIVE</span>
+      </div>
+      <div class="term-body">
+        <div class="term-line">
+          <span class="term-prompt">$</span>
+          <span class="term-cmd">./studio.sh --mode=vector --ecc=H --palette=theme</span>
+        </div>
+        <div class="term-output">
+          <div>[init] QR Code Studio engine loaded (ecc: level-H, formats: svg, png)</div>
+          <div>[ready] High-contrast vector engine active. Select payload &amp; styling below.</div>
+        </div>
+      </div>
+    </div>
+
     <span class="eyebrow">$ qrcode --studio</span>
     <h2 style="font-size:1.5rem; margin-bottom: .4rem;">QR Code Studio</h2>
     <p style="color:var(--muted); font-size:.95rem; margin-bottom: 1.5rem;">
@@ -205,9 +232,18 @@ input:focus, select:focus {
       <div id="settings-col">
         <div class="card-box">
           <div class="tab-bar">
-            <button class="tab-btn is-active" data-tab="url">🔗 Web Link / Text</button>
-            <button class="tab-btn" data-tab="wifi">📶 Wi-Fi Network</button>
-            <button class="tab-btn" data-tab="email">📧 Email Payload</button>
+            <button class="tab-btn is-active" data-tab="url">
+              <svg class="icon-svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+              Web Link / Text
+            </button>
+            <button class="tab-btn" data-tab="wifi">
+              <svg class="icon-svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;"><path d="M5 12.55a11 11 0 0 1 14.08 0"></path><path d="M1.42 9a16 16 0 0 1 21.16 0"></path><path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path><line x1="12" y1="20" x2="12.01" y2="20"></line></svg>
+              Wi-Fi Network
+            </button>
+            <button class="tab-btn" data-tab="email">
+              <svg class="icon-svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+              Email Payload
+            </button>
           </div>
 
           <!-- Payload Form: URL / Text -->
@@ -303,17 +339,17 @@ input:focus, select:focus {
               <label for="emblem-option">Center Emblem / Overlay Option</label>
               <select id="emblem-option">
                 <option value="none">None (Standard QR Grid)</option>
-                <option value="p10_logo" selected>1) Our P10 Logo (Official Emblem)</option>
-                <option value="emoji">2) Any Emoji (Choose / Type Emoji)</option>
+                <option value="p10_logo" selected>1) P10 Logo (Official Emblem)</option>
+                <option value="emoji">2) Monogram / Custom Symbol</option>
                 <option value="custom_pic">3) Custom Picture (Upload Image File)</option>
               </select>
             </div>
           </div>
 
-          <!-- Option 2 Input: Any Emoji -->
+          <!-- Option 2 Input: Monogram / Symbol -->
           <div class="form-group" id="emoji-input-wrap" style="display:none; margin-top: .5rem;">
-            <label for="emoji-input">Type Any Emoji (e.g. 🚀, 🔥, ⚡, 👑, 🛡️, 💻)</label>
-            <input type="text" id="emoji-input" value="⚡" placeholder="Type any emoji..." maxlength="4">
+            <label for="emoji-input">Type Symbol or Monogram (e.g. P10, #, @, $, 7)</label>
+            <input type="text" id="emoji-input" value="P10" placeholder="Type symbol or monogram..." maxlength="4">
           </div>
 
           <!-- Option 3 Input: Custom Picture Upload -->

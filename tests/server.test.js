@@ -359,7 +359,7 @@ describe('URL Shortener API Suite', () => {
         .attach('file', Buffer.from('temporary upload coverage'), 'coverage.txt');
 
       expect(response.status).toBe(200);
-      expect(response.body.id).toMatch(/^[A-Za-z0-9_-]{21}$/);
+      expect(response.body.id).toMatch(/^[23456789abcdefghjkmnpqrstuvwxyz]{8}$|^[A-Za-z0-9_-]{21}$/);
       expect(new Set(fs.readdirSync(uploadsDir))).toEqual(before);
     } finally {
       global.fetch = originalFetch;
@@ -478,6 +478,38 @@ describe('URL Shortener API Suite', () => {
 
     const statuses = [req1.status, req2.status].sort();
     expect(statuses).toEqual([200, 404]);
+  });
+
+  test('13g. Storing tools and viewing routes return comprehensive X-Robots-Tag', async () => {
+    const dropRes = await request(app).get('/v/testfile123').set('Host', 'drop.pokedb.site');
+    expect(dropRes.headers['x-robots-tag']).toBe('noindex, nofollow, noarchive, nosnippet, noimageindex');
+
+    const pasteRes = await request(app).get('/raw/testcode123').set('Host', 'paste.pokedb.site');
+    expect(pasteRes.headers['x-robots-tag']).toBe('noindex, nofollow, noarchive, nosnippet, noimageindex');
+
+    const tinyRes = await request(app).get('/tools/tinyurl/').set('Host', 'pokedb.site');
+    expect(tinyRes.headers['x-robots-tag']).toBe('noindex, nofollow, noarchive, nosnippet, noimageindex');
+  });
+
+  test('13h. /robots.txt disallows entire subdomain on storing tools and disallows storing paths on apex', async () => {
+    const dropRobots = await request(app).get('/robots.txt').set('Host', 'drop.pokedb.site');
+    expect(dropRobots.status).toBe(200);
+    expect(dropRobots.text).toContain('Disallow: /');
+
+    const apexRobots = await request(app).get('/robots.txt').set('Host', 'pokedb.site');
+    expect(apexRobots.status).toBe(200);
+    expect(apexRobots.text).toContain('Disallow: /v/');
+    expect(apexRobots.text).toContain('Disallow: /p/');
+    expect(apexRobots.text).toContain('Disallow: /raw/');
+    expect(apexRobots.text).toContain('Disallow: /drop/');
+  });
+
+  test('13i. Drop folder creation generates 8-character Crockford Base32 ID', async () => {
+    const folderRes = await request(app)
+      .post('/api/drop/create-folder')
+      .send({ name: 'crockford-test', totalSize: 1024, fileCount: 1 });
+    expect(folderRes.status).toBe(200);
+    expect(folderRes.body.folderCode).toMatch(/^[23456789abcdefghjkmnpqrstuvwxyz]{8}$/);
   });
 
   test('14. Enforce the shared API rate limit', async () => {

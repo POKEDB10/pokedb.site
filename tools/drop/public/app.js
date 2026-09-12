@@ -77,12 +77,20 @@
     if (!queue.length) return;
     var first = queue[0];
     if (queue.length === 1) {
-      element('badge-icon').textContent = getFileIcon(first.file.name);
+      if (window.PokeDbUtils && window.PokeDbUtils.renderFileIcon) {
+        window.PokeDbUtils.renderFileIcon(element('badge-icon'), first.file.name, false);
+      } else {
+        element('badge-icon').textContent = getFileIcon(first.file.name);
+      }
       element('badge-name').textContent = first.file.name;
       element('badge-meta').textContent = formatBytes(first.file.size) + ' · Ready to upload';
     } else {
       var totalBytes = queue.reduce(function (sum, i) { return sum + i.file.size; }, 0);
-      element('badge-icon').textContent = '📁';
+      if (window.PokeDbUtils && window.PokeDbUtils.renderFileIcon) {
+        window.PokeDbUtils.renderFileIcon(element('badge-icon'), '', true);
+      } else {
+        element('badge-icon').textContent = '[DIR]';
+      }
       element('badge-name').textContent = queue.length + ' items selected';
       element('badge-meta').textContent = formatBytes(totalBytes) + ' · Ready to upload as a folder (' + formatSizeAuto(totalBytes) + ')';
     }
@@ -96,7 +104,11 @@
       var row = document.createElement('div');
       row.className = 'queue-item';
       var icon = document.createElement('span');
-      icon.textContent = getFileIcon(item.file.name);
+      if (window.PokeDbUtils && window.PokeDbUtils.renderFileIcon) {
+        window.PokeDbUtils.renderFileIcon(icon, item.file.name, false);
+      } else {
+        icon.textContent = getFileIcon(item.file.name);
+      }
       var details = document.createElement('div');
       var name = document.createElement('div');
       name.className = 'queue-name';
@@ -582,7 +594,11 @@
   function displayResult(result) {
     currentResultData = result;
     element('result-card').style.display = 'block';
-    element('res-file-icon').textContent = getFileIcon(result.name || 'file');
+    if (window.PokeDbUtils && window.PokeDbUtils.renderFileIcon) {
+      window.PokeDbUtils.renderFileIcon(element('res-file-icon'), result.name || 'file', false);
+    } else {
+      element('res-file-icon').textContent = getFileIcon(result.name || 'file');
+    }
     element('res-file-name').textContent = result.name || 'Uploaded file';
     element('res-file-size').textContent = formatBytes(result.size || 0);
     element('res-storage-provider').textContent = result.provider === 'rootz' ? 'Rootz storage' : 'Storage';
@@ -597,7 +613,11 @@
   function displayFolderResult(batch) {
     currentResultData = batch;
     element('result-card').style.display = 'block';
-    element('res-file-icon').textContent = '📁';
+    if (window.PokeDbUtils && window.PokeDbUtils.renderFileIcon) {
+      window.PokeDbUtils.renderFileIcon(element('res-file-icon'), '', true);
+    } else {
+      element('res-file-icon').textContent = '[DIR]';
+    }
     element('res-file-name').textContent = batch.name;
     element('res-file-size').textContent = formatBytes(batch.totalSize) + ' · ' + batch.fileCount + ' files in folder';
     element('res-storage-provider').textContent = 'Pokedb Drop Folder';
@@ -612,7 +632,12 @@
   function addFileListItem(container, file) {
     var row = document.createElement('div'); row.className = 'queue-item';
     var isFolder = file.type === 'folder' || file.kind === 'folder' || file.is_folder === true || Boolean(file.folder_id && !file.name && !file.filename);
-    var icon = document.createElement('span'); icon.textContent = isFolder ? '📁' : getFileIcon(file.name || 'file');
+    var icon = document.createElement('span');
+    if (window.PokeDbUtils && window.PokeDbUtils.renderFileIcon) {
+      window.PokeDbUtils.renderFileIcon(icon, file.name || 'file', isFolder);
+    } else {
+      icon.textContent = isFolder ? '[DIR]' : getFileIcon(file.name || 'file');
+    }
     var details = document.createElement('div');
     var name = document.createElement('div'); name.className = 'queue-name'; name.textContent = file.name || file.filename || file.folder_name || 'File';
     var meta = document.createElement('span'); meta.className = 'queue-meta'; meta.textContent = isFolder ? 'Folder · click Open to browse its contents' : formatBytes(Number(file.size || 0)) + ' · ' + (file.folder_name || file.folderId || 'Root folder');

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="robots" content="noindex, nofollow, noarchive">
+<meta name="robots" content="noindex, nofollow, noarchive, nosnippet">
 <title>View Paste — paste.pokedb.site</title>
 <meta name="description" content="View paste content on Pokedb Pastebin with syntax highlighting, raw download, and QR code sharing.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -109,7 +109,10 @@
 
     <!-- Password Modal for Protected Pastes -->
     <div id="pass-auth-box" style="display:none; margin:2rem 0; padding:1.5rem; background:var(--bg); border:1px solid var(--border); border-radius:10px; text-align:center;">
-      <h3 style="font-family:'IBM Plex Mono',monospace; margin-bottom:.5rem;">🔒 Password Protected Paste</h3>
+      <h3 style="font-family:'IBM Plex Mono',monospace; margin-bottom:.5rem; display:flex; align-items:center; justify-content:center; gap:0.5rem;">
+        <svg class="icon-svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+        <span>Password Protected Paste</span>
+      </h3>
       <p style="color:var(--muted); font-size:.88rem; margin-bottom:1rem;">Enter the password set by the author to unlock this paste.</p>
       <form id="pass-form" action="javascript:void(0);" onsubmit="event.preventDefault();" style="display:inline-flex; gap:.5rem; max-width:400px; width:100%;">
         <input type="password" id="pass-input" placeholder="Enter password…" style="flex:1; background:var(--surface); border:1px solid var(--border); border-radius:6px; padding:.5rem .75rem; font-family:'IBM Plex Mono',monospace; font-size:.85rem; color:var(--text);" required>

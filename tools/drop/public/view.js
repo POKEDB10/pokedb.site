@@ -82,7 +82,11 @@
     } catch (error) { /* Instant fallback */ }
 
     byId('file-title').textContent = meta.name;
-    byId('file-icon').textContent = meta.isFolder ? '📁' : getFileIcon(meta.name);
+    if (window.PokeDbUtils && window.PokeDbUtils.renderFileIcon) {
+      window.PokeDbUtils.renderFileIcon(byId('file-icon'), meta.name, meta.isFolder);
+    } else {
+      byId('file-icon').textContent = meta.isFolder ? '[DIR]' : getFileIcon(meta.name);
+    }
     byId('file-size').textContent = meta.size ? formatBytes(meta.size) + (meta.isFolder ? ' (' + meta.fileCount + ' files)' : '') : 'Ready to download';
     byId('file-downloads').textContent = meta.isFolder ? 'Folder Batch' : meta.downloads + ' downloads';
     byId('file-expiry').textContent = meta.expiresAt ? 'Expires ' + new Date(meta.expiresAt).toLocaleString() : 'Permanent link';
@@ -213,8 +217,16 @@
         fileRow.style.cssText = 'display:flex; align-items:center; justify-content:space-between; gap:.75rem; padding:.6rem .75rem; border:1px solid var(--border); border-radius:8px; margin-bottom:.5rem; background:var(--bg); font-family:"IBM Plex Mono",monospace; font-size:.82rem;';
 
         var nameSpan = document.createElement('span');
-        nameSpan.style.cssText = 'overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1;';
-        nameSpan.textContent = getFileIcon(f.name) + ' ' + f.name + ' (' + formatBytes(f.size) + ')';
+        nameSpan.style.cssText = 'overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1; display:flex; align-items:center; gap:.5rem;';
+        var itemIcon = document.createElement('span');
+        if (window.PokeDbUtils && window.PokeDbUtils.renderFileIcon) {
+          window.PokeDbUtils.renderFileIcon(itemIcon, f.name, false);
+        } else {
+          itemIcon.textContent = getFileIcon(f.name);
+        }
+        var itemText = document.createElement('span');
+        itemText.textContent = f.name + ' (' + formatBytes(f.size) + ')';
+        nameSpan.append(itemIcon, itemText);
 
         var dlBtn = document.createElement('a');
         dlBtn.className = 'btn';

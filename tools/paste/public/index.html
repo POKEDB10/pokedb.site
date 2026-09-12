@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Pokedb Pastebin — paste.pokedb.site</title>
 <meta name="description" content="High-speed code & text pastebin. Supports syntax highlighting, raw plain-text output, burn-on-read pastes, and password protection.">
+<meta name="robots" content="noindex, nofollow, noarchive, nosnippet">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
@@ -98,6 +99,28 @@
   </header>
 
   <main class="paste-card">
+    <div class="term-window" style="margin-bottom:1.75rem;">
+      <div class="term-header">
+        <div class="term-dots">
+          <span class="dot dot-red"></span>
+          <span class="dot dot-yellow"></span>
+          <span class="dot dot-green"></span>
+        </div>
+        <span class="term-title">p10@node-01: ~/paste/editor.sh</span>
+        <span class="term-status badge-ok">LIVE</span>
+      </div>
+      <div class="term-body">
+        <div class="term-line">
+          <span class="term-prompt">$</span>
+          <span class="term-cmd">./editor.sh --syntax=auto --burn-on-read=supported</span>
+        </div>
+        <div class="term-output">
+          <div>[init] Ephemeral encrypted paste store ready</div>
+          <div>[ready] Write or paste code buffer below. Raw endpoints and burn triggers armed.</div>
+        </div>
+      </div>
+    </div>
+
     <span class="eyebrow">$ paste --new</span>
     <h1 style="font-size:clamp(1.2rem, 3.5vw, 1.8rem); margin-top:.3rem;">Pokedb Pastebin</h1>
     <p style="color:var(--muted); font-size:.9rem; margin-top:.4rem;">Fast, secure, zero-logging code & text sharing. Supports raw view, burn-on-read, and password protection.</p>

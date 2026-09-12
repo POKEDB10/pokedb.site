@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Upload Session — Drop — pokedb.site</title>
+<meta name="robots" content="noindex, nofollow, noarchive, nosnippet">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
@@ -126,9 +127,13 @@
 <body>
   <header class="site-nav">
     <a class="logo" href="https://pokedb.site/" data-nav="main">root<span>@</span>pokedb</a>
-    <nav class="nav-links">
-      <a class="nav-link" href="https://drop.pokedb.site/" data-nav="drop">Drop</a>
+    <nav class="nav-links" aria-label="Tools navigation">
       <a class="nav-link" href="https://tools.pokedb.site/" data-nav="tools">Tools hub</a>
+      <a class="nav-link" href="https://tinyurl.pokedb.site/" data-nav="tinyurl">TinyURL</a>
+      <a class="nav-link" href="https://qr.pokedb.site/" data-nav="qr">QR studio</a>
+      <a class="nav-link active" href="https://drop.pokedb.site/" data-nav="drop">Drop</a>
+      <a class="nav-link" href="https://paste.pokedb.site/" data-nav="paste">Pastebin</a>
+      <a class="nav-link" href="https://health.pokedb.site/" data-nav="health">Health</a>
     </nav>
     <div class="theme-switcher">
       <span class="theme-swatch" id="theme-swatch"></span>
@@ -153,7 +158,10 @@
 
       <!-- Reselect prompt when session is resumed across tab close -->
       <div class="reselect-box" id="reselect-box">
-        <div style="font-weight:600; color:var(--accent); margin-bottom:.5rem;">📂 Resume Upload Session</div>
+        <div style="font-weight:600; color:var(--accent); margin-bottom:.5rem;">
+          <svg class="icon-svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+          Resume Upload Session
+        </div>
         <div style="font-size:.85rem; color:var(--text); margin-bottom:1rem;">Browser tab was closed mid-upload. Re-select the file to verify completed chunks and resume remaining transfer.</div>
         <input type="file" id="reselect-file-input" style="display:none;">
         <button class="btn btn-solid" id="reselect-btn" type="button">Select File to Resume</button>
@@ -192,13 +200,13 @@
 
       <!-- Completed Result Box -->
       <div class="result-card" id="upload-complete-card">
-        <span class="eyebrow" style="color:var(--accent); display:block; margin-bottom:.5rem;">✓ Upload Completed Successfully</span>
+        <span class="eyebrow" style="color:var(--accent); display:block; margin-bottom:.5rem;">$ drop --status complete</span>
         <div style="font-family:'IBM Plex Mono',monospace; font-size:.85rem; margin-bottom:.85rem; color:var(--text);">Sharable Download Link:</div>
         <div style="display:flex; gap:.6rem; flex-wrap:wrap;">
           <input type="text" id="up-share-url" readonly style="flex:1 1 240px; background:var(--surface); border:1px solid var(--border); border-radius:6px; padding:.6rem .8rem; font-family:'IBM Plex Mono',monospace; font-size:.85rem; color:var(--accent);">
           <button class="btn btn-solid" id="up-copy-btn" type="button">$ copy</button>
           <button class="btn" id="up-qr-btn" type="button">Show QR</button>
-          <a class="btn" id="up-open-btn" target="_blank" rel="noopener">$ open ↗</a>
+          <a class="btn" id="up-open-btn" target="_blank" rel="noopener">$ open &rarr;</a>
         </div>
       </div>
     </article>

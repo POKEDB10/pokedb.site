@@ -53,7 +53,7 @@
       document.getElementById('paste-views').textContent = (paste.views || 1) + ' views';
 
       if (paste.burnOnRead) {
-        document.getElementById('paste-burn-status').textContent = '🔥 Burned on Read (This paste was deleted)';
+        document.getElementById('paste-burn-status').textContent = '[Burned on read · Expired]';
         document.getElementById('paste-burn-status').style.color = 'var(--danger, #ef4444)';
       }
 

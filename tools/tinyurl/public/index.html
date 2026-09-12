@@ -5,12 +5,15 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>TinyURL Shortener — pokedb.site</title>
 <meta name="description" content="Self-hosted terminal URL shortener with non-sequential codes, rate limiting, and optional QR code generation.">
+<meta name="robots" content="noindex, nofollow, noarchive, nosnippet">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/shared/theme.css">
 <script src="/shared/theme-switcher.js?v=3"></script>
+<script src="/shared/utils.js"></script>
+<script src="/shared/site.js"></script>
 <script src="/shared/qrcode.js"></script>
 
 <style>
@@ -146,12 +149,15 @@ input:focus, select:focus {
 <body>
 
 <header class="site-nav">
-  <div class="logo">
-    <a class="logo" href="https://pokedb.site/" data-nav="main">root<span>@</span>pokedb</a>
-    <div class="nav-links">
-      <a class="nav-link" href="https://tools.pokedb.site/" data-nav="tools">← Tools Hub</a>
-    </div>
-  </div>
+  <a class="logo" href="https://pokedb.site/" data-nav="main">root<span>@</span>pokedb</a>
+  <nav class="nav-links" aria-label="Tools navigation">
+    <a class="nav-link" href="https://tools.pokedb.site/" data-nav="tools">Tools hub</a>
+    <a class="nav-link active" href="https://tinyurl.pokedb.site/" data-nav="tinyurl">TinyURL</a>
+    <a class="nav-link" href="https://qr.pokedb.site/" data-nav="qr">QR studio</a>
+    <a class="nav-link" href="https://drop.pokedb.site/" data-nav="drop">Drop</a>
+    <a class="nav-link" href="https://paste.pokedb.site/" data-nav="paste">Pastebin</a>
+    <a class="nav-link" href="https://health.pokedb.site/" data-nav="health">Health</a>
+  </nav>
   <div class="theme-switcher">
     <span class="theme-swatch" id="theme-swatch"></span>
     <select id="theme-select" aria-label="Choose a color theme">
@@ -174,6 +180,28 @@ input:focus, select:focus {
 <main class="container">
 
   <section class="section" style="border-top:none; padding-top:2.5rem;">
+    <div class="term-window" style="margin-bottom:2rem;">
+      <div class="term-header">
+        <div class="term-dots">
+          <span class="dot dot-red"></span>
+          <span class="dot dot-yellow"></span>
+          <span class="dot dot-green"></span>
+        </div>
+        <span class="term-title">p10@node-01: ~/tinyurl/shorten.sh</span>
+        <span class="term-status badge-ok">LIVE</span>
+      </div>
+      <div class="term-body">
+        <div class="term-line">
+          <span class="term-prompt">$</span>
+          <span class="term-cmd">./shorten.sh --rate-limit=adaptive --qr=enabled</span>
+        </div>
+        <div class="term-output">
+          <div>[init] Non-sequential link shortener initialized</div>
+          <div>[ready] Enter URL, custom alias, and expiration to generate clean short link</div>
+        </div>
+      </div>
+    </div>
+
     <span class="eyebrow">$ tinyurl --create</span>
     <h2 style="font-size:1.5rem; margin-bottom: 1.5rem;">TinyURL Shortener</h2>
 

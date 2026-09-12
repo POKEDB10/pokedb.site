@@ -179,22 +179,46 @@ app.use(helmet({
 }));
 app.use(express.json());
 
-// Search engine privacy protection: Prevent indexing of dynamic routes, user uploads, pastes, and API endpoints
+// Search engine privacy protection: Prevent indexing of dynamic routes, user uploads, pastes, and storing tools
 app.use((req, res, next) => {
-  if (req.path.startsWith('/v/') || req.path.startsWith('/p/') || req.path.startsWith('/api/') || req.path.length > 1) {
-    res.setHeader('X-Robots-Tag', 'noindex, nofollow, noarchive');
+  const host = resolveHost(req) || '';
+  const isStoringHost = host.startsWith('drop.') || host.startsWith('paste.') || host.startsWith('tinyurl.');
+  const isExcludedPath = req.path.startsWith('/v/') ||
+    req.path.startsWith('/p/') ||
+    req.path.startsWith('/raw/') ||
+    req.path.startsWith('/api/') ||
+    req.path.startsWith('/tools/drop') ||
+    req.path.startsWith('/tools/paste') ||
+    req.path.startsWith('/tools/tinyurl') ||
+    req.path.startsWith('/drop') ||
+    req.path.startsWith('/paste') ||
+    req.path.startsWith('/tinyurl') ||
+    req.path.length > 1;
+
+  if (isStoringHost || isExcludedPath) {
+    res.setHeader('X-Robots-Tag', 'noindex, nofollow, noarchive, nosnippet, noimageindex');
   }
   next();
 });
 
 app.get('/robots.txt', (req, res) => {
   res.type('text/plain');
-  res.send(`User-agent: *
+  const host = resolveHost(req) || '';
+  if (host.startsWith('drop.') || host.startsWith('paste.') || host.startsWith('tinyurl.')) {
+    return res.send(`User-agent: *\nDisallow: /\n`);
+  }
+  return res.send(`User-agent: *
 Disallow: /v/
 Disallow: /p/
+Disallow: /raw/
 Disallow: /api/
-Disallow: /tools/
-Allow: /$
+Disallow: /tools/drop/
+Disallow: /tools/paste/
+Disallow: /tools/tinyurl/
+Disallow: /drop/
+Disallow: /paste/
+Disallow: /tinyurl/
+Allow: /
 `);
 });
 app.use(express.urlencoded({ extended: true }));
@@ -491,6 +515,42 @@ if (process.env.NODE_ENV === 'test') {
 
 const generateShortCode = customAlphabet('0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ', 6);
 
+// 8-character Crockford Base32-clean alphabet (omitting ambiguous 0, o, 1, i, l)
+// Keyspace size: 32^8 ≈ 1.099 trillion combinations. Prevents brute-force ID enumeration.
+const dropIdAlphabet = '23456789abcdefghjkmnpqrstuvwxyz';
+const generateDropId8 = customAlphabet(dropIdAlphabet, 8);
+const generateDropId9 = customAlphabet(dropIdAlphabet, 9);
+
+async function allocateUniqueDropId() {
+  // Phase 1: 5 attempts with 8-character Crockford Base32
+  for (let i = 0; i < 5; i++) {
+    const candidate = generateDropId8();
+    if (inMemoryStore.has(`drop:${candidate}`) || inMemoryStore.has(`drop:folder:${candidate}`)) {
+      continue;
+    }
+    const resFile = await redis.set(`drop:${candidate}`, 'RESERVED', { nx: true, ex: 60 });
+    const resFolder = await redis.set(`drop:folder:${candidate}`, 'RESERVED', { nx: true, ex: 60 });
+    if (resFile && resFolder) {
+      return candidate;
+    }
+  }
+  // Phase 2: Escalate to 3 attempts with 9-character Crockford Base32 if space is congested
+  for (let i = 0; i < 3; i++) {
+    const candidate = generateDropId9();
+    if (inMemoryStore.has(`drop:${candidate}`) || inMemoryStore.has(`drop:folder:${candidate}`)) {
+      continue;
+    }
+    const resFile = await redis.set(`drop:${candidate}`, 'RESERVED', { nx: true, ex: 60 });
+    const resFolder = await redis.set(`drop:folder:${candidate}`, 'RESERVED', { nx: true, ex: 60 });
+    if (resFile && resFolder) {
+      return candidate;
+    }
+  }
+  const err = new Error('Service unavailable: Drop ID space allocation failed after bounded retries.');
+  err.statusCode = 503;
+  throw err;
+}
+
 const RESERVED_BLOCKLIST = new Set([
   'api', 'tools', 'shared', 'favicon.ico', 'static', 'public',
   'shorten', 'health', 'index.html', 'stats', 'admin', 'dashboard',
@@ -551,6 +611,21 @@ const pasteAuthLimiter = rateLimit({
   max: 10,
   message: { error: 'Too many password attempts, please try again after 15 minutes.' }
 });
+
+// Dedicated viewer rate limiter for /v/* and /raw/* to prevent brute-force ID enumeration
+const viewerLimiter = rateLimit({
+  ...sharedRateLimitOptions,
+  store: createRateLimitStore('viewer'),
+  windowMs: 60 * 1000, // 1 minute window
+  max: 60, // 60 requests per minute per IP
+  message: { error: 'Too many view requests. Rate limit is 60 requests per minute.' },
+  statusCode: 429
+});
+
+function logScannerTelemetry(req, reason = 'Not Found') {
+  const ip = req.ip || req.connection?.remoteAddress || 'unknown';
+  console.warn(`[SECURITY TELEMETRY] Possible ID enumeration attempt from ${ip} on ${req.method} ${req.originalUrl || req.path}: ${reason}`);
+}
 
 function parseExpiresInDays(value, defaultValue = 30) {
   if (value === undefined || value === null) return defaultValue;
@@ -692,7 +767,9 @@ app.use((req, res, next) => {
         if (req.path.endsWith('.js') || req.path.endsWith('.css') || req.path.endsWith('.ico') || req.path.endsWith('.png') || req.path.endsWith('.jpg') || req.path.endsWith('.svg')) {
           return staticHandlers.drop(req, res, notFound);
         }
-        return res.sendFile(path.join(__dirname, 'tools/drop/public/view.html'));
+        return viewerLimiter(req, res, () => {
+          res.sendFile(path.join(__dirname, 'tools/drop/public/view.html'));
+        });
       }
       return staticHandlers.drop(req, res, notFound);
 
@@ -702,13 +779,15 @@ app.use((req, res, next) => {
     case 'paste.pokedb.site':
       if (req.path.startsWith('/raw/')) {
         req.url = '/api/paste/raw/' + req.path.slice(5);
-        return next();
+        return viewerLimiter(req, res, next);
       }
       if (req.path.startsWith('/p/')) {
         if (req.path.endsWith('.js') || req.path.endsWith('.css') || req.path.endsWith('.ico') || req.path.endsWith('.png') || req.path.endsWith('.jpg') || req.path.endsWith('.svg')) {
           return staticHandlers.paste(req, res, notFound);
         }
-        return res.sendFile(path.join(__dirname, 'tools/paste/public/view.html'));
+        return viewerLimiter(req, res, () => {
+          res.sendFile(path.join(__dirname, 'tools/paste/public/view.html'));
+        });
       }
       return staticHandlers.paste(req, res, notFound);
 
@@ -1048,7 +1127,7 @@ app.post('/api/drop/create-folder', async (req, res) => {
     const sizeStr = formatSizeAuto(totalSize || 0);
     const randStr = nanoid(6).toLowerCase();
     const folderName = name || `pokedb-${randStr}-${sizeStr}`;
-    let folderCode = nanoid(8);
+    let folderCode = null;
 
     const requestedCustomId = req.body.customId || req.body.shortId || req.body.folderCode;
     if (requestedCustomId) {
@@ -1062,6 +1141,8 @@ app.post('/api/drop/create-folder', async (req, res) => {
         return res.status(409).json({ success: false, error: 'Custom folder ID is already in use.' });
       }
       folderCode = cleanCustomId;
+    } else {
+      folderCode = await allocateUniqueDropId();
     }
 
     let rootzFolderId = null;
@@ -1312,9 +1393,9 @@ async function scanFileVirus(filePath) {
   let sha256 = null;
 
   try {
-    // 1. Calculate SHA-256 hash of the uploaded file
+    // 1. Calculate SHA-256 hash of the uploaded file using a 1MB streaming buffer
     const hashSum = crypto.createHash('sha256');
-    const fileStream = fs.createReadStream(filePath);
+    const fileStream = fs.createReadStream(filePath, { highWaterMark: 1024 * 1024 });
     for await (const chunk of fileStream) {
       hashSum.update(chunk);
     }
@@ -1418,6 +1499,9 @@ app.post('/api/drop/upload', uploadLimiter, uploadMulter.single('file'), async (
     // Scan uploaded file for threat telemetry (capped at 600ms for speed)
     const virusScan = await scanFileVirus(req.file.path, req.file.originalname);
 
+    const fileSize = req.file.size || 0;
+    const adaptiveTimeoutMs = Math.min(60000, Math.max(8000, Math.ceil(fileSize / (500 * 1024)) * 1000));
+
     if (SERVER_ROOTZ_KEY) {
       try {
         let resolvedFolderId = null;
@@ -1438,13 +1522,13 @@ app.post('/api/drop/upload', uploadLimiter, uploadMulter.single('file'), async (
           method: 'POST',
           headers: headers,
           body: formData,
-          signal: AbortSignal.timeout(2500)
+          signal: AbortSignal.timeout(adaptiveTimeoutMs)
         });
 
         if (rootzRes.ok) {
           const rootzData = await rootzRes.json();
           const resultObj = rootzData.data || rootzData.result || rootzData;
-          const fileCode = preAllocatedId || resultObj.short_id || resultObj.shortId || resultObj.filecode || resultObj.file_code || resultObj.id || nanoid();
+          const fileCode = preAllocatedId || resultObj.short_id || resultObj.shortId || resultObj.filecode || resultObj.file_code || resultObj.id || (await allocateUniqueDropId());
 
           const dropRecord = {
             id: fileCode,
@@ -1500,7 +1584,7 @@ app.post('/api/drop/upload', uploadLimiter, uploadMulter.single('file'), async (
 
     // High-Speed Local File Storage Fallback
     isSavedLocally = true;
-    const fileCode = preAllocatedId || nanoid();
+    const fileCode = preAllocatedId || (await allocateUniqueDropId());
     const dropRecord = {
       id: fileCode,
       name: req.file.originalname,
@@ -1889,7 +1973,7 @@ app.post('/api/drop/multipart/complete', multipartLimiter, async (req, res) => {
     // Persist the file record locally (mirrors what direct upload does).
     const resultObj = data.file || data.data || {};
     const requestedCustomId = req.body.customId || req.body.shortId;
-    const fileCode = requestedCustomId ? String(requestedCustomId).trim() : (resultObj.shortId || resultObj.short_id || resultObj.id || nanoid());
+    const fileCode = requestedCustomId ? String(requestedCustomId).trim() : (resultObj.shortId || resultObj.short_id || resultObj.id || (await allocateUniqueDropId()));
     const targetFolderCode = req.body.folderCode || null;
     const dropRecord = {
       id: fileCode,
@@ -2010,6 +2094,7 @@ async function handlePasteView(req, res) {
       stored = await redis.get(key).catch(() => null);
     }
     if (!stored) {
+      logScannerTelemetry(req, 'Paste not found');
       return res.status(404).json({ error: 'Paste not found or has expired.' });
     }
 
@@ -2063,15 +2148,16 @@ async function handlePasteView(req, res) {
   }
 }
 
-app.post('/api/paste/view/:code', pasteAuthLimiter, handlePasteView);
-app.get('/api/paste/view/:code', handlePasteView);
+app.post('/api/paste/view/:code', pasteAuthLimiter, viewerLimiter, handlePasteView);
+app.get('/api/paste/view/:code', viewerLimiter, handlePasteView);
 
 // 5c. Serve raw plain text paste
-app.get('/api/paste/raw/:code', async (req, res) => {
+app.get('/api/paste/raw/:code', viewerLimiter, async (req, res) => {
   try {
     const code = req.params.code;
     const stored = inMemoryStore.get(`paste:${code}`) || (await redis.get(`paste:${code}`).catch(() => null));
     if (!stored) {
+      logScannerTelemetry(req, 'Raw paste not found');
       return res.status(404).set('Content-Type', 'text/plain; charset=utf-8').set('X-Content-Type-Options', 'nosniff').send('Error 404: Paste not found or expired.');
     }
 
@@ -2136,7 +2222,7 @@ app.get('/api/drop/list', async (req, res) => {
 });
 
 // 5. Get File Info & Telemetry Endpoint (Local Store Cache + Rootz API Proxy)
-app.get('/api/drop/info', async (req, res) => {
+app.get('/api/drop/info', viewerLimiter, async (req, res) => {
   try {
     const fileCode = req.query.file_code || req.query.shortId || req.query.id;
     if (!fileCode) {
@@ -2246,11 +2332,12 @@ app.get('/api/drop/info', async (req, res) => {
 });
 
 // 6. Direct Rootz Raw Binary File & Stream Proxy (Handles JSON URLs, Redirects, & Binary Streams)
-app.get(['/api/drop/file/:filename', '/api/drop/stream/:filename'], async (req, res) => {
+app.get(['/api/drop/file/:filename', '/api/drop/stream/:filename'], viewerLimiter, async (req, res) => {
   try {
     const fileCode = req.params.filename;
 
     const render404 = () => {
+      logScannerTelemetry(req, 'Drop file not found');
       return res.status(404).send(renderTemplate('404.html', {
         title: '404 — File Not Found | pokedb.site',
         command: `get /api/drop/stream/${htmlEscape(fileCode)}`,
