@@ -505,11 +505,17 @@ describe('URL Shortener API Suite', () => {
   });
 
   test('13i. Drop folder creation generates 8-character Crockford Base32 ID', async () => {
-    const folderRes = await request(app)
-      .post('/api/drop/create-folder')
-      .send({ name: 'crockford-test', totalSize: 1024, fileCount: 1 });
-    expect(folderRes.status).toBe(200);
-    expect(folderRes.body.folderCode).toMatch(/^[23456789abcdefghjkmnpqrstuvwxyz]{8}$/);
+    const originalFetch = global.fetch;
+    global.fetch = jest.fn().mockResolvedValue({ ok: true, status: 200, json: async () => ({ data: { id: 'test-folder' } }) });
+    try {
+      const folderRes = await request(app)
+        .post('/api/drop/create-folder')
+        .send({ name: 'crockford-test', totalSize: 1024, fileCount: 1 });
+      expect(folderRes.status).toBe(200);
+      expect(folderRes.body.folderCode).toMatch(/^[23456789abcdefghjkmnpqrstuvwxyz]{8}$/);
+    } finally {
+      global.fetch = originalFetch;
+    }
   });
 
   test('14. Enforce the shared API rate limit', async () => {

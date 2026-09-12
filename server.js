@@ -1152,7 +1152,7 @@ app.post('/api/drop/create-folder', async (req, res) => {
           method: 'POST',
           headers: rootzHeaders({ 'Content-Type': 'application/json' }),
           body: JSON.stringify({ name: folderName }),
-          signal: AbortSignal.timeout(15000)
+          signal: AbortSignal.timeout(2500)
         });
         const rootzData = await rootzRes.json();
         if (rootzRes.ok && rootzData.data) {
