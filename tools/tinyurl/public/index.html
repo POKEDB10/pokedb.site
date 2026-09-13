@@ -10,7 +10,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/shared/theme.css">
+<link rel="stylesheet" href="/shared/theme.css?v=20260913-modal-ui">
 <script src="/shared/theme-switcher.js?v=3"></script>
 <script src="/shared/utils.js"></script>
 <script src="/shared/site.js"></script>
@@ -227,27 +227,63 @@ input:focus, select:focus {
       <div class="alias-suggestions" id="alias-suggestions" aria-live="polite"></div>
     </form>
 
-    <div class="result-card" id="shorten-result">
-      <div class="result-header">
-        <div>
-          <span class="eyebrow">$ tinyurl --result</span>
-          <a class="result-url" id="short-link-href" href="#" target="_blank" rel="noopener"></a>
+    <!-- Result Modal (Pops up directly when link is created) -->
+    <div class="result-modal-backdrop" id="shorten-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+      <div class="result-modal-dialog">
+        <div class="modal-header">
+          <div class="modal-title-group">
+            <span class="eyebrow" style="margin-bottom:.25rem;">$ tinyurl --success</span>
+            <h2 id="modal-title">Short Link Generated</h2>
+          </div>
+          <button class="modal-close-btn" id="modal-close-btn" type="button" aria-label="Close dialog">✕</button>
         </div>
-        <button class="btn" id="copy-btn">Copy Link</button>
-      </div>
-      <div class="stats-badge" id="stats-info"></div>
 
-      <!-- QR Display Section (Shown when Generate QR Code checkbox is checked) -->
-      <div class="qr-display-wrap" id="qr-result-wrap">
-        <div class="qr-canvas-container">
-          <div id="qr-container" style="width:160px; height:160px;"></div>
+        <div class="modal-url-box">
+          <input type="text" id="modal-url-input" class="modal-url-input" readonly>
+          <button class="btn btn-solid" id="modal-copy-btn" type="button" style="padding:.4rem .85rem; font-size:.8rem; min-height:36px; white-space:nowrap;">
+            Copy
+          </button>
         </div>
-        <div class="qr-actions">
-          <span class="eyebrow">Export QR Code</span>
-          <button class="btn" id="download-png-btn">Download PNG</button>
-          <button class="btn" id="download-svg-btn">Download SVG</button>
+
+        <div class="modal-meta-grid">
+          <div class="modal-meta-item">
+            <span class="modal-meta-label">Short Code</span>
+            <span class="modal-meta-val" id="modal-code-val">—</span>
+          </div>
+          <div class="modal-meta-item">
+            <span class="modal-meta-label">Expiration</span>
+            <span class="modal-meta-val" id="modal-expiry-val">—</span>
+          </div>
+          <div class="modal-meta-item">
+            <span class="modal-meta-label">Security</span>
+            <span class="modal-meta-val" style="color:var(--success);">● Active &amp; Clean</span>
+          </div>
+        </div>
+
+        <!-- QR Display Section (Shown when Generate QR Code checkbox is checked) -->
+        <div id="modal-qr-wrap" style="display:none; text-align:center; padding-top:1rem; border-top:1px solid var(--border); margin-top:.75rem;">
+          <div style="background:#fff; padding:.5rem; border-radius:12px; display:inline-block; box-shadow:0 8px 24px rgba(0,0,0,0.25);">
+            <div id="modal-qr-container" style="width:160px; height:160px;"></div>
+          </div>
+          <div style="display:flex; gap:.5rem; justify-content:center; margin-top:.85rem; flex-wrap:wrap;">
+            <button class="btn" id="modal-dl-png" type="button" style="font-size:.78rem; padding:.4rem .75rem;">Download PNG</button>
+            <button class="btn" id="modal-dl-svg" type="button" style="font-size:.78rem; padding:.4rem .75rem;">Download SVG</button>
+          </div>
+        </div>
+
+        <div class="modal-actions-bar">
+          <a class="btn" id="modal-open-link" href="#" target="_blank" rel="noopener">Open Link ↗</a>
+          <button class="btn btn-solid" id="modal-done-btn" type="button">Done</button>
         </div>
       </div>
+    </div>
+
+    <!-- Hidden compatibility nodes for existing script/tests if referenced -->
+    <div class="result-card" id="shorten-result" style="display:none !important;">
+      <a class="result-url" id="short-link-href" href="#"></a>
+      <div id="stats-info"></div>
+      <button id="copy-btn"></button>
+      <div id="qr-result-wrap"><div id="qr-container"></div><button id="download-png-btn"></button><button id="download-svg-btn"></button></div>
     </div>
   </section>
 
@@ -260,7 +296,7 @@ input:focus, select:focus {
   </div>
 </footer>
 
-<script src="./app.js?v=20260808-qr-reliability"></script>
+<script src="./app.js?v=20260913-modal-ui"></script>
 
 </body>
 </html>

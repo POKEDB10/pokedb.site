@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/shared/theme.css">
+<link rel="stylesheet" href="/shared/theme.css?v=20260913-modal-ui">
 <script src="/shared/theme-switcher.js?v=3"></script>
 <script src="/shared/utils.js"></script>
 <script src="/shared/site.js"></script>
@@ -352,7 +352,7 @@ input:focus, select:focus {
         </div>
       </div>
 
-      <!-- Right Column: Live Preview & Exports (Hidden until QR code is generated) -->
+      <!-- Right Column: Live Preview & Exports (Kept for desktop synchronization) -->
       <div class="card-box preview-sticky" id="preview-col">
         <span class="eyebrow">$ qr --live-preview</span>
 
@@ -367,6 +367,47 @@ input:focus, select:focus {
       </div>
 
     </div>
+
+    <!-- Result Modal (Pops up directly when QR is generated) -->
+    <div class="result-modal-backdrop" id="qr-result-modal" role="dialog" aria-modal="true" aria-labelledby="qr-modal-title">
+      <div class="result-modal-dialog" style="text-align:center;">
+        <div class="modal-header">
+          <div class="modal-title-group" style="text-align:left;">
+            <span class="eyebrow" style="margin-bottom:.25rem;">$ qrcode --ready</span>
+            <h2 id="qr-modal-title">QR Code Generated</h2>
+          </div>
+          <button class="modal-close-btn" id="qr-modal-close-btn" type="button" aria-label="Close dialog">✕</button>
+        </div>
+
+        <div class="qr-frame" id="modal-qr-frame-box" style="margin: 0 auto; width: min(100%, 220px); background: #ffffff; padding: 0.5rem; border-radius: 14px; box-shadow: 0 10px 30px rgba(0,0,0,0.3);">
+          <img id="modal-qr-img" width="200" height="200" alt="Generated QR Code" style="display:block; width:100%; height:auto; border-radius:6px;">
+        </div>
+
+        <div class="modal-url-box" style="margin-top:1.25rem;">
+          <input type="text" id="modal-payload-input" class="modal-url-input" readonly>
+          <button class="btn btn-solid" id="modal-qr-copy-payload-btn" type="button" style="padding:.4rem .85rem; font-size:.8rem; min-height:36px; white-space:nowrap;">
+            Copy
+          </button>
+        </div>
+
+        <div class="modal-meta-grid" style="text-align:left; margin-bottom:.5rem;">
+          <div class="modal-meta-item">
+            <span class="modal-meta-label">Payload Type</span>
+            <span class="modal-meta-val" id="modal-payload-type">URL / Text</span>
+          </div>
+          <div class="modal-meta-item">
+            <span class="modal-meta-label">Error Correction</span>
+            <span class="modal-meta-val">Level H (30% ECC)</span>
+          </div>
+        </div>
+
+        <div class="modal-actions-bar">
+          <button class="btn btn-solid" id="modal-export-png-btn" type="button">Download PNG</button>
+          <button class="btn" id="modal-export-svg-btn" type="button">Download SVG</button>
+          <button class="btn" id="modal-qr-done-btn" type="button">Done</button>
+        </div>
+      </div>
+    </div>
   </section>
 
 </main>
@@ -378,7 +419,7 @@ input:focus, select:focus {
   </div>
 </footer>
 
-<script src="./app.js?v=20260808-qr-reliability"></script>
+<script src="./app.js?v=20260913-modal-ui"></script>
 
 </body>
 </html>

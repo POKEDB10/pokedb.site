@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/shared/theme.css">
+<link rel="stylesheet" href="/shared/theme.css?v=20260913-modal-ui">
 <script src="/shared/theme-switcher.js?v=3"></script>
 <script src="/shared/utils.js"></script>
 <script src="/shared/site.js"></script>
@@ -182,10 +182,82 @@
     </form>
   </main>
 
+  <!-- Paste Result Modal -->
+  <div class="result-modal-backdrop" id="paste-result-modal" role="dialog" aria-modal="true" aria-labelledby="paste-modal-title">
+    <div class="result-modal-dialog">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <span class="eyebrow">$ pastebin --ready</span>
+          <h2 id="paste-modal-title">Paste Created Successfully</h2>
+        </div>
+        <button class="modal-close-btn" id="paste-modal-close-btn" type="button" aria-label="Close dialog">✕</button>
+      </div>
+
+      <div class="modal-url-box">
+        <input type="text" id="modal-paste-url" class="modal-url-input" readonly>
+        <button class="btn btn-solid" id="modal-paste-copy-btn" type="button" style="padding:.4rem .85rem; font-size:.8rem; min-height:36px; white-space:nowrap;">Copy Link</button>
+      </div>
+
+      <div class="modal-meta-grid">
+        <div class="modal-meta-item">
+          <span class="modal-meta-label">Language</span>
+          <span class="modal-meta-val" id="modal-paste-lang">Plain Text</span>
+        </div>
+        <div class="modal-meta-item">
+          <span class="modal-meta-label">Retention</span>
+          <span class="modal-meta-val" id="modal-paste-expiry">30 Days</span>
+        </div>
+      </div>
+
+      <div class="modal-actions-bar">
+        <a class="btn btn-solid" id="modal-paste-view-btn" href="#" target="_blank" rel="noopener" style="text-decoration:none;">View Paste ↗</a>
+        <a class="btn" id="modal-paste-raw-btn" href="#" target="_blank" rel="noopener" style="text-decoration:none;">Raw Text</a>
+        <button class="btn" id="modal-paste-done-btn" type="button">Done</button>
+      </div>
+    </div>
+  </div>
+
   <script>
   (function () {
     var textarea = document.getElementById('paste-content');
     var charCounter = document.getElementById('char-counter');
+    var pasteModal = document.getElementById('paste-result-modal');
+    var pasteCloseBtn = document.getElementById('paste-modal-close-btn');
+    var pasteDoneBtn = document.getElementById('modal-paste-done-btn');
+    var pasteCopyBtn = document.getElementById('modal-paste-copy-btn');
+    var pasteUrlInput = document.getElementById('modal-paste-url');
+
+    function closePasteModal() {
+      if (pasteModal) pasteModal.classList.remove('is-open');
+    }
+
+    if (pasteCloseBtn) pasteCloseBtn.addEventListener('click', closePasteModal);
+    if (pasteDoneBtn) pasteDoneBtn.addEventListener('click', closePasteModal);
+    if (pasteModal) {
+      pasteModal.addEventListener('click', function (e) {
+        if (e.target === pasteModal) closePasteModal();
+      });
+    }
+    window.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && pasteModal && pasteModal.classList.contains('is-open')) {
+        closePasteModal();
+      }
+    });
+
+    if (pasteCopyBtn) {
+      pasteCopyBtn.addEventListener('click', function () {
+        if (!pasteUrlInput || !pasteUrlInput.value) return;
+        navigator.clipboard.writeText(pasteUrlInput.value).then(function () {
+          var original = pasteCopyBtn.textContent;
+          pasteCopyBtn.textContent = 'Copied!';
+          setTimeout(function () { pasteCopyBtn.textContent = original; }, 1800);
+          if (window.showToast) window.showToast('Paste link copied to clipboard');
+        }).catch(function () {
+          pasteUrlInput.select();
+          document.execCommand('copy');
+        });
+      });
+    }
 
     textarea.addEventListener('input', function () {
       var text = textarea.value;
@@ -204,14 +276,17 @@
       btn.textContent = 'Creating Paste…';
 
       try {
+        var langSelect = document.getElementById('paste-language');
+        var expirySelect = document.getElementById('paste-expiry');
+
         var res = await fetch('/api/paste/create', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             content: content,
             title: document.getElementById('paste-title').value.trim(),
-            language: document.getElementById('paste-language').value,
-            expiresInDays: document.getElementById('paste-expiry').value,
+            language: langSelect.value,
+            expiresInDays: expirySelect.value,
             burnOnRead: document.getElementById('paste-burn').checked,
             password: document.getElementById('paste-password').value
           })
@@ -219,7 +294,19 @@
         var data = await res.json();
         if (!res.ok || !data.success) throw new Error(data.error || 'Failed to create paste.');
 
-        window.location.href = data.url;
+        // Populate and show pop-up result modal
+        pasteUrlInput.value = data.url;
+        document.getElementById('modal-paste-view-btn').href = data.url;
+        document.getElementById('modal-paste-raw-btn').href = data.url + '/raw';
+        document.getElementById('modal-paste-lang').textContent = langSelect.options[langSelect.selectedIndex].text;
+        document.getElementById('modal-paste-expiry').textContent = expirySelect.options[expirySelect.selectedIndex].text;
+
+        if (pasteModal) pasteModal.classList.add('is-open');
+        btn.disabled = false;
+        btn.textContent = 'Create Paste';
+
+        // Auto copy to clipboard for user convenience
+        navigator.clipboard.writeText(data.url).catch(function () {});
       } catch (err) {
         if (window.showToast) window.showToast('Error: ' + err.message);
         else alert(err.message);

@@ -594,6 +594,9 @@
   function displayResult(result) {
     currentResultData = result;
     element('result-card').style.display = 'block';
+    var dropModal = document.getElementById('drop-result-modal');
+    if (dropModal) dropModal.classList.add('is-open');
+
     if (window.PokeDbUtils && window.PokeDbUtils.renderFileIcon) {
       window.PokeDbUtils.renderFileIcon(element('res-file-icon'), result.name || 'file', false);
     } else {
@@ -613,6 +616,9 @@
   function displayFolderResult(batch) {
     currentResultData = batch;
     element('result-card').style.display = 'block';
+    var dropModal = document.getElementById('drop-result-modal');
+    if (dropModal) dropModal.classList.add('is-open');
+
     if (window.PokeDbUtils && window.PokeDbUtils.renderFileIcon) {
       window.PokeDbUtils.renderFileIcon(element('res-file-icon'), '', true);
     } else {
@@ -852,11 +858,37 @@
     });
 
     element('copy-link-btn').addEventListener('click', function () {
-      navigator.clipboard.writeText(element('res-share-link').value);
-      this.textContent = 'Copied';
-      if (window.showToast) window.showToast('Link copied to clipboard');
-      var button = this;
-      setTimeout(function () { button.textContent = '$ copy'; }, 1500);
+      var shareInput = element('res-share-link');
+      if (!shareInput || !shareInput.value) return;
+      navigator.clipboard.writeText(shareInput.value).then(function () {
+        var btn = element('copy-link-btn');
+        var original = btn.textContent;
+        btn.textContent = 'Copied!';
+        setTimeout(function () { btn.textContent = original; }, 1800);
+        if (window.showToast) window.showToast('Download link copied to clipboard');
+      }).catch(function () {
+        shareInput.select();
+        document.execCommand('copy');
+      });
+    });
+
+    // Drop Result Modal Handlers
+    function closeDropModal() {
+      var modal = document.getElementById('drop-result-modal');
+      if (modal) modal.classList.remove('is-open');
+    }
+    var dropCloseBtn = document.getElementById('drop-modal-close-btn');
+    var dropDoneBtn = document.getElementById('drop-modal-done-btn');
+    var dropModalEl = document.getElementById('drop-result-modal');
+    if (dropCloseBtn) dropCloseBtn.addEventListener('click', closeDropModal);
+    if (dropDoneBtn) dropDoneBtn.addEventListener('click', closeDropModal);
+    if (dropModalEl) {
+      dropModalEl.addEventListener('click', function (e) {
+        if (e.target === dropModalEl) closeDropModal();
+      });
+    }
+    window.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') closeDropModal();
     });
 
     element('delete-res-file-btn').addEventListener('click', function () {

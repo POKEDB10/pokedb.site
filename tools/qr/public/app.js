@@ -118,6 +118,25 @@
           imgEl.style.animation = 'none';
           imgEl.offsetHeight; /* trigger reflow */
           imgEl.style.animation = 'popIn 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+
+          // Open popup result modal
+          var modal = document.getElementById('qr-result-modal');
+          var modalImg = document.getElementById('modal-qr-img');
+          var modalInput = document.getElementById('modal-payload-input');
+          var modalType = document.getElementById('modal-payload-type');
+
+          if (modalImg) modalImg.src = lastCompositeDataUrl;
+          if (modalInput) modalInput.value = activeText;
+          if (modalType) {
+            var typeLabel = 'URL / Web Link';
+            if (activeTab === 'wifi') typeLabel = 'Wi-Fi Network';
+            else if (activeTab === 'email') typeLabel = 'Email Message';
+            else if (activeTab === 'text') typeLabel = 'Plain Text';
+            modalType.textContent = typeLabel;
+          }
+          if (modal) {
+            modal.classList.add('is-open');
+          }
         }
 
         if (emblemChoice === 'none') {
@@ -313,6 +332,61 @@
         alert('Unable to export SVG. Please try again.');
       }
     });
+
+    // QR Result Modal Handlers
+    var qrModal = document.getElementById('qr-result-modal');
+    var qrModalCloseBtn = document.getElementById('qr-modal-close-btn');
+    var qrModalDoneBtn = document.getElementById('modal-qr-done-btn');
+    var qrModalCopyBtn = document.getElementById('modal-qr-copy-payload-btn');
+    var qrModalPngBtn = document.getElementById('modal-export-png-btn');
+    var qrModalSvgBtn = document.getElementById('modal-export-svg-btn');
+
+    function closeQrModal() {
+      if (qrModal) qrModal.classList.remove('is-open');
+    }
+
+    if (qrModalCloseBtn) qrModalCloseBtn.addEventListener('click', closeQrModal);
+    if (qrModalDoneBtn) qrModalDoneBtn.addEventListener('click', closeQrModal);
+    if (qrModal) {
+      qrModal.addEventListener('click', function (e) {
+        if (e.target === qrModal) closeQrModal();
+      });
+    }
+    window.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && qrModal && qrModal.classList.contains('is-open')) {
+        closeQrModal();
+      }
+    });
+
+    if (qrModalCopyBtn) {
+      qrModalCopyBtn.addEventListener('click', function () {
+        var input = document.getElementById('modal-payload-input');
+        if (!input || !input.value) return;
+        navigator.clipboard.writeText(input.value).then(function () {
+          var original = qrModalCopyBtn.textContent;
+          qrModalCopyBtn.textContent = 'Copied!';
+          setTimeout(function () { qrModalCopyBtn.textContent = original; }, 1800);
+          if (window.showToast) window.showToast('Content copied to clipboard');
+        }).catch(function () {
+          input.select();
+          document.execCommand('copy');
+        });
+      });
+    }
+
+    if (qrModalPngBtn) {
+      qrModalPngBtn.addEventListener('click', function () {
+        var dlBtn = document.getElementById('export-png-btn');
+        if (dlBtn) dlBtn.click();
+      });
+    }
+
+    if (qrModalSvgBtn) {
+      qrModalSvgBtn.addEventListener('click', function () {
+        var svgBtn = document.getElementById('export-svg-btn');
+        if (svgBtn) svgBtn.click();
+      });
+    }
 
     // Re-render if generated and theme changes
     window.addEventListener('themeChanged', function () {
