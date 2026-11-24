@@ -34,7 +34,7 @@
     "ioredis": "^5.4.1",
     "jest": "^30.5.2",
     "lighthouse": "^13.6.0",
-    "rate-limit-redis": "^4.2.0",
+    "rate-limit-redis": "^6.0.2",
     "supertest": "^7.0.0"
   },
   "overrides": {
