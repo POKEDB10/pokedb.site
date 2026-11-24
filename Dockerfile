@@ -2,7 +2,7 @@
 # Compliant with Task P2.9, Hadolint rules, and Alpine non-root security standards
 
 # Stage 1: Obtain Litestream replication binary with TARGETARCH support and pinned SHA256 digests
-FROM alpine:3.21 AS litestream
+FROM alpine:3.24 AS litestream
 ARG TARGETARCH
 ARG LITESTREAM_VERSION=v0.3.13
 # Official GitHub release digests (verified from published release assets):
