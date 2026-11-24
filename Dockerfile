@@ -22,7 +22,7 @@ RUN apk add --no-cache curl ca-certificates \
     && chmod +x /usr/local/bin/litestream
 
 # Stage 2: Install production dependencies
-FROM node:24-alpine3.21 AS deps
+FROM node:25-alpine3.21 AS deps
 
 WORKDIR /app
 
@@ -30,7 +30,7 @@ COPY package*.json ./
 RUN npm ci --omit=dev && npm cache clean --force
 
 # Stage 3: Runtime container
-FROM node:24-alpine3.21 AS runner
+FROM node:25-alpine3.21 AS runner
 
 WORKDIR /app
 
