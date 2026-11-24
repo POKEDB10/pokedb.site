@@ -1,0 +1,7 @@
+# Security Policy for pokedb.site (RFC 9116)
+Contact: mailto:security@pokedb.site
+Expires: 2027-12-31T23:59:59.000Z
+Preferred-Languages: en
+Canonical: https://pokedb.site/.well-known/security.txt
+Policy: https://pokedb.site/terms
+Acknowledgments: https://pokedb.site/

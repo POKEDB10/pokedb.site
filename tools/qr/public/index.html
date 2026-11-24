@@ -2,13 +2,12 @@
 <html lang="en" data-theme="oled-black">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>QR Code Studio — pokedb.site</title>
 <meta name="description" content="Feature-rich, self-hosted QR code studio with custom themes, colors, center badges, and PNG/SVG exports.">
-
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/fonts/fonts.css">
+<link rel="preload" href="/fonts/ibm-plex-mono-400.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/fonts/ibm-plex-sans-400.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/shared/theme.css?v=20260913-modal-ui">
 <script src="/shared/theme-switcher.js?v=3"></script>
 <script src="/shared/utils.js"></script>
@@ -167,6 +166,7 @@ input:focus, select:focus {
 </style>
 </head>
 <body>
+<a href="#main" class="skip-link">Skip to main content</a>
 
 <header class="site-nav">
   <a class="logo" href="https://pokedb.site/" data-nav="main">root<span>@</span>pokedb</a>
@@ -197,7 +197,7 @@ input:focus, select:focus {
   </div>
 </header>
 
-<main class="container">
+<main id="main" class="container">
 
   <section class="section" style="border-top:none; padding-top:2.5rem;">
     <div style="margin-bottom: 1.5rem;">
@@ -221,11 +221,11 @@ input:focus, select:focus {
               <svg class="icon-svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
               Web Link / Text
             </button>
-            <button class="tab-btn" data-tab="wifi">
+            <button class="tab-btn" type="button" tabindex="-1" data-tab="wifi">
               <svg class="icon-svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;"><path d="M5 12.55a11 11 0 0 1 14.08 0"></path><path d="M1.42 9a16 16 0 0 1 21.16 0"></path><path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path><line x1="12" y1="20" x2="12.01" y2="20"></line></svg>
               Wi-Fi Network
             </button>
-            <button class="tab-btn" data-tab="email">
+            <button class="tab-btn" type="button" tabindex="-1" data-tab="email">
               <svg class="icon-svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
               Email Payload
             </button>
@@ -237,6 +237,7 @@ input:focus, select:focus {
               <label for="url-input">URL or Plain Text Payload</label>
               <input type="text" id="url-input" placeholder="https://example.com or text payload..." value="https://pokedb.site">
             </div>
+          <button class="btn btn-solid" id="generate-btn" style="width:100%; justify-content:center; padding:.8rem; margin-top:.75rem;">Generate QR Code</button>
           </div>
 
           <!-- Payload Form: Wi-Fi -->
@@ -292,10 +293,10 @@ input:focus, select:focus {
               </select>
             </div>
             <div class="form-group" id="custom-fg-wrap" style="display:none;">
-              <label>Custom Hex</label>
+              <label for="custom-fg-text">Custom Foreground Hex</label>
               <div class="color-swatch-picker">
-                <input type="color" id="custom-fg-picker" value="#000000">
-                <input type="text" id="custom-fg-text" value="#000000" maxlength="7">
+                <input type="color" id="custom-fg-picker" aria-label="Custom foreground color picker" value="#000000">
+                <input type="text" id="custom-fg-text" aria-label="Custom foreground hex code" value="#000000" maxlength="7">
               </div>
             </div>
           </div>
@@ -311,10 +312,10 @@ input:focus, select:focus {
               </select>
             </div>
             <div class="form-group" id="custom-bg-wrap" style="display:none;">
-              <label>Custom Hex</label>
+              <label for="custom-bg-text">Custom Background Hex</label>
               <div class="color-swatch-picker">
-                <input type="color" id="custom-bg-picker" value="#ffffff">
-                <input type="text" id="custom-bg-text" value="#ffffff" maxlength="7">
+                <input type="color" id="custom-bg-picker" aria-label="Custom background color picker" value="#ffffff">
+                <input type="text" id="custom-bg-text" aria-label="Custom background hex code" value="#ffffff" maxlength="7">
               </div>
             </div>
           </div>
@@ -345,10 +346,7 @@ input:focus, select:focus {
           </div>
 
           <!-- GENERATE BUTTON -->
-          <button class="btn btn-solid" id="generate-btn" style="width:100%; justify-content:center; padding: .85rem 1.25rem; font-size: .95rem; margin-top: .75rem;">
-            <svg class="icon-svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
-            Generate QR Code
-          </button>
+          
         </div>
       </div>
 
@@ -419,7 +417,8 @@ input:focus, select:focus {
   </div>
 </footer>
 
-<script src="./app.js?v=20260913-modal-ui"></script>
+<script src="/shared/qrcode.min.js"></script>
+<script src="./app.js"></script>
 
 </body>
 </html>

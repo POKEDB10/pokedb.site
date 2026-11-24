@@ -2,18 +2,18 @@
 <html lang="en" data-theme="oled-black">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Tools Hub — pokedb.site</title>
 <meta name="description" content="Self-hosted developer utilities, shortener, QR generator, and micro-tools.">
-
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/fonts/fonts.css">
+<link rel="preload" href="/fonts/ibm-plex-mono-400.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/fonts/ibm-plex-sans-400.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/shared/theme.css">
 <script src="/shared/theme-switcher.js?v=3"></script>
 
 </head>
 <body>
+<a href="#main" class="skip-link">Skip to main content</a>
 
 <header class="site-nav">
   <a class="logo" href="https://pokedb.site/" data-nav="main">root<span>@</span>pokedb</a>
@@ -44,7 +44,7 @@
   </div>
 </header>
 
-<main class="container">
+<main id="main" class="container">
 
   <section class="hero">
     <div class="term-window">
@@ -56,7 +56,7 @@
         <div class="out">drwxr-xr-x  pastebin/  [Pokedb Security Pastebin]        -> LIVE</div>
         <div class="out">drwxr-xr-x  tinyurl/   [TinyURL Shortener & Optional QR] -> LIVE</div>
         <div class="out">drwxr-xr-x  qr/        [Standalone QR Code Generator]    -> LIVE</div>
-        <div class="out">drwxr-xr-x  drop/      [Fast File Drop & Remote Upload]  -> LIVE<span class="cursor"></span></div>
+        <div class="out">drwxr-xr-x  drop/      [Direct R2 File Drop Gateway]    -> LIVE<span class="cursor"></span></div>
       </div>
     </div>
 
@@ -113,7 +113,7 @@
         <div class="tool-footer">Launch QR Generator →</div>
       </a>
 
-      <!-- Tool 6: File Storage Drop (Rootz) -->
+      <!-- Tool 6: File Storage Drop -->
       <a class="tool-card" href="https://drop.pokedb.site/" data-nav="drop">
         <div>
           <div class="tool-header">
@@ -121,7 +121,7 @@
             <span class="status-pill">● LIVE</span>
           </div>
           <p class="tool-desc" style="margin-top: .75rem;">
-            Fast file drop & remote URL upload powered by Rootz API & local fallback. SHA-256 stream integrity, progress bars & instant links.
+            Direct Cloudflare R2 presigned file transfers with parallel chunks, pause/resume, folder batches, burn-on-download &amp; SHA-256 integrity.
           </p>
         </div>
         <div class="tool-footer">Launch Drop →</div>
@@ -139,6 +139,142 @@
           </p>
         </div>
         <div class="tool-footer">Launch Health Dashboard →</div>
+      </a>
+
+    </div>
+  </section>
+
+  <section class="section" style="border-top: 1px solid var(--border);">
+    <span class="eyebrow">$ offline --zero-egress</span>
+    <h2 style="font-size:1.3rem; margin-bottom: 0.5rem;">Offline Developer Utilities</h2>
+    <p style="color:var(--muted); font-size:0.9rem; margin-bottom:1.5rem;">Client-side web applications operating under strict <code>connect-src 'none'</code> CSP. No inputs or keys ever leave your browser.</p>
+
+    <div class="tools-grid">
+
+      <!-- Tool: JSON Formatter -->
+      <a class="tool-card" href="/tools/json" data-nav="json">
+        <div>
+          <div class="tool-header">
+            <span class="tool-title">JSON Formatter &amp; Validator</span>
+            <span class="status-pill" style="color:var(--success); border-color:var(--success);">● OFFLINE</span>
+          </div>
+          <p class="tool-desc" style="margin-top: .75rem;">
+            Fast client-side JSON formatting, minification, byte counting, syntax error detection, and URL state sharing.
+          </p>
+        </div>
+        <div class="tool-footer">Launch JSON Tool →</div>
+      </a>
+
+      <!-- Tool: JWT Inspector -->
+      <a class="tool-card" href="/tools/jwt" data-nav="jwt">
+        <div>
+          <div class="tool-header">
+            <span class="tool-title">JWT Inspector &amp; Verifier</span>
+            <span class="status-pill" style="color:var(--success); border-color:var(--success);">● OFFLINE</span>
+          </div>
+          <p class="tool-desc" style="margin-top: .75rem;">
+            Decode claims, verify expiration timelines, and validate HMAC SHA-256 signatures locally via WebCrypto.
+          </p>
+        </div>
+        <div class="tool-footer">Launch JWT Tool →</div>
+      </a>
+
+      <!-- Tool: Codec -->
+      <a class="tool-card" href="/tools/codec" data-nav="codec">
+        <div>
+          <div class="tool-header">
+            <span class="tool-title">Base64, Hex &amp; URL Codec</span>
+            <span class="status-pill" style="color:var(--success); border-color:var(--success);">● OFFLINE</span>
+          </div>
+          <p class="tool-desc" style="margin-top: .75rem;">
+            Instant two-way conversion between Plain Text, Base64, Base64URL, Hexadecimal, URL, and Binary bits.
+          </p>
+        </div>
+        <div class="tool-footer">Launch Codec →</div>
+      </a>
+
+      <!-- Tool: Hash Studio -->
+      <a class="tool-card" href="/tools/hash" data-nav="hash">
+        <div>
+          <div class="tool-header">
+            <span class="tool-title">Cryptographic Hash Studio</span>
+            <span class="status-pill" style="color:var(--success); border-color:var(--success);">● OFFLINE</span>
+          </div>
+          <p class="tool-desc" style="margin-top: .75rem;">
+            WebCrypto SHA-256, SHA-512, SHA-384, SHA-1 hashing and streaming client-side file checksum validation.
+          </p>
+        </div>
+        <div class="tool-footer">Launch Hash Studio →</div>
+      </a>
+
+      <!-- Tool: UUID Generator -->
+      <a class="tool-card" href="/tools/uuid" data-nav="uuid">
+        <div>
+          <div class="tool-header">
+            <span class="tool-title">UUID &amp; ULID Generator</span>
+            <span class="status-pill" style="color:var(--success); border-color:var(--success);">● OFFLINE</span>
+          </div>
+          <p class="tool-desc" style="margin-top: .75rem;">
+            Cryptographic UUID v4, time-ordered UUID v7 (RFC 9562), and Crockford ULID generation and timestamp decoding.
+          </p>
+        </div>
+        <div class="tool-footer">Launch UUID Generator →</div>
+      </a>
+
+      <!-- Tool: Cron Explainer -->
+      <a class="tool-card" href="/tools/cron" data-nav="cron">
+        <div>
+          <div class="tool-header">
+            <span class="tool-title">Cron Expression Explainer</span>
+            <span class="status-pill" style="color:var(--success); border-color:var(--success);">● OFFLINE</span>
+          </div>
+          <p class="tool-desc" style="margin-top: .75rem;">
+            Human-readable 5-part cron syntax parser, field breakdown, and upcoming execution timestamp projector.
+          </p>
+        </div>
+        <div class="tool-footer">Launch Cron Explainer →</div>
+      </a>
+
+      <!-- Tool: Text Diff -->
+      <a class="tool-card" href="/tools/diff" data-nav="diff">
+        <div>
+          <div class="tool-header">
+            <span class="tool-title">Text Diff Studio</span>
+            <span class="status-pill" style="color:var(--success); border-color:var(--success);">● OFFLINE</span>
+          </div>
+          <p class="tool-desc" style="margin-top: .75rem;">
+            Line-by-line visual text difference comparison in pure browser JavaScript with zero external libraries.
+          </p>
+        </div>
+        <div class="tool-footer">Launch Diff Studio →</div>
+      </a>
+
+      <!-- Tool: Minecraft Toolkit -->
+      <a class="tool-card" href="/tools/minecraft" data-nav="minecraft">
+        <div>
+          <div class="tool-header">
+            <span class="tool-title">Minecraft Server Toolkit</span>
+            <span class="status-pill" style="color:var(--success); border-color:var(--success);">● OFFLINE</span>
+          </div>
+          <p class="tool-desc" style="margin-top: .75rem;">
+            Official PaperMC / Aikar JVM startup flags generator, server.properties generator, and live MOTD preview.
+          </p>
+        </div>
+        <div class="tool-footer">Launch Minecraft Toolkit →</div>
+      </a>
+
+      <!-- Tool: Log Sanitizer -->
+      <a class="tool-card" href="/tools/sanitizer" data-nav="sanitizer">
+        <div>
+          <div class="tool-header">
+            <span class="tool-title">Log &amp; Secret Sanitizer</span>
+            <span class="status-pill" style="color:var(--success); border-color:var(--success);">● OFFLINE</span>
+          </div>
+          <p class="tool-desc" style="margin-top: .75rem;">
+            Client-side redaction of IP addresses, emails, Bearer tokens, JWT secrets, and user filesystem paths.
+          </p>
+        </div>
+        <div class="tool-footer">Launch Log Sanitizer →</div>
       </a>
 
     </div>
@@ -168,6 +304,7 @@
 })();
 </script>
 -->
+<!-- Cloudflare Web Analytics (Landing & Tools Hub only; never on client tools - Task P8.3, C9): beacon.min.js -->
 <script src="/shared/site.js"></script>
 
 </body>

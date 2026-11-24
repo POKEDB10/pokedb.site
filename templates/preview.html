@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="oled-black">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="robots" content="noindex, nofollow, noarchive">
+  <title>Link Preview &amp; Stats: {{code}} — pokedb.site</title>
+  <link rel="stylesheet" href="/fonts/fonts.css">
+  <link rel="stylesheet" href="/tools/shared/theme.css">
+  <script src="/tools/shared/theme-switcher.js?v=3"></script>
+  <script src="/tools/shared/qrcode.min.js"></script>
+  <style>
+    .preview-card {
+      max-width: 680px;
+      margin: clamp(1rem, 4vw, 2rem) auto;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: var(--surface);
+      box-shadow: var(--shadow);
+      padding: clamp(1.1rem, 4vw, 2rem);
+    }
+    .dest-box {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.85rem 1rem;
+      margin: 1rem 0;
+      word-break: break-all;
+      font-family: var(--font-mono);
+      font-size: 0.95rem;
+      color: var(--accent);
+    }
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 0.75rem;
+      margin: 1.25rem 0;
+    }
+    .stat-card {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0.75rem;
+      text-align: center;
+    }
+    .stat-num { font-size: 1.35rem; font-family: var(--font-mono); color: var(--accent); font-weight: bold; }
+    .stat-label { font-size: 0.72rem; color: var(--muted); font-family: var(--font-mono); margin-top: 0.2rem; }
+    .qr-container { display: flex; flex-direction: column; align-items: center; margin: 1.25rem 0; padding: 1rem; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); }
+    .preview-actions { display: flex; gap: 0.75rem; margin-top: 1.5rem; flex-wrap: wrap; }
+    .preview-actions .btn { min-height: 44px; justify-content: center; }
+  </style>
+</head>
+<body>
+
+<a href="#main" class="skip-link">Skip to main content</a>
+
+<main id="main" class="container" style="padding-top:1.5rem; padding-bottom:2rem;">
+  <div class="preview-card">
+    <span class="eyebrow">$ link --preview {{code}}</span>
+    <h1 style="font-size:clamp(1.2rem, 3.5vw, 1.45rem); margin:0.3rem 0;">Short Link Preview &amp; Analytics</h1>
+
+    <div class="dest-box">
+      <div style="font-size:0.75rem; color:var(--muted); margin-bottom:0.3rem;">TARGET DESTINATION:</div>
+      <a href="{{targetUrl}}" rel="noreferrer noopener" style="color:var(--accent);">{{targetUrl}}</a>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-num">{{clicks}}</div>
+        <div class="stat-label">TOTAL CLICKS</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num">{{status}}</div>
+        <div class="stat-label">SAFETY AUDIT</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" style="font-size:0.95rem; line-height:1.6;">{{createdAt}}</div>
+        <div class="stat-label">CREATED</div>
+      </div>
+    </div>
+
+    <div class="qr-container">
+      <div id="qr-svg-wrap" style="width:160px; height:160px; background:#fff; padding:8px; border-radius:6px; display:flex; align-items:center; justify-content:center;"></div>
+      <div style="margin-top:0.75rem; display:flex; gap:0.5rem; flex-wrap:wrap; justify-content:center;">
+        <button class="btn" id="btn-download-qr" type="button" style="min-height:44px;">Download QR SVG</button>
+        <button class="btn" id="btn-copy-link" type="button" style="min-height:44px;">Copy Short URL</button>
+      </div>
+    </div>
+
+    <div class="preview-actions">
+      <a href="{{targetUrl}}" class="btn btn-solid" style="flex:1 1 220px; text-align:center;" rel="noreferrer noopener">Continue to Destination →</a>
+      <a href="/abuse?kind=link&amp;id={{code}}" class="btn" style="color:var(--danger); border-color:var(--danger);">Report Abuse</a>
+    </div>
+  </div>
+</main>
+
+<script nonce="{{nonce}}">
+(function() {
+  var shortUrl = window.location.origin + '/' + '{{code}}';
+  var qrWrap = document.getElementById('qr-svg-wrap');
+  var svgData = '';
+
+  if (window.QRCode && typeof window.QRCode.toString === 'function' && qrWrap) {
+    window.QRCode.toString(shortUrl, { type: 'svg', margin: 1, errorCorrectionLevel: 'M' }, function(err, string) {
+      if (!err && string) {
+        svgData = string;
+        qrWrap.innerHTML = string;
+      }
+    });
+  }
+
+  var dlBtn = document.getElementById('btn-download-qr');
+  if (dlBtn) {
+    dlBtn.addEventListener('click', function() {
+      if (!svgData) return;
+      var blob = new Blob([svgData], { type: 'image/svg+xml' });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = 'qr-{{code}}.svg';
+      a.click();
+      setTimeout(function() { URL.revokeObjectURL(url); }, 1000);
+    });
+  }
+
+  var copyBtn = document.getElementById('btn-copy-link');
+  if (copyBtn) {
+    copyBtn.addEventListener('click', function() {
+      function showDone() {
+        copyBtn.textContent = 'Copied!';
+        setTimeout(function() { copyBtn.textContent = 'Copy Short URL'; }, 1500);
+      }
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(shortUrl).then(showDone).catch(function() {});
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = shortUrl;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); showDone(); } catch (_) {}
+        document.body.removeChild(ta);
+      }
+    });
+  }
+})();
+</script>
+
+</body>
+</html>

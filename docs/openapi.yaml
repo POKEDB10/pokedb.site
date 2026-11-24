@@ -1,0 +1,180 @@
+openapi: 3.0.3
+info:
+  title: pokedb.site Developer APIs
+  version: 2.0.0
+  description: >-
+    High-throughput, abuse-resistant developer utilities for link shortening,
+    paste distribution, QR generation, and direct-to-storage file transfers.
+servers:
+  - url: https://pokedb.site
+    description: Production Server
+paths:
+  /api/shorten:
+    post:
+      summary: Shorten a target URL
+      description: Validates destination, checks local threat indicators and Google Safe Browsing, returns short URL.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - url
+              properties:
+                url:
+                  type: string
+                  format: uri
+                  example: https://github.com/POKEDB10
+                customAlias:
+                  type: string
+                  example: my-repo
+                expiresInDays:
+                  type: integer
+                  default: 30
+      responses:
+        '200':
+          description: Short link created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: string
+                  shortUrl:
+                    type: string
+                  longUrl:
+                    type: string
+                  expiresAt:
+                    type: string
+                    format: date-time
+        '400':
+          description: Invalid URL or format
+        '409':
+          description: Custom alias conflict
+        '422':
+          description: Target URL flagged by threat feeds
+
+  /api/stats/{code}:
+    get:
+      summary: Retrieve click analytics for a short link
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Link telemetry
+        '404':
+          description: Link not found or expired
+
+  /api/paste/create:
+    post:
+      summary: Create a new paste
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - content
+              properties:
+                content:
+                  type: string
+                title:
+                  type: string
+                language:
+                  type: string
+                  default: plaintext
+                expiresInDays:
+                  type: integer
+                  default: 30
+                burnOnRead:
+                  type: boolean
+                  default: false
+                password:
+                  type: string
+      responses:
+        '200':
+          description: Paste created
+        '400':
+          description: Payload exceeds size limit (256 KiB)
+
+  /api/paste/view/{code}:
+    post:
+      summary: Fetch paste content
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                password:
+                  type: string
+      responses:
+        '200':
+          description: Paste retrieved
+        '401':
+          description: Password required or incorrect
+        '404':
+          description: Paste not found or burned
+
+  /api/qr:
+    get:
+      summary: Generate QR code image
+      parameters:
+        - name: text
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: format
+          in: query
+          schema:
+            type: string
+            enum: [svg, png]
+            default: svg
+      responses:
+        '200':
+          description: QR image payload
+
+  /api/report:
+    post:
+      summary: Report abusive content
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - id
+                - kind
+              properties:
+                id:
+                  type: string
+                kind:
+                  type: string
+                  enum: [link, paste, drop]
+                reason:
+                  type: string
+      responses:
+        '200':
+          description: Report recorded
+
+  /healthz:
+    get:
+      summary: Lightweight liveness probe
+      responses:
+        '200':
+          description: Service alive

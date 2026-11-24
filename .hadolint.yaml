@@ -1,0 +1,8 @@
+# .hadolint.yaml
+# Hadolint configuration for PokéDB v2
+# Enforces Dockerfile linting standards with pinned package exceptions
+
+failure-threshold: warning
+
+ignored:
+  - DL3018 # Pin versions in apk add: Alpine packages track release branch alpine3.21 repos with security patches

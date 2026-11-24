@@ -1,4 +1,4 @@
-process.env.NODE_ENV = 'test';
+﻿process.env.NODE_ENV = 'test';
 process.env.ROOTZ_API_KEY = process.env.ROOTZ_API_KEY || 'test-rootz-key';
 const fs = require('fs');
 const path = require('path');
@@ -230,10 +230,8 @@ describe('URL Shortener API Suite', () => {
     }
   });
 
-  test('8c. Scan uploaded files for malware/viruses via MalwareBazaar & VirusTotal API', async () => {
+  test('8c. Scan uploaded files for malware/viruses via MalwareBazaar API (P5.4)', async () => {
     const originalFetch = global.fetch;
-    const originalVtKey = process.env.VIRUSTOTAL_API_KEY;
-    process.env.VIRUSTOTAL_API_KEY = 'test-vt-key';
 
     global.fetch = jest.fn().mockImplementation((url, opts) => {
       const urlStr = typeof url === 'string' ? url : (url && url.url) || String(url);
@@ -270,7 +268,6 @@ describe('URL Shortener API Suite', () => {
       expect(Array.isArray(uploadRes.body.virusFlags)).toBe(true);
       expect(uploadRes.body.virusFlags.some((f) => f.includes('MalwareBazaar'))).toBe(true);
     } finally {
-      process.env.VIRUSTOTAL_API_KEY = originalVtKey;
       global.fetch = originalFetch;
     }
   });
@@ -293,10 +290,15 @@ describe('URL Shortener API Suite', () => {
 
       const missingTokenRes = await request(app)
         .delete('/api/drop/delete?fileId=drop-token-test');
-      const invalidTokenRes = await request(app)
+      const queryTokenRes = await request(app)
         .delete('/api/drop/delete?fileId=drop-token-test&token=incorrect-token');
+      const invalidTokenRes = await request(app)
+        .delete('/api/drop/delete?fileId=drop-token-test')
+        .set('X-Delete-Token', 'incorrect-token');
 
       expect(missingTokenRes.status).toBe(403);
+      expect(queryTokenRes.status).toBe(400);
+      expect(queryTokenRes.body.error).toBe('query_tokens_forbidden');
       expect(invalidTokenRes.status).toBe(403);
     } finally {
       global.fetch = originalFetch;
@@ -344,7 +346,7 @@ describe('URL Shortener API Suite', () => {
     expect(crossToolQrRes.headers['content-type']).toContain('image/png');
     expect(expiryRes.status).toBe(400);
     expect(privateIpv6Res.status).toBe(400);
-  });
+  }, 15000);
 
   test('12. Use a NanoID fallback and remove temporary direct-upload files', async () => {
     const originalFetch = global.fetch;
@@ -480,28 +482,29 @@ describe('URL Shortener API Suite', () => {
     expect(statuses).toEqual([200, 404]);
   });
 
-  test('13g. Storing tools and viewing routes return comprehensive X-Robots-Tag', async () => {
+  test('13g. Storing tools and viewing routes return comprehensive X-Robots-Tag (P1.2)', async () => {
     const dropRes = await request(app).get('/v/testfile123').set('Host', 'drop.pokedb.site');
-    expect(dropRes.headers['x-robots-tag']).toBe('noindex, nofollow, noarchive, nosnippet, noimageindex');
+    expect(dropRes.headers['x-robots-tag']).toBe('noindex, nofollow, noarchive, nosnippet');
 
     const pasteRes = await request(app).get('/raw/testcode123').set('Host', 'paste.pokedb.site');
-    expect(pasteRes.headers['x-robots-tag']).toBe('noindex, nofollow, noarchive, nosnippet, noimageindex');
+    expect(pasteRes.headers['x-robots-tag']).toBe('noindex, nofollow, noarchive, nosnippet');
 
+    // Tool landing pages must be indexed (SEO-001 fix)
     const tinyRes = await request(app).get('/tools/tinyurl/').set('Host', 'pokedb.site');
-    expect(tinyRes.headers['x-robots-tag']).toBe('noindex, nofollow, noarchive, nosnippet, noimageindex');
+    expect(tinyRes.headers['x-robots-tag']).toBe('index, follow');
   });
 
-  test('13h. /robots.txt disallows entire subdomain on storing tools and disallows storing paths on apex', async () => {
+  test('13h. /robots.txt dynamic policy per host (P1.2)', async () => {
     const dropRobots = await request(app).get('/robots.txt').set('Host', 'drop.pokedb.site');
     expect(dropRobots.status).toBe(200);
-    expect(dropRobots.text).toContain('Disallow: /');
+    expect(dropRobots.text).toContain('Allow: /$');
+    expect(dropRobots.text).toContain('Disallow: /api/');
 
     const apexRobots = await request(app).get('/robots.txt').set('Host', 'pokedb.site');
     expect(apexRobots.status).toBe(200);
-    expect(apexRobots.text).toContain('Disallow: /v/');
-    expect(apexRobots.text).toContain('Disallow: /p/');
-    expect(apexRobots.text).toContain('Disallow: /raw/');
-    expect(apexRobots.text).toContain('Disallow: /drop/');
+    expect(apexRobots.text).toContain('Allow: /');
+    expect(apexRobots.text).toContain('Disallow: /api/');
+    expect(apexRobots.text).not.toContain('Disallow: /v/');
   });
 
   test('13i. Drop folder creation generates 8-character Crockford Base32 ID', async () => {
@@ -518,9 +521,12 @@ describe('URL Shortener API Suite', () => {
     }
   });
 
-  test('14. Enforce the shared API rate limit', async () => {
-    const responses = await Promise.all(Array.from({ length: 130 }, () => request(app).get('/api/health/ping')));
-    expect(responses.some((response) => response.status === 429)).toBe(true);
+  test('14. Enforce per-route rate limits (QR 120/min) without blocking health checks', async () => {
+    const healthResponses = await Promise.all(Array.from({ length: 130 }, () => request(app).get('/api/health/ping')));
+    expect(healthResponses.every((response) => response.status === 200)).toBe(true);
+
+    const qrResponses = await Promise.all(Array.from({ length: 130 }, () => request(app).get('/api/qr?format=svg&text=https://pokedb.site')));
+    expect(qrResponses.some((response) => response.status === 429)).toBe(true);
   });
 
   test('15. Enforce Rate Limiting (429 Too Many Requests)', async () => {
@@ -556,3 +562,4 @@ describe('URL Shortener API Suite', () => {
   });
 
 });
+

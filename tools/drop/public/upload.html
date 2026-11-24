@@ -2,28 +2,27 @@
 <html lang="en" data-theme="oled-black">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Upload Session — Drop — pokedb.site</title>
-<meta name="robots" content="noindex, nofollow, noarchive, nosnippet">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/shared/theme.css">
+<meta name="robots" content="noindex, nofollow">
+<link rel="stylesheet" href="/fonts/fonts.css">
+<link rel="preload" href="/fonts/ibm-plex-mono-400.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/fonts/ibm-plex-sans-400.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/shared/theme.css?v=20261124">
 <script src="/shared/theme-switcher.js?v=3"></script>
 <script src="/shared/utils.js"></script>
-<script src="/shared/site.js"></script>
-<script src="/shared/qrcode.js"></script>
-
+<script src="/shared/site.js" defer></script>
+<script src="/shared/qrcode.min.js"></script>
 <style>
 .upload-container {
-  width: min(100% - 2rem, 840px);
-  margin: clamp(2rem, 6vw, 4.5rem) auto;
+  width: min(100% - 1.5rem, 840px);
+  margin: clamp(1.25rem, 5vw, 3.5rem) auto;
 }
 .upload-card {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 14px;
-  padding: clamp(1.25rem, 4vw, 2.25rem);
+  padding: clamp(1.15rem, 4vw, 2rem);
   box-shadow: var(--shadow);
 }
 .session-badge {
@@ -33,21 +32,22 @@
   font-family: 'IBM Plex Mono', monospace;
   font-size: .8rem;
   color: var(--accent);
-  margin-bottom: 1.25rem;
+  margin-bottom: 1rem;
 }
 .status-header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 1rem;
-  margin-bottom: 1.5rem;
-  padding-bottom: 1.25rem;
+  margin-bottom: 1.25rem;
+  padding-bottom: 1rem;
   border-bottom: 1px solid var(--border);
 }
 .file-name-lg {
-  font-size: clamp(1.1rem, 3.2vw, 1.6rem);
+  font-size: clamp(1.1rem, 3.2vw, 1.5rem);
   font-weight: 600;
-  word-break: break-all;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 .file-meta-sub {
   font-family: 'IBM Plex Mono', monospace;
@@ -62,27 +62,27 @@
   border: 1px solid var(--border);
   border-radius: 999px;
   overflow: hidden;
-  margin: 1.25rem 0 .75rem 0;
+  margin: 1rem 0 .75rem;
 }
 .progress-bar-fill {
   height: 100%;
   width: 0%;
-  background: linear-gradient(90deg, var(--accent), color-mix(in srgb, var(--accent) 70%, #fff));
+  background: var(--accent);
   transition: width .2s ease;
   border-radius: 999px;
 }
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  gap: 1rem;
-  margin: 1.5rem 0;
+  grid-template-columns: repeat(auto-fit, minmax(135px, 1fr));
+  gap: .75rem;
+  margin: 1.25rem 0;
   font-family: 'IBM Plex Mono', monospace;
 }
 .stat-box {
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: 8px;
-  padding: .75rem 1rem;
+  padding: .75rem .9rem;
 }
 .stat-label {
   font-size: .72rem;
@@ -91,7 +91,7 @@
   letter-spacing: .04em;
 }
 .stat-value {
-  font-size: 1.05rem;
+  font-size: 1rem;
   font-weight: 600;
   color: var(--text);
   margin-top: .2rem;
@@ -99,17 +99,18 @@
 .action-row {
   display: flex;
   flex-wrap: wrap;
-  gap: .75rem;
-  margin-top: 1.5rem;
+  gap: .65rem;
+  margin-top: 1.25rem;
 }
+.action-row .btn { flex: 1 1 150px; min-height: 44px; }
 .reselect-box {
   display: none;
   background: color-mix(in srgb, var(--accent) 8%, transparent);
   border: 1px dashed var(--accent);
   border-radius: 10px;
-  padding: 1.5rem;
+  padding: 1.35rem;
   text-align: center;
-  margin: 1.25rem 0;
+  margin: 1.15rem 0;
   font-family: 'IBM Plex Mono', monospace;
 }
 .result-card {
@@ -117,14 +118,45 @@
   background: var(--bg);
   border: 1px solid var(--accent);
   border-radius: 12px;
-  padding: 1.5rem;
-  margin-top: 1.5rem;
+  padding: 1.25rem;
+  margin-top: 1.25rem;
 }
-.modal { display:none; position:fixed; inset:0; z-index:99; place-items:center; padding:1rem; background:rgba(0,0,0,.75); backdrop-filter:blur(4px); }
-.modal-box { width:min(100%,360px); padding:1.5rem; border:1px solid var(--border); border-radius:12px; background:var(--surface); text-align:center; box-shadow:var(--shadow); }
+.result-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: .5rem;
+  align-items: center;
+  margin-top: .65rem;
+}
+.modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  place-items: center;
+  padding: 1rem;
+  background: rgba(0, 0, 0, .78);
+  backdrop-filter: blur(6px);
+}
+.modal.is-open { display: grid; }
+.modal-box {
+  width: min(100%, 360px);
+  padding: 1.35rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  text-align: center;
+  box-shadow: var(--shadow);
+}
+@media (max-width: 640px) {
+  .upload-container { width: calc(100% - 1.25rem); margin: 1rem auto 2rem; }
+  .action-row { flex-direction: column; }
+  .result-row { grid-template-columns: 1fr; }
+}
 </style>
 </head>
 <body>
+  <a href="#main" class="skip-link">Skip to main content</a>
   <header class="site-nav">
     <a class="logo" href="https://pokedb.site/" data-nav="main">root<span>@</span>pokedb</a>
     <nav class="nav-links" aria-label="Tools navigation">
@@ -137,16 +169,11 @@
     </nav>
     <div class="theme-switcher">
       <span class="theme-swatch" id="theme-swatch"></span>
-      <select id="theme-select" aria-label="Choose a theme">
-        <option value="oled-black">OLED — Pitch Indigo</option>
-        <option value="matrix">Matrix — Phosphor Green</option>
-        <option value="cyberpunk">Cyberpunk — Neon Cyan</option>
-        <option value="paper">Paper — Editorial Light</option>
-      </select>
+      <select id="theme-select" aria-label="Choose a theme"></select>
     </div>
   </header>
 
-  <main class="upload-container">
+  <main id="main" class="upload-container">
     <article class="upload-card">
       <div class="session-badge">$ drop --upload-session [<span id="session-id-display">…</span>]</div>
       <div class="status-header">
@@ -156,23 +183,17 @@
         </div>
       </div>
 
-      <!-- Reselect prompt when session is resumed across tab close -->
       <div class="reselect-box" id="reselect-box">
-        <div style="font-weight:600; color:var(--accent); margin-bottom:.5rem;">
-          <svg class="icon-svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
-          Resume Upload Session
-        </div>
-        <div style="font-size:.85rem; color:var(--text); margin-bottom:1rem;">Browser tab was closed mid-upload. Re-select the file to verify completed chunks and resume remaining transfer.</div>
+        <div style="font-weight:600; color:var(--accent); margin-bottom:.5rem;">Resume Upload Session</div>
+        <div style="font-size:.85rem; color:var(--text); margin-bottom:1rem;">Select the original file to resume any remaining parts.</div>
         <input type="file" id="reselect-file-input" style="display:none;">
         <button class="btn btn-solid" id="reselect-btn" type="button">Select File to Resume</button>
       </div>
 
-      <!-- Progress bar -->
       <div class="progress-bar-wrap" id="progress-bar-wrap">
         <div class="progress-bar-fill" id="progress-bar-fill"></div>
       </div>
 
-      <!-- Telemetry Stats -->
       <div class="stats-grid">
         <div class="stat-box">
           <div class="stat-label">Progress</div>
@@ -192,34 +213,41 @@
         </div>
       </div>
 
-      <!-- Controls -->
       <div class="action-row" id="controls-row">
-        <button class="btn btn-solid" id="pause-btn" type="button" style="flex:1;">Pause Upload</button>
-        <button class="btn" id="stop-btn" type="button" style="flex:1;">Cancel Session</button>
+        <button class="btn btn-solid" id="pause-btn" type="button">Pause Upload</button>
+        <button class="btn" id="stop-btn" type="button">Cancel Session</button>
       </div>
 
-      <!-- Completed Result Box -->
       <div class="result-card" id="upload-complete-card">
-        <span class="eyebrow" style="color:var(--accent); display:block; margin-bottom:.5rem;">$ drop --status complete</span>
-        <div style="font-family:'IBM Plex Mono',monospace; font-size:.85rem; margin-bottom:.85rem; color:var(--text);">Sharable Download Link:</div>
-        <div style="display:flex; gap:.6rem; flex-wrap:wrap;">
-          <input type="text" id="up-share-url" readonly style="flex:1 1 240px; background:var(--surface); border:1px solid var(--border); border-radius:6px; padding:.6rem .8rem; font-family:'IBM Plex Mono',monospace; font-size:.85rem; color:var(--accent);">
-          <button class="btn btn-solid" id="up-copy-btn" type="button">$ copy</button>
+        <span class="eyebrow" style="margin-bottom:.5rem;">$ drop --status complete</span>
+        <label for="up-share-url" style="display:block; margin-bottom:.3rem;">Shareable Link</label>
+        <div class="result-row">
+          <input type="text" id="up-share-url" readonly>
+          <button class="btn btn-solid" id="up-copy-btn" type="button">Copy Link</button>
+        </div>
+        <div class="action-row" style="margin-top:.85rem;">
           <button class="btn" id="up-qr-btn" type="button">Show QR</button>
-          <a class="btn" id="up-open-btn" target="_blank" rel="noopener">$ open &rarr;</a>
+          <a class="btn btn-solid" id="up-open-btn" target="_blank" rel="noopener">Open Link ↗</a>
         </div>
       </div>
     </article>
   </main>
 
-  <div class="modal" id="up-qr-modal" role="dialog" aria-modal="true" aria-label="Share QR code">
+  <div class="modal" id="up-qr-modal" role="dialog" aria-modal="true" aria-labelledby="up-qr-title">
     <div class="modal-box">
       <span class="eyebrow">$ qr --share</span>
-      <div id="up-qr-box" style="display:inline-block;background:#fff;padding:.5rem;border-radius:8px;margin:.75rem 0;"></div>
-      <button class="btn btn-solid" id="up-close-qr-btn" type="button" style="width:100%;margin-top:1rem">Close</button>
+      <h2 id="up-qr-title" style="font-size:1.05rem; margin-bottom:.5rem;">Scan to Open</h2>
+      <div id="up-qr-box" style="display:inline-block;background:#fff;padding:.5rem;border-radius:8px;margin:.6rem 0;"></div>
+      <button class="btn btn-solid" id="up-close-qr-btn" type="button" style="width:100%;margin-top:.85rem">Close</button>
     </div>
   </div>
 
-  <script src="/upload.js"></script>
+  <footer>
+    <div class="footer-inner">
+      <span>© pokedb.site · drop storage gateway</span>
+      <span id="uptime">session uptime · 00:00:00</span>
+    </div>
+  </footer>
+  <script src="/tools/drop/upload.js" defer></script>
 </body>
 </html>

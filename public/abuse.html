@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="oled-black">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Abuse &amp; Quarantine Reporting — pokedb.site</title>
+  <link rel="stylesheet" href="/fonts/fonts.css">
+  <link rel="stylesheet" href="/shared/theme.css">
+  <link rel="icon" href="/favicon.ico">
+  <script src="/shared/theme-switcher.js?v=3"></script>
+  <!-- TODO(owner-review): Legal review pending by site owner. -->
+  <style>
+    .abuse-wrap { width: min(100% - 2rem, 800px); margin: clamp(1.25rem, 4vw, 2.5rem) auto; padding-bottom: 3rem; line-height: 1.6; }
+    .badge-notice { display: inline-block; padding: 4px 10px; border-radius: 6px; font-size: 0.82rem; font-family: var(--font-mono); background: color-mix(in srgb, #f59e0b 14%, transparent); color: #f59e0b; border: 1px solid #f59e0b; margin-bottom: 1.25rem; }
+    .abuse-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: clamp(1.1rem, 4vw, 1.75rem); margin: 1.5rem 0; }
+    .abuse-card label { display: block; margin: 14px 0 6px; font-weight: 600; font-size: 0.88rem; }
+    .abuse-card input[type="text"], .abuse-card select, .abuse-card textarea {
+      width: 100%; box-sizing: border-box; background: var(--bg); border: 1px solid var(--border);
+      color: var(--text); padding: 10px 12px; border-radius: 8px; font-family: var(--font-mono); font-size: 16px; min-height: 44px;
+    }
+    .abuse-card button[type="submit"] { min-height: 44px; margin-top: 16px; background: var(--danger); border-color: var(--danger); color: #fff; font-weight: 600; width: 100%; justify-content: center; }
+    .status-msg { margin-top: 16px; padding: 12px; border-radius: 8px; display: none; font-size: 0.9rem; }
+    .status-msg.success { background: color-mix(in srgb, var(--success) 15%, transparent); color: var(--success); border: 1px solid var(--success); }
+    .status-msg.error { background: color-mix(in srgb, var(--danger) 15%, transparent); color: var(--danger); border: 1px solid var(--danger); }
+  </style>
+</head>
+<body>
+  <a href="#main" class="skip-link">Skip to main content</a>
+
+  <header class="site-nav">
+    <a class="logo" href="/" data-nav="main">root<span>@</span>pokedb</a>
+    <nav class="nav-links" aria-label="Navigation">
+      <a class="nav-link" href="/">Home</a>
+      <a class="nav-link" href="/tools/">Tools</a>
+      <a class="nav-link" href="/docs">Docs</a>
+      <a class="nav-link active" href="/abuse">Abuse</a>
+    </nav>
+    <div class="theme-switcher">
+      <span class="theme-swatch" id="theme-swatch"></span>
+      <select id="theme-select" aria-label="Color theme">
+        <option value="oled-black">OLED</option>
+        <option value="paper">Paper</option>
+        <option value="matrix">Matrix</option>
+        <option value="cyberpunk">Cyberpunk</option>
+        <option value="synthwave">Synthwave</option>
+        <option value="nordic-ice">Nordic</option>
+        <option value="dracula-neon">Dracula</option>
+        <option value="gruvbox-retro">Gruvbox</option>
+        <option value="emerald-forest">Emerald</option>
+        <option value="sunset-amber">Sunset</option>
+        <option value="solarized-gold">Solarized</option>
+        <option value="tokyo-neon">Tokyo</option>
+      </select>
+    </div>
+  </header>
+
+  <main id="main" class="abuse-wrap">
+    <div class="badge-notice">TODO(owner-review) — Subject to Owner Confirmation</div>
+    <h1>Abuse Reporting &amp; Content Quarantine</h1>
+    <p style="color:var(--muted);">pokedb.site maintains zero tolerance for malware, phishing lures, copyright infringement, and illegal material. Automated triage quarantines content (HTTP 451) upon receiving reports across three distinct network subnets.</p>
+
+    <div class="abuse-card">
+      <h2 style="margin-top:0;">Submit Abuse Report</h2>
+      <form id="report-form">
+        <label for="kind">Content Service Kind</label>
+        <select id="kind" name="kind" required>
+          <option value="link">TinyURL (Short Link)</option>
+          <option value="paste">Paste (Text Snippet)</option>
+          <option value="drop">Drop (File Transfer)</option>
+        </select>
+
+        <label for="id">Identifier / Short Code</label>
+        <input type="text" id="id" name="id" placeholder="e.g. abc123xy or d/xyz..." required>
+
+        <label for="reason">Abuse Category</label>
+        <select id="reason" name="reason" required>
+          <option value="malware_phishing">Malware, Ransomware, or Phishing</option>
+          <option value="copyright">Copyright or Intellectual Property Infringement</option>
+          <option value="harassment">Harassment / PII / Doxxing</option>
+          <option value="illegal_uae">Illegal Content under UAE or Local Law</option>
+          <option value="other">Other Unacceptable Use</option>
+        </select>
+
+        <label for="details">Additional Details (Optional)</label>
+        <textarea id="details" name="details" rows="3" placeholder="Provide any relevant URLs or context..."></textarea>
+
+        <button type="submit" id="submit-btn" class="btn">$ submit --report</button>
+
+        <div id="abuse-turnstile-wrap" style="margin-top: 14px;"></div>
+        <div id="status-box" class="status-msg" role="alert"></div>
+      </form>
+    </div>
+
+    <h2>Direct Escalations</h2>
+    <p>For urgent law enforcement inquiries or verified copyright takedown notices, contact: <a href="mailto:abuse@pokedb.site">abuse@pokedb.site</a>.</p>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner container">
+      <span><a href="/">Home</a> &bull; <a href="/terms">Terms</a> &bull; <a href="/privacy">Privacy</a> &bull; <a href="/abuse">Abuse</a> &bull; <a href="/.well-known/security.txt">Security</a></span>
+    </div>
+  </footer>
+
+  <script src="/shared/turnstile.js" defer></script>
+  <script src="/js/abuse.js" defer></script>
+</body>
+</html>

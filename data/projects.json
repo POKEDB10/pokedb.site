@@ -1,0 +1,94 @@
+[
+  {
+    "slug": "pokedb-site",
+    "title": "pokedb.site v2",
+    "status": "open",
+    "summary": "High-throughput personal systems portfolio and developer utility platform engineered for zero-trust resilience.",
+    "metric": "10,000 req/s · 1.43ms p50 · 0 CDN deps",
+    "stack": ["Node.js 24", "SQLite WAL", "Cloudflare R2", "WebCrypto", "Vanilla JS"],
+    "links": {
+      "github": "https://github.com/POKEDB10/pokedb.site",
+      "demo": "https://pokedb.site",
+      "caseStudy": "/projects/pokedb-site"
+    }
+  },
+  {
+    "slug": "firesend",
+    "title": "FireSend",
+    "status": "open",
+    "summary": "High-concurrency desktop SFTP client optimized for game-server file transfers and bandwidth saturation.",
+    "metric": "Parallel pipeline saturation",
+    "stack": ["Rust", "Tauri", "React", "SSH2"],
+    "links": {
+      "github": "https://github.com/POKEDB10",
+      "demo": "https://github.com/POKEDB10"
+    }
+  },
+  {
+    "slug": "packspliter",
+    "title": "PackSpliter",
+    "status": "open",
+    "summary": "Distributed modpack analysis pipeline detecting and resolving dependencies across Fabric and Forge mod ecosystems.",
+    "metric": "Sub-second modpack graph parsing",
+    "stack": ["Python", "Flask", "Celery", "Redis"],
+    "links": {
+      "github": "https://github.com/POKEDB10",
+      "demo": "https://packspliter.qzz.io"
+    }
+  },
+  {
+    "slug": "aegis",
+    "title": "Aegis",
+    "status": "draft",
+    "summary": "DDoS mitigation reverse proxy for Minecraft servers using eBPF/XDP kernel filtering and TCP handshake validation.",
+    "metric": "TODO(owner): line-rate filtering throughput",
+    "stack": ["Rust", "eBPF", "XDP", "Linux TC"],
+    "links": {
+      "caseStudy": "/projects/aegis"
+    }
+  },
+  {
+    "slug": "beacon",
+    "title": "Beacon",
+    "status": "draft",
+    "summary": "Real-time Minecraft cluster observability suite integrating Spark APM profiles, Grafana Loki logs, and remote RCON diagnostics.",
+    "metric": "TODO(owner): profile ingestion latency",
+    "stack": ["Node.js", "Java", "Loki", "Spark APM", "WebSocket"],
+    "links": {
+      "caseStudy": "/projects/beacon"
+    }
+  },
+  {
+    "slug": "kds",
+    "title": "KDS",
+    "status": "draft",
+    "summary": "Staff geo-verification and tamper-detection telemetry engine designed for distributed gaming communities.",
+    "metric": "TODO(owner): verification decision latency",
+    "stack": ["TypeScript", "Next.js", "PostgreSQL", "Redis"],
+    "links": {
+      "caseStudy": "/projects/kds"
+    }
+  },
+  {
+    "slug": "manifold",
+    "title": "Manifold",
+    "status": "draft",
+    "summary": "Bytecode instrumentation agent multiplexing Dynmap, BlueMap, Geyser, and voice channels through a single game server port.",
+    "metric": "TODO(owner): packet routing overhead",
+    "stack": ["Java", "Netty", "ASM Bytecode", "Minecraft Protocol"],
+    "links": {
+      "caseStudy": "/projects/manifold"
+    }
+  },
+  {
+    "slug": "prism",
+    "title": "Prism",
+    "status": "draft",
+    "summary": "Adaptive inference routing mesh dynamically load balancing between local quantized models and high-throughput cloud endpoints.",
+    "metric": "TODO(owner): routing decision latency",
+    "stack": ["Python", "Qwen3", "Groq API", "Gemini Flash"],
+    "links": {
+      "caseStudy": "/projects/prism"
+    }
+  }
+]

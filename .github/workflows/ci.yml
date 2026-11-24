@@ -1,0 +1,178 @@
+name: CI
+
+on:
+  push:
+    branches: [main, v2/overhaul]
+  pull_request:
+    branches: [main, v2/overhaul]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Test & Quality Gates
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Syntax check
+        run: node --check server.js
+
+      - name: Run test suite
+        run: npm test
+
+      - name: Verify host-mode SEO routing
+        run: npx jest tests/host-mode-seo.test.js
+
+      - name: Verify line coverage >= 80%
+        run: npx jest --coverage --collectCoverageFrom="src/**/*.js" --coverageThreshold='{"global":{"lines":80}}'
+
+      - name: Validate project showcase data
+        run: node scripts/validate-projects.js
+
+      - name: Audit theme color contrast
+        run: node scripts/audit-contrast.js
+
+      - name: Check bundle size and performance budgets
+        run: node scripts/check-budget.js
+
+      - name: Check placeholders
+        run: node scripts/check-placeholders.js
+
+      - name: Check environment variables documentation
+        run: node scripts/check-env-docs.js
+
+      - name: Check compose ports configuration
+        run: node scripts/check-compose-ports.js
+
+      - name: Production security audit
+        run: npm audit --omit=dev --audit-level=high
+
+      - name: Run core acceptance scripts
+        run: |
+          node scripts/accept/p1_2-robots.js
+          node scripts/accept/p1_3-tokens.js
+          node scripts/accept/p1_4-scrypt.js
+          node scripts/accept/p1_5-debounce.js
+          node scripts/accept/p1_6-proxy.js
+          node scripts/accept/p2_1-sqlite.js
+          node scripts/accept/p2_3-durability.js
+          node scripts/accept/p2_4-redirect-hotpath.js
+          node scripts/accept/p2_5-sweeper.js
+          node scripts/accept/p2_6-alias-batch.js
+          node scripts/accept/p2_7-migration.js
+          node scripts/accept/browser-drop-upload-delete.js
+          node scripts/restore-drill.js
+
+  sigterm:
+    name: POSIX SIGTERM Graceful Drain (Linux Host)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Execute real SIGTERM graceful drain runner
+        run: node scripts/accept/p2_8-shutdown.js
+
+  docker:
+    name: Docker Lint, Multi-Arch Build & Volume Validation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Lint Dockerfile (Hadolint)
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: Dockerfile
+          failure-threshold: warning
+
+      - name: Set up QEMU (Multi-Arch)
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Multi-Arch Docker Image (amd64, arm64)
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: false
+          tags: pokedb.site:ci
+
+      - name: Build local container image for runtime test
+        run: docker build -t pokedb.site:local .
+
+      - name: Verify runtime container with fresh named volume and non-root SQLite creation
+        run: |
+          docker volume create fresh-pokedb-data
+          docker run -d --name pokedb-ci-test \
+            -p 5050:5050 \
+            -v fresh-pokedb-data:/app/data \
+            -e PORT=5050 \
+            -e SQLITE_DB_PATH=/app/data/pokedb.sqlite \
+            -e TRUST_PROXY=1 \
+            pokedb.site:local
+          
+          # Wait up to 15s for liveness probe
+          timeout=15
+          until curl -s -f http://127.0.0.1:5050/healthz > /dev/null || [ $timeout -le 0 ]; do
+            sleep 1
+            timeout=$((timeout - 1))
+          done
+
+          if [ $timeout -le 0 ]; then
+            echo "Container healthcheck failed to respond within deadline" >&2
+            docker logs pokedb-ci-test
+            exit 1
+          fi
+
+          echo "Liveness check succeeded (200 OK)."
+
+          # Trigger SQLite table creation via short URL seed
+          curl -s -X POST http://127.0.0.1:5050/api/shorten \
+            -H "Content-Type: application/json" \
+            -H "Host: tinyurl.pokedb.site" \
+            -d '{"url":"https://example.com"}' > /dev/null || true
+
+          # Verify that non-root user (10001:10001) successfully created the SQLite file in the volume
+          docker exec pokedb-ci-test ls -la /app/data/pokedb.sqlite
+          
+          docker stop pokedb-ci-test
+          docker rm pokedb-ci-test
+          docker volume rm fresh-pokedb-data
+
+  security:
+    name: Secret Scanning
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run Gitleaks secret detection across history
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

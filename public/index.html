@@ -2,20 +2,65 @@
 <html lang="en" data-theme="oled-black">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Chaitanya (@POKEDB10) — Systems &amp; Infrastructure Developer</title>
 <meta name="description" content="Personal hub and project directory of Chaitanya (@POKEDB10) — CS student at BITS Pilani Dubai and Jr. Mod at Eternal.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%236366F1'/%3E%3Ctext x='16' y='22' font-family='monospace' font-size='16' fill='white' text-anchor='middle'%3E%3E_%3C/text%3E%3C/svg%3E">
-
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/fonts/fonts.css">
+<link rel="preload" href="/fonts/ibm-plex-mono-400.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/fonts/ibm-plex-sans-400.woff2" as="font" type="font/woff2" crossorigin>
 
 <!-- Shared Theme Design System -->
 <link rel="stylesheet" href="/tools/shared/theme.css">
 <script src="/tools/shared/theme-switcher.js?v=3"></script>
+
+<!-- Structured JSON-LD Metadata (Task P7.2, SEO-002) -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Person",
+      "@id": "https://pokedb.site/#person",
+      "name": "Chaitanya",
+      "alternateName": "POKEDB10",
+      "jobTitle": "Systems & Infrastructure Developer",
+      "description": "Second-year CS student at BITS Pilani Dubai building high-throughput network tools, reverse proxies, and self-hosted infrastructure.",
+      "url": "https://pokedb.site",
+      "sameAs": [
+        "https://github.com/POKEDB10"
+      ],
+      "knowsAbout": ["Rust", "Node.js", "eBPF", "SQLite", "Distributed Systems", "Cloudflare R2"]
+    },
+    {
+      "@type": "ProfilePage",
+      "@id": "https://pokedb.site/#profile",
+      "url": "https://pokedb.site",
+      "name": "Chaitanya (@POKEDB10) — Systems & Infrastructure Developer",
+      "mainEntity": {
+        "@id": "https://pokedb.site/#person"
+      }
+    },
+    {
+      "@type": "WebApplication",
+      "@id": "https://tools.pokedb.site/#app",
+      "name": "pokedb.site Developer Utilities",
+      "url": "https://tools.pokedb.site",
+      "description": "High-throughput, abuse-resistant developer utilities including TinyURL, Pastebin, QR Studio, and File Drop.",
+      "applicationCategory": "DeveloperApplication",
+      "operatingSystem": "Any",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      }
+    }
+  ]
+}
+</script>
 </head>
 <body>
+<a href="#main" class="skip-link">Skip to main content</a>
 
 <header class="site-nav">
   <a class="logo" href="#top" data-nav="main">root<span>@</span>pokedb</a>
@@ -63,12 +108,19 @@
     </div>
 
     <p class="hero-bio">
-      Second-year CS student at BITS Pilani Dubai, and Jr. Mod at Eternal — a ~20,000-member Minecraft hosting community. Most of what's below started as an internal tool for Eternal and turned into something worth shipping properly: DDoS mitigation, server observability, a fast SFTP client, and a few other things in between.
+      Second-year CS student at BITS Pilani Dubai, and Jr. Mod at Eternal — a ~20,000-member Minecraft hosting community. Engineering high-throughput reverse proxies, server observability pipelines, and zero-trust developer utilities with zero external dependencies.
     </p>
 
     <div class="hero-actions">
       <a class="btn btn-solid" href="#projects">View projects</a>
-      <a class="btn" href="#contact">Get in touch</a>
+      <a class="btn" href="https://tools.pokedb.site/">Launch tools</a>
+      <a class="btn" href="https://github.com/POKEDB10" target="_blank" rel="noopener">GitHub</a>
+      <a class="btn" href="mailto:delta.poke.db@gmail.com">Email</a>
+    </div>
+
+    <div class="status-strip">
+      <span class="status-dot-pulse"></span>
+      <span>All systems operational · 10,000 req/s verified · 0 CDN dependencies</span>
     </div>
   </section>
 
@@ -103,55 +155,119 @@
     <p style="color:var(--muted); font-size:.95rem;">Internal tools and self-hosted infrastructure built for production.</p>
 
     <div class="project-grid">
-      <a class="project-card" href="#" data-name="aegis">
+      <div class="project-card" data-name="pokedb-site">
         <div class="project-card-head">
-          <span class="project-name">Aegis</span>
+          <span class="project-name">pokedb.site v2</span>
           <span class="status-dot"></span>
         </div>
-        <p class="project-desc">DDoS mitigation reverse proxy for Minecraft servers, eBPF/XDP + TCP proof-of-work + protocol filtering.</p>
-      </a>
-      <a class="project-card" href="#" data-name="beacon">
-        <div class="project-card-head">
-          <span class="project-name">Beacon</span>
-          <span class="status-dot"></span>
+        <p class="project-desc">High-throughput personal systems portfolio and developer utility platform engineered for zero-trust resilience.</p>
+        <div class="metric-pill">10,000 req/s · 1.43ms p50 · 0 CDN deps</div>
+        <div class="tags">
+          <span class="tag">Node.js 24</span>
+          <span class="tag">SQLite WAL</span>
+          <span class="tag">Cloudflare R2</span>
         </div>
-        <p class="project-desc">Node.js PWA for Minecraft server observability: Loki, Spark APM, remote control, Java companion plugin.</p>
-      </a>
-      <a class="project-card" href="https://github.com/POKEDB10" target="_blank" rel="noopener" data-name="firesend">
+        <div class="card-links">
+          <a class="card-link" href="/projects/pokedb-site">Read case study →</a>
+          <a class="card-link" href="https://github.com/POKEDB10/pokedb.site" target="_blank" rel="noopener">GitHub ↗</a>
+        </div>
+      </div>
+
+      <div class="project-card" data-name="firesend">
         <div class="project-card-head">
           <span class="project-name">FireSend</span>
           <span class="status-dot"></span>
         </div>
-        <p class="project-desc">Tauri/Rust/React SFTP client, built to beat rclone/lftp on throughput.</p>
-      </a>
-      <a class="project-card" href="#" data-name="kds">
-        <div class="project-card-head">
-          <span class="project-name">KDS</span>
-          <span class="status-dot"></span>
+        <p class="project-desc">High-concurrency desktop SFTP client optimized for game-server file transfers and bandwidth saturation.</p>
+        <div class="metric-pill">Parallel pipeline saturation</div>
+        <div class="tags">
+          <span class="tag">Rust</span>
+          <span class="tag">Tauri</span>
+          <span class="tag">React</span>
         </div>
-        <p class="project-desc">Geo-verification + tamper-detection dashboard for Eternal Hosting.</p>
-      </a>
-      <a class="project-card" href="#" data-name="manifold">
-        <div class="project-card-head">
-          <span class="project-name">Manifold</span>
-          <span class="status-dot"></span>
+        <div class="card-links">
+          <a class="card-link" href="https://github.com/POKEDB10" target="_blank" rel="noopener">GitHub ↗</a>
+          <a class="card-link" href="https://github.com/POKEDB10" target="_blank" rel="noopener">Code ↗</a>
         </div>
-        <p class="project-desc">Java agent multiplexing BlueMap/Dynmap/Geyser/Voice Chat through a single port via Netty + ASM.</p>
-      </a>
-      <a class="project-card" href="https://packspliter.qzz.io" target="_blank" rel="noopener" data-name="packspliter">
+      </div>
+
+      <div class="project-card" data-name="packspliter">
         <div class="project-card-head">
           <span class="project-name">PackSpliter</span>
           <span class="status-dot"></span>
         </div>
-        <p class="project-desc">Flask/Celery/Redis modpack processor, mod detection across Fabric/Forge.</p>
-      </a>
-      <a class="project-card" href="#" data-name="prism">
+        <p class="project-desc">Distributed modpack analysis pipeline detecting and resolving dependencies across Fabric and Forge mod ecosystems.</p>
+        <div class="metric-pill">Sub-second modpack graph parsing</div>
+        <div class="tags">
+          <span class="tag">Python</span>
+          <span class="tag">Flask</span>
+          <span class="tag">Celery</span>
+        </div>
+        <div class="card-links">
+          <a class="card-link" href="https://packspliter.qzz.io" target="_blank" rel="noopener">Live Demo ↗</a>
+          <a class="card-link" href="https://github.com/POKEDB10" target="_blank" rel="noopener">GitHub ↗</a>
+        </div>
+      </div>
+
+      <!-- TODO(owner): Aegis project repository, metrics, and architecture case study (O10) -->
+      <div class="project-card" data-name="aegis" style="cursor:default;">
+        <div class="project-card-head">
+          <span class="project-name">Aegis</span>
+          <span class="status-pill upcoming">private repo · case study soon</span>
+        </div>
+        <p class="project-desc">DDoS mitigation reverse proxy for Minecraft servers, eBPF/XDP + TCP proof-of-work + protocol filtering.</p>
+        <div class="card-links">
+          <span class="card-link" style="color:var(--muted); font-size:0.85rem;">Private · case study soon</span>
+        </div>
+      </div>
+
+      <!-- TODO(owner): Beacon project repository, metrics, and architecture case study (O10) -->
+      <div class="project-card" data-name="beacon" style="cursor:default;">
+        <div class="project-card-head">
+          <span class="project-name">Beacon</span>
+          <span class="status-pill upcoming">private repo · case study soon</span>
+        </div>
+        <p class="project-desc">Node.js PWA for Minecraft server observability: Loki, Spark APM, remote control, Java companion plugin.</p>
+        <div class="card-links">
+          <span class="card-link" style="color:var(--muted); font-size:0.85rem;">Private · case study soon</span>
+        </div>
+      </div>
+
+      <!-- TODO(owner): KDS project repository, metrics, and architecture case study (O10) -->
+      <div class="project-card" data-name="kds" style="cursor:default;">
+        <div class="project-card-head">
+          <span class="project-name">KDS</span>
+          <span class="status-pill upcoming">private repo · case study soon</span>
+        </div>
+        <p class="project-desc">Geo-verification + tamper-detection dashboard for Eternal Hosting.</p>
+        <div class="card-links">
+          <span class="card-link" style="color:var(--muted); font-size:0.85rem;">Private · case study soon</span>
+        </div>
+      </div>
+
+      <!-- TODO(owner): Manifold project repository, metrics, and architecture case study (O10) -->
+      <div class="project-card" data-name="manifold" style="cursor:default;">
+        <div class="project-card-head">
+          <span class="project-name">Manifold</span>
+          <span class="status-pill upcoming">private repo · case study soon</span>
+        </div>
+        <p class="project-desc">Java agent multiplexing BlueMap/Dynmap/Geyser/Voice Chat through a single port via Netty + ASM.</p>
+        <div class="card-links">
+          <span class="card-link" style="color:var(--muted); font-size:0.85rem;">Private · case study soon</span>
+        </div>
+      </div>
+
+      <!-- TODO(owner): Prism project repository, metrics, and architecture case study (O10) -->
+      <div class="project-card" data-name="prism" style="cursor:default;">
         <div class="project-card-head">
           <span class="project-name">Prism</span>
-          <span class="status-dot"></span>
+          <span class="status-pill upcoming">private repo · case study soon</span>
         </div>
         <p class="project-desc">Multi-model mesh: local Qwen3 35B + Groq + Gemini Flash, shown at AI Tinkerers Dubai Demo Day.</p>
-      </a>
+        <div class="card-links">
+          <span class="card-link" style="color:var(--muted); font-size:0.85rem;">Private · case study soon</span>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -208,6 +324,7 @@
 })();
 </script>
 -->
+<!-- Cloudflare Web Analytics (Landing & Tools Hub only; never on client tools - Task P8.3, C9): beacon.min.js -->
 <script src="/tools/shared/site.js"></script>
 
 </body>

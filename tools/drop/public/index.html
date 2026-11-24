@@ -2,254 +2,444 @@
 <html lang="en" data-theme="oled-black">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Drop — File Transfer & Storage — pokedb.site</title>
-<meta name="description" content="Secure, high-speed file storage and remote URL upload powered by Rootz API. Zero file logging, instant links, and clean UI.">
-<meta name="robots" content="noindex, nofollow, noarchive, nosnippet">
-
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/shared/theme.css?v=20260913-modal-ui">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Drop — File Transfer &amp; LAN Direct — pokedb.site</title>
+<meta name="description" content="Direct Cloudflare R2 multipart transfers and zero-upload E2EE LAN peer-to-peer file sharing with pause/resume, burn-on-download, and SHA-256 verification.">
+<meta name="robots" content="index, follow">
+<link rel="stylesheet" href="/fonts/fonts.css">
+<link rel="preload" href="/fonts/ibm-plex-mono-400.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/fonts/ibm-plex-sans-400.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/shared/theme.css?v=20261124">
 <script src="/shared/theme-switcher.js?v=3"></script>
-<script src="/shared/qrcode.js"></script>
+<script src="/shared/qrcode.min.js"></script>
 <script src="/shared/utils.js"></script>
-
+<script src="/shared/site.js" defer></script>
+<script src="/shared/turnstile.js" defer></script>
 <style>
-.drop-container {
-  max-width: 820px;
-  margin: 0 auto;
-  width: 100%;
-}
+.drop-container { max-width: 860px; margin: 0 auto; width: 100%; min-width: 0; }
+.drop-hero { margin-bottom: 1.35rem; }
+.drop-hero-row { display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; margin-top: .25rem; }
+.drop-hero h1 { font-size: clamp(1.38rem, 3.5vw, 1.85rem); margin: 0; }
+.drop-hero p { color: var(--muted); font-size: .9rem; margin-top: .45rem; max-width: 64ch; }
 
 .drop-card {
-  background: var(--surface);
+  background: linear-gradient(155deg, color-mix(in srgb, var(--surface) 95%, white 5%), var(--surface));
   border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 1.75rem;
-  box-shadow: 0 4px 24px rgba(0,0,0,0.18);
+  border-radius: 14px;
+  padding: clamp(1rem, 3.2vw, 1.65rem);
+  box-shadow: var(--shadow);
   margin-bottom: 1.5rem;
+  min-width: 0;
 }
 
 .tab-bar {
   display: flex;
-  gap: .5rem;
-  margin-bottom: 1.5rem;
-  border-bottom: 1px solid var(--border);
-  padding-bottom: .85rem;
+  flex-wrap: wrap;
+  gap: .4rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: .35rem;
+  margin-bottom: 1.35rem;
 }
 .tab-btn {
+  flex: 1 1 160px;
   font-family: 'IBM Plex Mono', monospace;
-  font-size: .85rem;
-  background: var(--bg);
+  font-size: .82rem;
+  font-weight: 500;
+  background: transparent;
   color: var(--muted);
-  border: 1px solid var(--border);
-  padding: .55rem 1rem;
-  border-radius: 6px;
+  border: 1px solid transparent;
+  padding: .55rem .85rem;
+  border-radius: 7px;
   cursor: pointer;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .45rem;
+  white-space: nowrap;
   transition: background-color .15s ease, color .15s ease, border-color .15s ease;
 }
+.tab-btn:hover { color: var(--text); border-color: var(--border); }
 .tab-btn.is-active {
   background: var(--accent);
   color: var(--accent-text);
   border-color: var(--accent);
+  font-weight: 600;
 }
 
-/* Drag & Drop Zone */
 .drop-zone {
   border: 2px dashed var(--border);
-  border-radius: 10px;
-  padding: 3rem 1.5rem;
+  border-radius: 12px;
+  padding: clamp(1.75rem, 5vw, 2.75rem) 1.15rem;
   text-align: center;
   background: var(--bg);
   cursor: pointer;
-  transition: border-color .2s ease, background-color .2s ease, box-shadow .2s ease, transform .2s ease;
+  transition: border-color .2s ease, background-color .2s ease, box-shadow .2s ease;
   position: relative;
 }
 .drop-zone:hover, .drop-zone.dragover {
   border-color: var(--accent);
-  background: rgba(99, 102, 241, 0.05);
+  background: color-mix(in srgb, var(--accent) 7%, var(--bg));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 14%, transparent);
 }
-.drop-icon {
-  font-size: 2.5rem;
-  margin-bottom: .75rem;
-  display: block;
-}
-.drop-text {
-  font-size: 1.05rem;
-  font-weight: 500;
-  color: var(--text);
-  margin-bottom: .3rem;
-}
-.drop-hint {
-  font-size: .82rem;
-  color: var(--muted);
-  font-family: 'IBM Plex Mono', monospace;
-}
+.drop-icon { display: inline-flex; color: var(--accent); margin-bottom: .65rem; transition: transform .25s ease; }
+.drop-zone.dragover .drop-icon { transform: translateY(-6px) scale(1.08); }
+.drop-text { font-size: 1.02rem; font-weight: 600; color: var(--text); margin-bottom: .3rem; }
+.drop-sub { font-size: .8rem; color: var(--muted); font-family: 'IBM Plex Mono', monospace; margin-bottom: .9rem; }
+.drop-hint { display: flex; justify-content: center; gap: .6rem; flex-wrap: wrap; }
 
-/* Hidden File Input */
-#file-input, #folder-input { display: none; }
+#file-input, #folder-input, #lan-file-input { display: none; }
 
-.form-group {
-  display: flex;
-  flex-direction: column;
-  gap: .4rem;
-  margin-bottom: 1.25rem;
-}
-label {
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: .82rem;
-  color: var(--muted);
-}
-input[type="text"], input[type="url"], input[type="password"] {
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: .9rem;
-  padding: .75rem 1rem;
-  background: var(--bg);
-  color: var(--text);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  width: 100%;
-}
-input:focus-visible {
-  border-color: var(--accent);
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
-
-/* Result Card */
-.result-card {
+.file-badge-card {
   display: none;
+  padding: .9rem;
   background: var(--surface);
   border: 1px solid var(--accent);
   border-radius: 10px;
-  padding: 1.5rem;
-  margin-top: 1.5rem;
-  animation: popIn .35s ease;
+  text-align: left;
 }
-@keyframes popIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.file-meta-row {
+.file-badge-inner {
   display: flex;
   align-items: center;
-  gap: 1rem;
-  margin-bottom: 1rem;
-  padding-bottom: .85rem;
-  border-bottom: 1px solid var(--border);
+  gap: .8rem;
+  flex-wrap: wrap;
 }
-.file-icon-box {
-  width: 48px;
-  height: 48px;
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  display: flex;
+.file-badge-icon {
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.5rem;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--accent);
+  flex-shrink: 0;
 }
+.file-badge-info { flex: 1 1 160px; min-width: 0; }
+.file-badge-name { font-weight: 600; font-size: .96rem; overflow-wrap: anywhere; color: var(--text); }
+.file-badge-meta { font-size: .78rem; color: var(--muted); font-family: 'IBM Plex Mono', monospace; margin-top: .18rem; }
+.file-badge-actions { display: flex; gap: .45rem; flex-wrap: wrap; }
+.btn-sm { min-height: 44px; padding: .4rem .8rem; font-size: .78rem; }
 
-.link-output-group {
+.upload-controls {
   display: flex;
-  gap: .5rem;
-  align-items: center;
+  flex-wrap: wrap;
+  gap: .6rem;
+  margin-top: 1rem;
 }
-.link-output-group input { flex: 1; font-weight: 600; color: var(--accent); }
+.upload-controls .btn { flex: 1 1 140px; min-height: 44px; justify-content: center; }
+.upload-controls .btn[aria-disabled="true"] { opacity: .55; }
 
-/* Progress bar */
+.queue-list { display: grid; gap: .55rem; margin-top: 1rem; }
+.queue-item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: .75rem;
+  padding: .75rem .85rem;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--bg);
+  min-width: 0;
+}
+.queue-item:hover { border-color: var(--accent); }
+.queue-details { min-width: 0; }
+.queue-top { display: flex; justify-content: space-between; align-items: baseline; gap: .5rem; }
+.queue-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 600 .83rem 'IBM Plex Mono', monospace; min-width: 0; color: var(--text); }
+.queue-status { color: var(--accent); font: 600 .7rem 'IBM Plex Mono', monospace; text-transform: uppercase; flex-shrink: 0; }
+.queue-meta { display: block; color: var(--muted); font: .73rem 'IBM Plex Mono', monospace; margin-top: .2rem; overflow-wrap: anywhere; }
+.queue-item-bar { width: 100%; height: 5px; background: var(--surface-2); border-radius: 999px; overflow: hidden; margin-top: .45rem; }
+.queue-item-fill { height: 100%; width: 0%; background: var(--accent); transition: width .12s linear; }
+.remove-queue-btn {
+  background: var(--surface);
+  border: 1px solid var(--danger);
+  color: var(--danger);
+  border-radius: 7px;
+  width: 44px;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font: 700 .9rem 'IBM Plex Mono', monospace;
+  flex-shrink: 0;
+}
+.remove-queue-btn:hover { background: color-mix(in srgb, var(--danger) 14%, var(--surface)); }
+
+.options-panel {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: .85rem;
+  margin-top: 1.15rem;
+  padding: .9rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg);
+}
+.options-panel .form-group { margin-bottom: 0; }
+.burn-label {
+  display: flex;
+  align-items: center;
+  gap: .65rem;
+  min-height: 44px;
+  cursor: pointer;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: .82rem;
+  color: var(--text);
+  margin: 0;
+}
+.burn-checkbox {
+  width: 24px;
+  height: 24px;
+  min-width: 24px;
+  min-height: 24px;
+  accent-color: var(--accent);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
 .progress-container {
   display: none;
   margin-top: 1rem;
+  padding: .85rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg);
+}
+.progress-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: .78rem;
+  margin-bottom: .45rem;
+  gap: .5rem;
+  flex-wrap: wrap;
 }
 .progress-bar-track {
-  background: var(--bg);
+  background: var(--surface-2);
   border: 1px solid var(--border);
   border-radius: 999px;
   height: 10px;
   overflow: hidden;
 }
-.progress-bar-fill {
-  background: var(--accent);
-  height: 100%;
-  width: 0%;
-  transition: width .2s ease;
+.progress-bar-fill { background: var(--accent); height: 100%; width: 0%; transition: width .15s linear; }
+
+.drop-notice {
+  display: none;
+  margin-top: 1rem;
+  padding: .8rem 1rem;
+  border: 1px solid var(--danger);
+  border-radius: 9px;
+  color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 8%, var(--bg));
+  font: 500 .8rem/1.45 'IBM Plex Mono', monospace;
 }
 
-.badge-tag {
-  display: inline-block;
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: .72rem;
-  padding: .2rem .5rem;
-  border-radius: 4px;
-  background: rgba(99,102,241,0.15);
-  color: var(--accent);
+.zero-upload-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: .7rem;
+  padding: .85rem 1rem;
   border: 1px solid var(--accent);
-}
-.drop-notice { display:none; margin-top:1rem; padding:.75rem .9rem; border:1px solid var(--danger); border-radius:7px; color:var(--danger); background:color-mix(in srgb,var(--danger) 8%,transparent); font:.78rem 'IBM Plex Mono',monospace; }
-.queue-list { display:grid; gap:.55rem; margin-top:1rem; }
-.queue-item { display:grid; grid-template-columns:auto minmax(0,1fr) auto auto; align-items:center; gap:.75rem; padding:.75rem; border:1px solid var(--border); border-radius:8px; background:var(--bg); transition:transform .15s ease, border-color .15s ease; }
-.queue-item:hover { border-color:var(--accent); transform:translateX(2px); }
-.queue-name { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font:500 .82rem 'IBM Plex Mono',monospace; min-width:0; }
-.queue-meta { display:block; color:var(--muted); font:.7rem 'IBM Plex Mono',monospace; margin-top:.15rem; }
-.queue-status { color:var(--accent); font:500 .7rem 'IBM Plex Mono',monospace; text-transform:uppercase; }
-.remove-queue-btn { background:color-mix(in srgb,var(--danger) 10%,transparent); border:1px solid color-mix(in srgb,var(--danger) 40%,transparent); color:var(--danger); border-radius:5px; width:26px; height:26px; display:inline-flex; align-items:center; justify-content:center; cursor:pointer; font:bold .85rem 'IBM Plex Mono',monospace; line-height:1; flex-shrink:0; transition:transform .15s ease, background-color .15s ease, color .15s ease, border-color .15s ease; margin-left:.25rem; }
-.remove-queue-btn:hover { background:var(--danger); color:var(--accent-text); border-color:var(--danger); transform:scale(1.08); }
-.upload-controls { display:flex; flex-wrap:wrap; gap:.6rem; margin-top:1rem; }
-.upload-controls .btn { flex:1 1 130px; }
-.upload-controls .btn:disabled { cursor:not-allowed; opacity:.5; color:var(--muted); background:var(--surface-2); border-color:var(--border); box-shadow:none; }
-
-/* Enhanced Drag & Drop Visuals */
-.drop-zone {
-  border: 2px dashed var(--border);
-  border-radius: 12px;
-  padding: 3.5rem 1.5rem;
-  text-align: center;
+  border-radius: 10px;
   background: var(--bg);
-  cursor: pointer;
-  transition: border-color .25s cubic-bezier(0.16, 1, 0.3, 1), background-color .25s ease, box-shadow .25s ease, transform .25s ease;
-  position: relative;
-  overflow: hidden;
+  margin-bottom: 1.1rem;
+  font: .8rem/1.45 'IBM Plex Mono', monospace;
+  color: var(--text);
 }
-.drop-zone::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(circle at center, rgba(99, 102, 241, 0.15) 0%, transparent 70%);
-  opacity: 0;
-  transition: opacity .3s ease;
-  pointer-events: none;
+.zero-upload-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: .2rem .55rem;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--accent-text);
+  font-size: .7rem;
+  font-weight: 700;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
-.drop-zone:hover, .drop-zone.dragover {
-  border-color: var(--accent);
-  background: rgba(99, 102, 241, 0.06);
-  box-shadow: 0 0 24px rgba(99, 102, 241, 0.2), inset 0 0 16px rgba(99, 102, 241, 0.08);
-  transform: scale(1.01);
-}
-.drop-zone.dragover::before { opacity: 1; }
 
-.drop-icon {
-  font-size: 2.8rem;
-  margin-bottom: .75rem;
+.submode-bar {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: .45rem;
+  margin-bottom: 1.15rem;
+}
+.submode-btn {
+  min-height: 44px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--muted);
+  font: 600 .82rem 'IBM Plex Mono', monospace;
+  cursor: pointer;
+}
+.submode-btn.is-active {
+  background: var(--surface-2);
+  color: var(--text);
+  border-color: var(--accent);
+}
+
+.lan-pairing-card, .lan-incoming-card, .lan-status-box {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  padding: 1rem;
+  margin-top: 1rem;
+}
+.lan-code-hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: .75rem;
+  padding: .85rem 1rem;
+  border: 1px dashed var(--accent);
+  border-radius: 10px;
+  background: var(--surface);
+  margin: .65rem 0;
+}
+.lan-code-big {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: clamp(1.5rem, 5vw, 2.2rem);
+  font-weight: 700;
+  letter-spacing: .18em;
+  color: var(--text);
+  text-transform: uppercase;
+}
+.lan-qr-wrap {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-top: .85rem;
+}
+.lan-qr-frame {
+  background: #fff;
+  padding: .45rem;
+  border-radius: 9px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 148px;
+  height: 148px;
+  flex-shrink: 0;
+}
+.sas-badge {
+  display: none;
+  margin-top: .85rem;
+  padding: .75rem .95rem;
+  border: 1px solid var(--success);
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--success) 10%, var(--surface));
+  font-family: 'IBM Plex Mono', monospace;
+}
+.sas-badge.is-visible { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: .6rem; }
+.sas-digits {
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: .16em;
+  color: var(--text);
+}
+.join-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: .6rem;
+  align-items: stretch;
+}
+.join-code-input {
+  text-transform: uppercase;
+  letter-spacing: .18em;
+  font-weight: 700;
+  font-size: 1.05rem;
+  text-align: center;
+}
+
+.code-hero-box {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: .65rem;
+  padding: .7rem .9rem;
+  border: 1px dashed var(--accent);
+  border-radius: 9px;
+  background: var(--bg);
+  margin-bottom: .95rem;
+}
+.code-hero-val {
+  font: 700 1.25rem 'IBM Plex Mono', monospace;
+  letter-spacing: .12em;
+  color: var(--text);
+}
+.modal-field-block { margin-bottom: .8rem; }
+.modal-field-block label {
+  display: block;
+  font-size: .76rem;
+  margin-bottom: .3rem;
+  color: var(--muted);
+  font-family: 'IBM Plex Mono', monospace;
+}
+.modal-qr-panel {
+  display: none;
+  text-align: center;
+  padding: .85rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg);
+  margin-bottom: .9rem;
+}
+.modal-qr-panel.is-open { display: block; }
+.modal-qr-box {
   display: inline-block;
-  transition: transform .3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  background: #fff;
+  padding: .45rem;
+  border-radius: 8px;
 }
-.drop-zone.dragover .drop-icon {
-  transform: translateY(-10px) scale(1.25) rotate(-6deg);
-  animation: bounceBox .6s infinite alternate cubic-bezier(0.45, 0, 0.55, 1);
+
+.file-meta-row {
+  display: flex;
+  align-items: center;
+  gap: .85rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  padding: .75rem .95rem;
+  margin-bottom: .95rem;
+  min-width: 0;
 }
-@keyframes bounceBox {
-  0% { transform: translateY(-10px) scale(1.25) rotate(-6deg); }
-  100% { transform: translateY(-18px) scale(1.3) rotate(6deg); }
+.file-icon-box {
+  width: 44px;
+  height: 44px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent);
+  flex-shrink: 0;
 }
+.burn-pill {
+  display: none;
+  padding: .22rem .55rem;
+  border-radius: 999px;
+  border: 1px solid var(--danger);
+  color: var(--danger);
+  font: 600 .7rem 'IBM Plex Mono', monospace;
+}
+.burn-pill.is-visible { display: inline-block; }
 
 .window-drag-overlay {
   position: fixed;
   inset: 0;
   z-index: 999;
-  background: rgba(0, 0, 0, 0.82);
+  background: rgba(0, 0, 0, .82);
   backdrop-filter: blur(6px);
   border: 3px dashed var(--accent);
   display: none;
@@ -258,40 +448,31 @@ input:focus-visible {
 }
 .window-drag-overlay.is-active { display: grid; }
 
-.drop-ripple {
-  position: absolute;
-  border-radius: 50%;
-  border: 2px solid var(--accent);
-  background: rgba(99, 102, 241, 0.2);
-  transform: scale(0);
-  animation: rippleExpand .6s ease-out forwards;
-  pointer-events: none;
-}
-@keyframes rippleExpand {
-  0% { transform: scale(0); opacity: 1; }
-  100% { transform: scale(3); opacity: 0; }
-}
-
-@media (max-width:640px) {
-  .drop-container { width: 100%; }
-  .drop-card { padding: 1.15rem; }
-  .drop-zone { padding: 2rem 1rem; }
-  .drop-hint { display: flex; flex-direction: column; gap: .4rem; }
-  .drop-hint button { width: 100%; margin: 0 !important; min-height: 44px; }
+@media (max-width: 640px) {
+  .drop-section-main { padding-top: 1.15rem !important; }
+  .drop-hero { margin-bottom: .9rem; }
+  .drop-card { padding: .95rem; }
+  .drop-zone { padding: 1.35rem .9rem; }
+  .tab-bar { flex-direction: column; margin-bottom: 1rem; }
+  .tab-btn { flex: 0 0 auto; width: 100%; justify-content: flex-start; min-height: 44px; padding: .45rem .75rem; }
+  .options-panel { grid-template-columns: 1fr; }
   .upload-controls { flex-direction: column; }
-  .upload-controls .btn { width: 100%; min-height: 44px; }
-  .link-output-group { align-items: stretch; flex-direction: column; gap: .5rem; }
-  .link-output-group .btn { width: 100%; min-height: 44px; }
-  .queue-item { grid-template-columns: auto 1fr auto !important; row-gap: .4rem; }
-  .queue-status { grid-column: 2 / -1; }
+  .upload-controls .btn { width: 100%; flex: 0 0 auto; }
+  .file-badge-actions { width: 100%; }
+  .file-badge-actions .btn { flex: 1 1 110px; }
+  .join-row { grid-template-columns: 1fr; }
+  .modal-url-box { flex-wrap: wrap; padding: .45rem; }
+  .modal-url-box .btn { width: 100%; }
+  .zero-upload-banner { flex-direction: column; }
 }
 </style>
 </head>
 <body>
-<div class="window-drag-overlay" id="window-drag-overlay">
-  <div style="text-align:center; color:var(--accent); font-family:'IBM Plex Mono',monospace; font-weight:600; font-size:1.1rem;">
-    <svg class="icon-svg" viewBox="0 0 24 24" width="56" height="56" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="display:block; margin:0 auto .75rem auto;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-    <div>RELEASE TO DROP FILES &amp; STAGE FOR UPLOAD</div>
+<a href="#main" class="skip-link">Skip to main content</a>
+<div class="window-drag-overlay" id="window-drag-overlay" aria-hidden="true">
+  <div style="text-align:center; color:var(--accent); font-family:'IBM Plex Mono',monospace; font-weight:600; font-size:1.05rem; padding:1rem;">
+    <svg class="icon-svg" viewBox="0 0 24 24" width="52" height="52" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="display:block; margin:0 auto .75rem;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+    <div>RELEASE TO STAGE FILES</div>
   </div>
 </div>
 
@@ -324,142 +505,261 @@ input:focus-visible {
   </div>
 </header>
 
-<main class="container">
-
-  <section class="section" style="border-top:none; padding-top:2.5rem;">
+<main id="main" class="container">
+  <section class="section drop-section-main" style="border-top:none; padding-top:2rem;">
     <div class="drop-container">
-      <div style="margin-bottom: 1.5rem;">
+      <div class="drop-hero">
         <span class="eyebrow">$ drop --gateway</span>
-        <div style="display:flex; align-items:center; gap:0.75rem; flex-wrap:wrap; margin-top:0.25rem;">
-          <h1 style="font-size:clamp(1.4rem, 3.5vw, 1.85rem); margin:0;">Drop — File Storage &amp; Transfer</h1>
+        <div class="drop-hero-row">
+          <h1>Drop — File Transfer &amp; LAN Direct</h1>
           <span class="status-pill">● LIVE</span>
         </div>
-        <p style="color:var(--muted); font-size:0.9rem; margin-top:0.4rem; max-width:60ch;">
-          Encrypted high-speed file transfer and remote URL upload gateway. Direct streaming, SHA-256 integrity verification, and ephemeral short links.
-        </p>
+        <p>Direct Cloudflare R2 presigned uploads with short typeable codes, or zero-upload E2EE peer-to-peer LAN transfer.</p>
       </div>
 
-      <!-- Large File Password Protection Modal (Triggered for files > 1 GB) -->
-      <div id="large-file-modal" style="display:none;" class="drop-card" style="border-color:var(--accent);">
-        <span class="eyebrow" style="margin-bottom:.5rem; color:var(--accent);">
-          <svg class="icon-svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-          Large File Upload Protection (&gt; 1 GB)
-        </span>
+      <div id="large-file-modal" style="display:none; border-color:var(--accent);" class="drop-card">
+        <span class="eyebrow" style="margin-bottom:.5rem;">Large File Upload Protection (&gt; 1 GB)</span>
         <p style="font-size:.88rem; color:var(--muted); margin-bottom:1rem;">
-          This file is <strong id="large-file-size-label" style="color:var(--accent);">0 GB</strong>. Files exceeding 1 GB require the owner protection password to upload.
+          This file is <strong id="large-file-size-label" style="color:var(--text);">0 GB</strong>. Files exceeding 1 GB require the owner protection password.
         </p>
         <div class="form-group">
           <label for="large-file-pass-input">Owner Password Required</label>
           <input type="password" id="large-file-pass-input" placeholder="Enter owner password..." autocomplete="off">
         </div>
-        <div style="display:flex; gap:.75rem;">
-          <button class="btn btn-solid" id="submit-large-pass-btn">Confirm Upload</button>
-          <button class="btn" id="cancel-large-pass-btn">Cancel</button>
+        <div style="display:flex; gap:.75rem; flex-wrap:wrap;">
+          <button class="btn btn-solid" id="submit-large-pass-btn" type="button">Confirm Upload</button>
+          <button class="btn" id="cancel-large-pass-btn" type="button">Cancel</button>
         </div>
         <div id="large-pass-status" style="font-family:'IBM Plex Mono',monospace; font-size:.78rem; color:var(--danger); margin-top:.5rem;"></div>
       </div>
 
-      <!-- Main Upload Card -->
       <div class="drop-card">
-        <div class="tab-bar">
-          <button class="tab-btn is-active" data-tab="direct">
-            <svg class="icon-svg" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
-            Local File
+        <div class="tab-bar" role="tablist" aria-label="Drop transfer modes">
+          <button class="tab-btn is-active" id="tab-btn-direct" type="button" role="tab" tabindex="0" data-tab="direct" aria-selected="true" aria-controls="tab-content-direct">
+            <svg class="icon-svg" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+            Cloud Upload (R2)
           </button>
-          <button class="tab-btn" data-tab="remote">
-            <svg class="icon-svg" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
-            Remote URL
+          <button class="tab-btn" id="tab-btn-lan" type="button" role="tab" tabindex="-1" data-tab="lan" aria-selected="false" aria-controls="tab-content-lan">
+            <svg class="icon-svg" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.55a11 11 0 0 1 14.08 0"></path><path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path><line x1="12" y1="20" x2="12.01" y2="20"></line></svg>
+            LAN Direct (P2P)
           </button>
-          <button class="tab-btn" data-tab="manager">
-            <svg class="icon-svg" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+          <button class="tab-btn" id="tab-btn-manager" type="button" role="tab" tabindex="-1" data-tab="manager" aria-selected="false" aria-controls="tab-content-manager">
+            <svg class="icon-svg" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
             File Manager
           </button>
         </div>
 
-        <!-- TAB 1: Direct File Upload -->
-        <div id="tab-content-direct">
+        <!-- TAB 1: Cloud Upload (R2) -->
+        <div id="tab-content-direct" role="tabpanel" aria-labelledby="tab-btn-direct">
           <div class="drop-zone" id="drop-zone">
             <input type="file" id="file-input" multiple hidden>
             <input type="file" id="folder-input" webkitdirectory directory multiple hidden>
             <div id="drop-default-prompt">
-              <span class="drop-icon" style="color:var(--accent);">
-                <svg class="icon-svg" viewBox="0 0 24 24" width="44" height="44" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+              <span class="drop-icon" aria-hidden="true">
+                <svg class="icon-svg" viewBox="0 0 24 24" width="42" height="42" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
               </span>
-              <div class="drop-text">Drop files or folder here, or click to browse</div>
-              <div class="drop-hint" style="margin-top:.6rem;">
-                <button type="button" class="btn" id="btn-select-files" style="padding:.35rem .8rem; font-size:.8rem; margin-right:.4rem;">Select file(s)</button>
-                <button type="button" class="btn" id="btn-select-folder" style="padding:.35rem .8rem; font-size:.8rem;">Select folder</button>
+              <div class="drop-text">Drop files or folders here</div>
+              <div class="drop-sub">Presigned multipart R2 · Up to 250 MiB · Short typeable codes</div>
+              <div class="drop-hint">
+                <button type="button" class="btn" id="btn-select-files">Select file(s)</button>
               </div>
             </div>
-            <div id="drop-file-badge" style="display:none; padding:.75rem; background:var(--surface); border:1px solid var(--accent); border-radius:8px; width:90%; margin:0 auto;">
-              <div style="display:flex; align-items:center; gap:.75rem; justify-content:center;">
-                <span id="badge-icon" style="display:inline-flex; align-items:center; justify-content:center; color:var(--accent); width:32px; height:32px;"></span>
-                <div style="text-align:left; overflow:hidden;">
-                  <div style="font-weight:600; font-size:1rem; word-break:break-all;" id="badge-name">file.png</div>
-                  <div style="font-size:.8rem; color:var(--muted); font-family:'IBM Plex Mono',monospace; margin-top:.2rem;" id="badge-meta">0 MB · Ready to upload</div>
+            <div id="drop-file-badge" class="file-badge-card">
+              <div class="file-badge-inner">
+                <span id="badge-icon" class="file-badge-icon" aria-hidden="true"></span>
+                <div class="file-badge-info">
+                  <div class="file-badge-name" id="badge-name">file.png</div>
+                  <div class="file-badge-meta" id="badge-meta">0 MB · Ready to upload</div>
+                </div>
+                <div class="file-badge-actions">
+                  <button type="button" class="btn btn-sm" id="btn-add-more">+ Add</button>
+                  <button type="button" class="btn btn-sm" id="btn-clear-queue">Clear</button>
                 </div>
               </div>
             </div>
           </div>
+
           <div class="upload-controls">
-            <button class="btn btn-solid" id="start-upload-btn" type="button" disabled>Start upload</button>
+            <button class="btn btn-solid" id="start-upload-btn" type="button" aria-disabled="true">Start upload</button>
+            <button class="btn" id="btn-select-folder" type="button">Select folder</button>
             <button class="btn" id="pause-upload-btn" type="button" disabled>Pause queue</button>
             <button class="btn" id="cancel-upload-btn" type="button" disabled>Stop upload</button>
           </div>
+
           <div class="queue-list" id="upload-queue" aria-live="polite"></div>
-          <div class="form-group" style="margin-top: 1.25rem;">
-            <label for="expires-in-select">Link Expiration Period</label>
-            <select id="expires-in-select" style="font-family:'IBM Plex Mono',monospace; padding:.65rem; background:var(--bg); color:var(--text); border:1px solid var(--border); border-radius:6px; width:100%;">
-              <option value="30" selected>30 Days (1 Month) [Default]</option>
-              <option value="7">7 Days</option>
-              <option value="1">1 Day (24 Hours)</option>
-              <option value="0">Never (Permanent)</option>
-            </select>
-          </div>
-        </div>
 
-        <!-- TAB 2: Remote URL Upload -->
-        <div id="tab-content-remote" style="display:none;">
-          <div class="form-group">
-            <label for="remote-url-input">Remote File URL (HTTP / HTTPS)</label>
-            <input type="url" id="remote-url-input" placeholder="https://example.com/large-video.mp4">
+          <div class="options-panel">
+            <div class="form-group">
+              <label for="expires-in-select">Link Expiration Period</label>
+              <select id="expires-in-select">
+                <option value="24" selected>24 Hours (1 Day) [Default]</option>
+                <option value="72">72 Hours (3 Days)</option>
+                <option value="12">12 Hours</option>
+                <option value="1">1 Hour</option>
+              </select>
+            </div>
+            <div class="form-group" style="justify-content:flex-end;">
+              <label class="burn-label" for="drop-burn-checkbox">
+                <input type="checkbox" id="drop-burn-checkbox" class="burn-checkbox">
+                <span>Burn after download (1×)</span>
+              </label>
+            </div>
           </div>
-          <button class="btn btn-solid" id="remote-upload-btn" style="width:100%; justify-content:center; padding:.8rem;">
-            Upload from Remote URL
-          </button>
-        </div>
 
-        <!-- TAB 3: Account Files Manager & Telemetry -->
-        <div id="tab-content-manager" style="display:none;">
-          <div class="form-row">
-            <div class="form-group"><label for="manager-token-input">Admin token</label><input id="manager-token-input" type="password" autocomplete="off" placeholder="Required to list your Rootz files"></div>
-            <div class="form-group"><label for="manager-folder-id">Folder ID filter</label><input id="manager-folder-id" type="text" placeholder="Leave empty for all files"></div>
-          </div>
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 1rem;">
-            <span class="eyebrow">$ rootz --list-files</span>
-            <button class="btn" id="refresh-files-btn" style="font-size:.8rem;">Refresh List</button>
-          </div>
-          <div id="file-list-container" style="display:flex; flex-direction:column; gap:.75rem;">
-            <div style="color:var(--muted); font-family:'IBM Plex Mono',monospace; font-size:.85rem; padding:1rem; text-align:center;">
-              Click Refresh List to view your active uploaded files &amp; telemetry.
+          <div id="drop-turnstile-wrap" style="margin-top:.75rem;"></div>
+
+          <div class="progress-container" id="progress-container" aria-live="polite">
+            <div class="progress-head">
+              <span id="progress-status-text">Uploading…</span>
+              <strong id="progress-percent-text">0%</strong>
+            </div>
+            <div class="progress-bar-track">
+              <div class="progress-bar-fill" id="progress-bar-fill"></div>
             </div>
           </div>
         </div>
 
-        <!-- Progress Bar -->
-        <div class="progress-container" id="progress-container">
-          <div style="display:flex; justify-content:space-between; font-family:'IBM Plex Mono',monospace; font-size:.8rem; margin-bottom:.3rem;">
-            <span id="progress-status-text">Uploading...</span>
-            <span id="progress-percent-text">0%</span>
+        <!-- TAB 2: LAN Direct (P2P) -->
+        <div id="tab-content-lan" role="tabpanel" aria-labelledby="tab-btn-lan" style="display:none;">
+          <div class="zero-upload-banner">
+            <span class="zero-upload-pill">ZERO UPLOAD</span>
+            <div>Direct browser-to-browser LAN transfer. Encrypted with <strong>ECDH P-256 + AES-256-GCM</strong> inside <strong>WebRTC DTLS</strong> + 6-digit <strong>SAS</strong> verification. Zero file bytes ever touch the server.</div>
           </div>
-          <div class="progress-bar-track">
-            <div class="progress-bar-fill" id="progress-bar-fill"></div>
+
+          <div class="submode-bar" role="group" aria-label="LAN transfer direction">
+            <button type="button" class="submode-btn is-active" id="lan-mode-send-btn">Send (Create Code)</button>
+            <button type="button" class="submode-btn" id="lan-mode-recv-btn">Receive (Enter Code)</button>
+          </div>
+
+          <!-- LAN Sender Panel -->
+          <div id="lan-send-panel">
+            <div class="drop-zone" id="lan-drop-zone">
+              <input type="file" id="lan-file-input" multiple hidden>
+              <span class="drop-icon" aria-hidden="true">
+                <svg class="icon-svg" viewBox="0 0 24 24" width="38" height="38" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.55a11 11 0 0 1 14.08 0"></path><path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path><line x1="12" y1="20" x2="12.01" y2="20"></line></svg>
+              </span>
+              <div class="drop-text" id="lan-send-file-label">Drop file(s) for direct LAN transfer</div>
+              <div class="drop-sub" id="lan-send-file-meta">No file size cap · Stays on your local network</div>
+              <div class="drop-hint">
+                <button type="button" class="btn" id="lan-select-files-btn">Choose File(s)</button>
+              </div>
+            </div>
+
+            <div class="upload-controls">
+              <button type="button" class="btn btn-solid" id="lan-create-room-btn" disabled>Create Pairing Code</button>
+              <button type="button" class="btn" id="lan-send-cancel-btn" disabled>Cancel Session</button>
+            </div>
+
+            <div class="lan-pairing-card" id="lan-pairing-card" style="display:none;">
+              <span class="eyebrow" style="margin-bottom:.35rem;">$ lan --pair-sender</span>
+              <div class="lan-code-hero">
+                <span class="lan-code-big" id="lan-pair-code">------</span>
+                <div style="display:flex; gap:.45rem; flex-wrap:wrap;">
+                  <button type="button" class="btn btn-solid btn-sm" id="lan-copy-code-btn">Copy Code</button>
+                  <button type="button" class="btn btn-sm" id="lan-copy-link-btn">Copy ?lan= Link</button>
+                </div>
+              </div>
+              <div class="lan-qr-wrap">
+                <div class="lan-qr-frame" id="lan-qr-box"></div>
+                <div style="flex:1 1 180px; min-width:0; font-family:'IBM Plex Mono',monospace; font-size:.8rem;">
+                  <div style="color:var(--text); font-weight:600; margin-bottom:.3rem;" id="lan-send-status">Waiting for receiver to join…</div>
+                  <div style="color:var(--muted);">Scan QR or open <code id="lan-pair-url-text" style="overflow-wrap:anywhere;"></code> on the receiving device.</div>
+                </div>
+              </div>
+
+              <div class="sas-badge" id="lan-send-sas-box" role="status">
+                <div>
+                  <div style="font-size:.72rem; color:var(--muted); text-transform:uppercase;">SAS Safety Code (Confirm Match)</div>
+                  <div class="sas-digits" id="lan-send-sas-code">000 000</div>
+                </div>
+                <span class="status-pill">● E2EE VERIFY</span>
+              </div>
+
+              <div class="progress-container" id="lan-send-progress" style="display:none;">
+                <div class="progress-head">
+                  <span id="lan-send-progress-text">Sending…</span>
+                  <strong id="lan-send-percent">0%</strong>
+                </div>
+                <div class="progress-bar-track">
+                  <div class="progress-bar-fill" id="lan-send-bar"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- LAN Receiver Panel -->
+          <div id="lan-receive-panel" style="display:none;">
+            <div class="form-group">
+              <label for="lan-join-code-input">6-Character Pairing Code</label>
+              <div class="join-row">
+                <input type="text" id="lan-join-code-input" class="join-code-input" maxlength="12" placeholder="ABC234" autocomplete="off" spellcheck="false">
+                <button type="button" class="btn btn-solid" id="lan-join-btn">Join Room</button>
+              </div>
+            </div>
+
+            <div class="lan-status-box" id="lan-recv-status-box" style="display:none;">
+              <div style="display:flex; justify-content:space-between; align-items:center; gap:.5rem; flex-wrap:wrap;">
+                <span style="font:600 .84rem 'IBM Plex Mono',monospace; color:var(--text);" id="lan-recv-status">Connecting…</span>
+                <button type="button" class="btn btn-sm" id="lan-recv-cancel-btn">Disconnect</button>
+              </div>
+
+              <div class="sas-badge" id="lan-recv-sas-box" role="status">
+                <div>
+                  <div style="font-size:.72rem; color:var(--muted); text-transform:uppercase;">SAS Safety Code (Match Sender)</div>
+                  <div class="sas-digits" id="lan-recv-sas-code">000 000</div>
+                </div>
+                <span class="status-pill">● E2EE VERIFY</span>
+              </div>
+            </div>
+
+            <div class="lan-incoming-card" id="lan-incoming-card" style="display:none;">
+              <span class="eyebrow" style="margin-bottom:.4rem;">$ lan --incoming-file</span>
+              <div style="font-weight:600; font-size:1rem; overflow-wrap:anywhere;" id="lan-inc-name">file.bin</div>
+              <div style="font:500 .8rem 'IBM Plex Mono',monospace; color:var(--muted); margin-top:.25rem;">
+                <span id="lan-inc-size">0 MB</span> · <span id="lan-inc-hash" style="overflow-wrap:anywhere;">SHA-256: —</span>
+              </div>
+              <div id="lan-incoming-files-list" style="display:none; margin-top:.65rem; display:grid; gap:.4rem;"></div>
+              <div class="upload-controls" id="lan-accept-controls">
+                <button type="button" class="btn btn-solid" id="lan-accept-btn">Accept &amp; Download</button>
+                <button type="button" class="btn" id="lan-decline-btn" style="border-color:var(--danger); color:var(--danger);">Decline</button>
+              </div>
+              <div class="progress-container" id="lan-recv-progress" style="display:none;">
+                <div class="progress-head">
+                  <span id="lan-recv-progress-text">Receiving…</span>
+                  <strong id="lan-recv-percent">0%</strong>
+                </div>
+                <div class="progress-bar-track">
+                  <div class="progress-bar-fill" id="lan-recv-bar"></div>
+                </div>
+              </div>
+              <div id="lan-recv-complete" style="display:none; margin-top:.85rem;">
+                <div style="font:600 .84rem 'IBM Plex Mono',monospace; color:var(--success); margin-bottom:.55rem;" id="lan-recv-verified-msg">✓ SHA-256 Verified &amp; Saved</div>
+                <div id="lan-recv-downloads-list" style="display:flex; flex-wrap:wrap; gap:.5rem;"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 3: File Manager -->
+        <div id="tab-content-manager" role="tabpanel" aria-labelledby="tab-btn-manager" style="display:none;">
+          <div class="form-row">
+            <div class="form-group"><label for="manager-token-input">Admin token</label><input id="manager-token-input" type="password" autocomplete="off" placeholder="Required to list Drop files"></div>
+            <div class="form-group"><label for="manager-folder-id">Folder ID filter</label><input id="manager-folder-id" type="text" placeholder="Leave empty for all files"></div>
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:.6rem; margin-bottom:1rem;">
+            <span class="eyebrow" style="margin-bottom:0;">$ drop --list-files</span>
+            <button class="btn" id="refresh-files-btn" type="button">Refresh List</button>
+          </div>
+          <div id="file-list-container" style="display:flex; flex-direction:column; gap:.75rem;">
+            <div style="color:var(--muted); font-family:'IBM Plex Mono',monospace; font-size:.85rem; padding:1rem; text-align:center;">
+              Click Refresh List to view active uploaded files.
+            </div>
           </div>
         </div>
       </div>
 
-      <!-- Result Card Modal -->
       <div class="drop-notice" id="drop-notice" role="alert"></div>
+
       <div class="result-modal-backdrop" id="drop-result-modal" role="dialog" aria-modal="true" aria-labelledby="drop-modal-title">
         <div class="result-modal-dialog">
           <div class="modal-header">
@@ -471,47 +771,87 @@ input:focus-visible {
           </div>
 
           <div class="result-card" id="result-card" style="margin-top:0; border:none; padding:0; background:transparent; box-shadow:none;">
-            <div class="file-meta-row" style="background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:.75rem 1rem; margin-bottom:1rem;">
-              <div class="file-icon-box" id="res-file-icon" style="color:var(--accent);"></div>
-              <div style="flex:1; overflow:hidden;">
-                <div style="font-weight:600; font-size:1.05rem; word-break:break-all;" id="res-file-name">filename.mp4</div>
-                <div style="font-size:.82rem; color:var(--muted); font-family:'IBM Plex Mono',monospace; margin-top:.2rem;">
-                  <span id="res-file-size">0 MB</span> · <span id="res-storage-provider" class="badge-tag">Rootz Storage</span> · <span id="res-downloads-tag">0 downloads</span>
+            <div class="file-meta-row">
+              <div class="file-icon-box" id="res-file-icon" aria-hidden="true"></div>
+              <div style="flex:1; min-width:0;">
+                <div style="font-weight:600; font-size:1.02rem; overflow-wrap:anywhere;" id="res-file-name">filename.bin</div>
+                <div style="font-size:.78rem; color:var(--muted); font-family:'IBM Plex Mono',monospace; margin-top:.2rem; display:flex; flex-wrap:wrap; gap:.4rem; align-items:center;">
+                  <span id="res-file-size">0 MB</span>
+                  <span id="res-storage-provider" class="badge-tag">Cloudflare R2</span>
+                  <span id="res-downloads-tag">0 downloads</span>
+                  <span id="res-burn-pill" class="burn-pill">BURN 1×</span>
                 </div>
               </div>
             </div>
 
-            <div style="margin-bottom:1rem;">
-              <label style="display:block; font-size:.8rem; margin-bottom:.35rem; color:var(--muted); font-family:'IBM Plex Mono',monospace;">Shareable Download Link</label>
-              <div class="modal-url-box" style="margin:0;">
-                <input type="text" id="res-share-link" class="modal-url-input" readonly>
-                <button class="btn btn-solid" id="copy-link-btn" type="button" style="padding:.4rem .85rem; font-size:.8rem; min-height:36px; white-space:nowrap;">Copy Link</button>
+            <div class="code-hero-box">
+              <div>
+                <div style="font:500 .7rem 'IBM Plex Mono',monospace; color:var(--muted); text-transform:uppercase;">Typeable Short Code</div>
+                <div class="code-hero-val" id="res-short-code">------</div>
+              </div>
+              <div style="display:flex; gap:.45rem; flex-wrap:wrap;">
+                <button class="btn btn-solid btn-sm" id="copy-code-btn" type="button">Copy Code</button>
+                <button class="btn btn-sm" id="res-qr-btn" type="button" aria-expanded="false">QR Code</button>
               </div>
             </div>
 
-            <div class="modal-meta-grid" style="margin-bottom:1rem;">
+            <div class="modal-qr-panel" id="res-qr-panel">
+              <div class="modal-qr-box" id="res-qr-box"></div>
+              <div class="mono" style="font-size:.74rem; color:var(--muted); margin-top:.45rem;">Scan to open preview &amp; download</div>
+            </div>
+
+            <div class="modal-field-block">
+              <label for="res-share-link">Shareable Preview Page (/v/)</label>
+              <div class="modal-url-box" style="margin:0;">
+                <input type="text" id="res-share-link" class="modal-url-input" readonly>
+                <button class="btn btn-solid btn-sm" id="copy-link-btn" type="button">Copy</button>
+              </div>
+            </div>
+
+            <div class="modal-field-block" id="res-direct-row">
+              <label for="res-direct-link">Direct Download Link (/d/)</label>
+              <div class="modal-url-box" style="margin:0;">
+                <input type="text" id="res-direct-link" class="modal-url-input" readonly>
+                <button class="btn btn-sm" id="copy-direct-btn" type="button">Copy</button>
+              </div>
+            </div>
+
+            <div class="modal-field-block" id="res-curl-row">
+              <label for="res-curl-cmd">Terminal cURL Command</label>
+              <div class="modal-url-box" style="margin:0;">
+                <input type="text" id="res-curl-cmd" class="modal-url-input" readonly>
+                <button class="btn btn-sm" id="copy-curl-btn" type="button">Copy</button>
+              </div>
+            </div>
+
+            <div id="res-sha256-row" style="display:none; margin-bottom:.8rem; font-family:'IBM Plex Mono',monospace; font-size:.75rem; color:var(--muted); overflow-wrap:anywhere;">
+              <div style="display:flex; justify-content:space-between; align-items:center; gap:.5rem; flex-wrap:wrap;">
+                <span><strong>SHA-256:</strong> <span id="res-sha256-val"></span></span>
+                <button class="btn btn-sm" id="copy-res-sha-btn" type="button">Copy SHA</button>
+              </div>
+            </div>
+
+            <div class="modal-meta-grid" style="margin-bottom:.9rem;">
               <div class="modal-meta-item">
                 <span class="modal-meta-label">Status</span>
-                <span class="modal-meta-val" id="res-status-val" style="color:var(--accent);">● Active &amp; Ready</span>
+                <span class="modal-meta-val" id="res-status-val" style="color:var(--success);">● Active &amp; Ready</span>
               </div>
               <div class="modal-meta-item">
                 <span class="modal-meta-label">Retention</span>
-                <span class="modal-meta-val" id="res-expiry-info">Permanent link</span>
+                <span class="modal-meta-val" id="res-expiry-info">24 hours</span>
               </div>
             </div>
 
             <div class="modal-actions-bar">
-              <a class="btn btn-solid" id="open-link-btn" target="_blank" rel="noopener" style="text-decoration:none;">Open Link ↗</a>
-              <button class="btn" id="delete-res-file-btn" type="button" style="border-color:var(--danger); color:var(--danger);">Delete File</button>
-              <button class="btn" id="drop-modal-done-btn" type="button">Done</button>
+              <a class="btn btn-solid" id="open-link-btn" target="_blank" rel="noopener" style="text-decoration:none; min-height:44px;">Open Link ↗</a>
+              <button class="btn" id="delete-res-file-btn" type="button" style="border-color:var(--danger); color:var(--danger); min-height:44px;">Delete File</button>
+              <button class="btn" id="drop-modal-done-btn" type="button" style="min-height:44px;">Done</button>
             </div>
           </div>
         </div>
       </div>
-
     </div>
   </section>
-
 </main>
 
 <footer>
@@ -521,7 +861,7 @@ input:focus-visible {
   </div>
 </footer>
 
-<script src="./app.js?v=20260913-modal-ui"></script>
-
+<script src="./lan.js?v=20261124" defer></script>
+<script src="./app.js?v=20261124" defer></script>
 </body>
 </html>

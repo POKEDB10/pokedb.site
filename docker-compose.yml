@@ -1,28 +1,65 @@
-version: '3.8'
-
 services:
   web:
     build:
       context: .
       dockerfile: Dockerfile
-    ports:
-      - "5050:5050"
+    # No published ports: origin traffic is routed exclusively through Cloudflare Tunnel (Task P2.9, R2.6f)
+    # Local diagnostics available via docker-compose.override.yml.example (bind 127.0.0.1:5050)
+    expose:
+      - "5050"
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m
+    mem_limit: 512m
+    stop_grace_period: 30s
     environment:
+      - NODE_ENV=production
       - PORT=5050
-      - REDIS_URL=redis://:${REDIS_PASSWORD:?Set REDIS_PASSWORD in your environment}@redis:6379
-      - BASE_URL=http://localhost:5050
+      - BASE_URL=https://pokedb.site
+      - STORE=sqlite
+      - SQLITE_DB_PATH=/app/data/pokedb.sqlite
+      - TRUST_PROXY=${TRUST_PROXY:-loopback,uniquelocal}
+      - ORIGIN_VERIFY_SECRET=${ORIGIN_VERIFY_SECRET:-}
+      - ADMIN_TOKEN=${ADMIN_TOKEN}
+      - LARGE_FILE_PASSWORD=${LARGE_FILE_PASSWORD}
+      - REDIS_URL=${REDIS_URL}
+      - REDIS_REJECT_UNAUTHORIZED=${REDIS_REJECT_UNAUTHORIZED:-true}
+      - REDIS_CA_CERT=${REDIS_CA_CERT}
+      - ROOTZ_API_KEY=${ROOTZ_API_KEY}
+      - ROOTZ_FOLDER_ID=${ROOTZ_FOLDER_ID}
+      - ROOTZ_FOLDER_NAME=${ROOTZ_FOLDER_NAME:-pokedb.site}
+      - ROOTZ_TIMEOUT_MS=${ROOTZ_TIMEOUT_MS:-1200000}
+      - GOOGLE_SAFE_BROWSING_KEY=${GOOGLE_SAFE_BROWSING_KEY}
+      - TURNSTILE_SECRET_KEY=${TURNSTILE_SECRET_KEY}
+      - TURNSTILE_SITE_KEY=${TURNSTILE_SITE_KEY}
+      - ABUSE_WEBHOOK_URL=${ABUSE_WEBHOOK_URL}
+      - REDIRECT_MODE=${REDIRECT_MODE:-direct}
+      - ABUSE_CH_AUTH_KEY=${ABUSE_CH_AUTH_KEY}
+      - R2_BUCKET_NAME=${R2_BUCKET_NAME:-pokedb-drops}
+      - DROP_POLICY=${DROP_POLICY:-open_limited}
+      # Litestream replication to Cloudflare R2
+      - R2_ACCOUNT_ID=${R2_ACCOUNT_ID}
+      - R2_ACCESS_KEY_ID=${R2_ACCESS_KEY_ID}
+      - R2_SECRET_ACCESS_KEY=${R2_SECRET_ACCESS_KEY}
+      - R2_BUCKET_BACKUPS=${R2_BUCKET_BACKUPS:-pokedb-backups}
+      - R2_ENDPOINT=${R2_ENDPOINT:-}
+      - REQUIRE_REPLICATION=${REQUIRE_REPLICATION:-0}
+      - CLICK_BUFFER_MAX_SIZE=${CLICK_BUFFER_MAX_SIZE:-50000}
+      - LITESTREAM_METRICS_URL=${LITESTREAM_METRICS_URL:-http://127.0.0.1:9090/metrics}
+      - LITESTREAM_LAST_SYNC_TIMESTAMP=${LITESTREAM_LAST_SYNC_TIMESTAMP:-}
+      - SENTRY_DSN=${SENTRY_DSN:-}
     volumes:
-      - ./data:/app/data
-    depends_on:
-      - redis
+      - pokedb-data:/app/data
     restart: unless-stopped
 
-  redis:
-    image: redis:7-alpine
-    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:?Set REDIS_PASSWORD in your environment}
-    volumes:
-      - redis-data:/data
+  cloudflared:
+    image: cloudflare/cloudflared:latest
     restart: unless-stopped
+    command: tunnel --no-autoupdate run
+    environment:
+      - TUNNEL_TOKEN=${TUNNEL_TOKEN}
+    depends_on:
+      - web
 
 volumes:
-  redis-data:
+  pokedb-data:

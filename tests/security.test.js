@@ -38,9 +38,16 @@ describe('Adversarial Security Regression Suite', () => {
 
   describe('2. IDOR & Enumeration', () => {
     test('2a. Drop deletion requires valid deletionToken and fails with 403 on invalid token', async () => {
-      const res = await request(app)
+      const queryTokenRes = await request(app)
         .delete('/api/drop/delete?fileId=nonexistent&token=invalid-token')
         .set('Host', 'drop.pokedb.site');
+      expect(queryTokenRes.status).toBe(400);
+      expect(queryTokenRes.body.error).toBe('query_tokens_forbidden');
+
+      const res = await request(app)
+        .delete('/api/drop/delete?fileId=nonexistent')
+        .set('Host', 'drop.pokedb.site')
+        .set('X-Delete-Token', 'invalid-token');
       expect(res.status).toBe(403);
       expect(res.body.error).toMatch(/Deletion requires an active upload record/i);
     });
@@ -51,9 +58,16 @@ describe('Adversarial Security Regression Suite', () => {
         .set('Host', 'drop.pokedb.site');
       expect(noTokenRes.status).toBe(403);
 
-      const invalidTokenRes = await request(app)
+      const queryTokenRes = await request(app)
         .get('/api/drop/list?token=wrong-token')
         .set('Host', 'drop.pokedb.site');
+      expect(queryTokenRes.status).toBe(400);
+      expect(queryTokenRes.body.error).toBe('query_tokens_forbidden');
+
+      const invalidTokenRes = await request(app)
+        .get('/api/drop/list')
+        .set('Host', 'drop.pokedb.site')
+        .set('X-Admin-Token', 'wrong-token');
       expect(invalidTokenRes.status).toBe(403);
     });
   });

@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="oled-black">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Prism — Multi-Model Inference Mesh [DRAFT] — POKEDB</title>
+<meta name="description" content="Project case study skeleton for Prism: Adaptive local and cloud inference routing mesh.">
+<meta name="robots" content="noindex, nofollow, noarchive">
+<link rel="stylesheet" href="/fonts/fonts.css">
+<link rel="stylesheet" href="/tools/shared/theme.css">
+<script src="/tools/shared/theme-switcher.js?v=3"></script>
+<style>
+  .case-study { max-width: 820px; margin: 2rem auto; padding: 0 1.25rem 4rem; line-height: 1.7; }
+  .case-meta { display: flex; gap: 1rem; flex-wrap: wrap; margin: 1rem 0 2rem; color: var(--muted); font-size: 0.9rem; }
+  .case-pill { padding: 0.2rem 0.6rem; border-radius: 4px; background: var(--surface); border: 1px solid var(--border); font-family: var(--font-mono); font-size: 0.8rem; }
+  .arch-diagram { width: 100%; margin: 2rem 0; border: 1px dashed var(--border); border-radius: 6px; background: var(--surface); padding: 1.5rem; text-align: center; }
+  .bench-table { width: 100%; border-collapse: collapse; margin: 1.5rem 0; font-size: 0.9rem; }
+  .bench-table th, .bench-table td { border: 1px solid var(--border); padding: 0.6rem 0.8rem; text-align: left; }
+  .bench-table th { background: var(--surface); font-family: var(--font-mono); }
+  .code-block { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 1rem; overflow-x: auto; font-family: var(--font-mono); font-size: 0.85rem; margin: 1.5rem 0; }
+  .draft-banner { padding: 0.75rem 1rem; border-radius: 6px; background: rgba(245, 158, 11, 0.15); border: 1px solid #f59e0b; color: #f59e0b; margin-bottom: 2rem; font-family: var(--font-mono); font-size: 0.85rem; }
+</style>
+</head>
+<body>
+
+<a href="#main" class="skip-link">Skip to main content</a>
+
+<header class="site-nav">
+  <a class="logo" href="/" data-nav="main">root<span>@</span>pokedb</a>
+  <nav class="nav-links" aria-label="Navigation">
+    <a class="nav-link" href="/">Home</a>
+    <a class="nav-link" href="https://tools.pokedb.site/">Tools</a>
+    <a class="nav-link" href="/projects/pokedb-site">Case Study</a>
+    <a class="nav-link" href="/changelog">Changelog</a>
+    <a class="nav-link" href="/docs">Docs</a>
+  </nav>
+  <div class="theme-switcher">
+    <span class="theme-swatch" id="theme-swatch"></span>
+    <select id="theme-select" aria-label="Color theme">
+      <option value="oled-black">OLED</option>
+      <option value="paper">Paper</option>
+      <option value="matrix">Matrix</option>
+      <option value="cyberpunk">Cyberpunk</option>
+      <option value="synthwave">Synthwave</option>
+      <option value="nordic-ice">Nordic</option>
+      <option value="dracula-neon">Dracula</option>
+      <option value="gruvbox-retro">Gruvbox</option>
+      <option value="emerald-forest">Emerald</option>
+      <option value="sunset-amber">Sunset</option>
+      <option value="solarized-gold">Solarized</option>
+      <option value="tokyo-neon">Tokyo</option>
+    </select>
+  </div>
+</header>
+
+<main id="main" class="case-study">
+  <div class="draft-banner">
+    [DRAFT SPECIFICATION] This case study is currently pending owner publication (O10). Demonstrated at AI Tinkerers Dubai Demo Day.
+  </div>
+
+  <span class="eyebrow">$ cat /projects/prism/spec.md</span>
+  <h1 style="font-size:2rem; margin: 0.5rem 0;">Prism: Multi-Model Inference Mesh &amp; Router</h1>
+
+  <div class="case-meta">
+    <span class="case-pill">Stack: Python · Qwen3 · Groq API · Gemini Flash</span>
+    <span class="case-pill">Status: Private Repo · Draft Spec</span>
+  </div>
+
+  <h2>1. Context &amp; Why Private</h2>
+  <p>
+    <!-- TODO(owner): Add context on why this repository is private and infrastructure scope -->
+    Prism is an inference router that dynamically splits prompt workloads between local edge accelerators (quantized Qwen3 35B via llama.cpp) and cloud APIs (Groq, Gemini Flash) based on token complexity and latency budgets.
+  </p>
+
+  <h2>2. Architectural Overview</h2>
+  <div class="arch-diagram" aria-label="Prism Architecture Diagram">
+    <svg viewBox="0 0 680 180" xmlns="http://www.w3.org/2000/svg" fill="none">
+      <rect x="20" y="30" width="160" height="120" rx="6" stroke="var(--border)" fill="var(--bg)" stroke-width="2"/>
+      <text x="100" y="60" fill="var(--text)" font-family="monospace" font-size="12" text-anchor="middle" font-weight="bold">Inference Request</text>
+      <text x="100" y="90" fill="var(--muted)" font-family="monospace" font-size="10" text-anchor="middle">Streaming API</text>
+      <text x="100" y="115" fill="var(--muted)" font-family="monospace" font-size="9" text-anchor="middle">TODO(owner): token budget</text>
+
+      <path d="M180 90 L260 90" stroke="var(--accent)" stroke-width="2"/>
+
+      <rect x="260" y="30" width="180" height="120" rx="6" stroke="var(--accent)" fill="var(--surface)" stroke-width="2"/>
+      <text x="350" y="60" fill="var(--accent)" font-family="monospace" font-size="12" text-anchor="middle" font-weight="bold">Prism Router Core</text>
+      <text x="350" y="85" fill="var(--text)" font-family="monospace" font-size="10" text-anchor="middle">Complexity Classifier</text>
+      <text x="350" y="105" fill="var(--text)" font-family="monospace" font-size="10" text-anchor="middle">Cost &amp; Latency Optimizer</text>
+      <text x="350" y="125" fill="var(--muted)" font-family="monospace" font-size="9" text-anchor="middle">TODO(owner): model weights</text>
+
+      <path d="M440 90 L520 90" stroke="var(--border)" stroke-width="2"/>
+
+      <rect x="520" y="30" width="140" height="120" rx="6" stroke="var(--border)" fill="var(--bg)" stroke-width="2"/>
+      <text x="590" y="60" fill="var(--text)" font-family="monospace" font-size="12" text-anchor="middle" font-weight="bold">Backends</text>
+      <text x="590" y="85" fill="var(--muted)" font-family="monospace" font-size="10" text-anchor="middle">Local Qwen3</text>
+      <text x="590" y="105" fill="var(--muted)" font-family="monospace" font-size="10" text-anchor="middle">Groq LPU</text>
+      <text x="590" y="125" fill="var(--muted)" font-family="monospace" font-size="9" text-anchor="middle">Gemini Flash</text>
+    </svg>
+  </div>
+
+  <h2>3. Key Router Pipeline (Sanitized)</h2>
+  <div class="code-block">
+<pre><code># Prism Inference Routing Core Skeleton
+# TODO(owner): insert verified 20-30 line code block from sanitized repo
+async def route_inference(prompt: str, context: dict) -> AsyncIterator[str]:
+    # TODO(owner): token classification & backend selection
+    pass</code></pre>
+  </div>
+
+  <h2>4. Measured Benchmark Telemetry</h2>
+  <table class="bench-table">
+    <thead>
+      <tr>
+        <th>Model Backend</th>
+        <th>Hardware</th>
+        <th>Measurement Tool</th>
+        <th>TTFT</th>
+        <th>Throughput</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Qwen3 35B (Local)</td>
+        <td>TODO(owner): GPU/RAM spec</td>
+        <td>llama-bench</td>
+        <td>TODO(owner): ms</td>
+        <td>TODO(owner): tok/s</td>
+      </tr>
+      <tr>
+        <td>Groq Endpoint</td>
+        <td>Cloud LPU</td>
+        <td>benchmark harness</td>
+        <td>TODO(owner): ms</td>
+        <td>TODO(owner): tok/s</td>
+      </tr>
+    </tbody>
+  </table>
+</main>
+
+<footer class="footer">
+  <div class="footer-inner container">
+    <span>© pokedb.site · Systems Architecture Case Study</span>
+    <a href="/terms">Terms</a>
+    <a href="/privacy">Privacy</a>
+    <a href="/abuse">Abuse</a>
+  </div>
+</footer>
+
+</body>
+</html>

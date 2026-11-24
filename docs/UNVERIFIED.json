@@ -1,0 +1,199 @@
+{
+  "cappingRule": "Any domain whose core claim appears in the PR UNVERIFIED list is capped at 6/10 until proven on live staging or production.",
+  "unverifiedRegister": [
+    {
+      "claimId": "U1",
+      "claim": "Litestream continuous WAL replication to Cloudflare R2",
+      "affectedDomains": ["G", "I"],
+      "stagingRequirement": "Requires live Cloudflare R2 credentials and running Docker container."
+    },
+    {
+      "claimId": "U2",
+      "claim": "Direct browser-to-R2 multipart PUT uploads",
+      "affectedDomains": ["E"],
+      "stagingRequirement": "Requires live Cloudflare R2 CORS and bucket configuration."
+    },
+    {
+      "claimId": "U3",
+      "claim": "Real-network mobile Lighthouse Core Web Vitals",
+      "affectedDomains": ["B"],
+      "stagingRequirement": "Requires public edge deployment over live cellular network."
+    },
+    {
+      "claimId": "U4",
+      "claim": "Host-mode routing and robots policy on Cloudflare edge proxy",
+      "affectedDomains": ["J"],
+      "stagingRequirement": "Requires Cloudflare Tunnel ingress routing verification."
+    },
+    {
+      "claimId": "U5",
+      "claim": "Cloudflare Turnstile accessible authentication under WCAG 2.2 3.3.8",
+      "affectedDomains": ["D"],
+      "stagingRequirement": "Requires live Turnstile challenge handshake on staging."
+    },
+    {
+      "claimId": "U6",
+      "claim": "Multi-hop proxy trust & live threat scanner API integration",
+      "affectedDomains": ["F"],
+      "stagingRequirement": "Requires external network client request and Google Safe Browsing API key."
+    },
+    {
+      "claimId": "U7",
+      "claim": "PWA Service Worker offline caching on public HTTPS origin",
+      "affectedDomains": ["K"],
+      "stagingRequirement": "Requires public HTTPS deployment to register and test SW cache."
+    },
+    {
+      "claimId": "U8",
+      "claim": "Abuse reporting endpoint & IP subnet anonymization under live proxy",
+      "affectedDomains": ["L"],
+      "stagingRequirement": "Requires live ingress traffic through reverse proxy."
+    },
+    {
+      "claimId": "U9",
+      "claim": "Multi-stage Docker daemon execution on production host",
+      "affectedDomains": ["I"],
+      "stagingRequirement": "Requires active Docker daemon on target Linux host."
+    },
+    {
+      "claimId": "U10",
+      "claim": "Horizontal memory plateau under sustained production workload",
+      "affectedDomains": ["A"],
+      "stagingRequirement": "Requires multi-hour load test under production memory manager."
+    },
+    {
+      "claimId": "U11",
+      "claim": "Draft skeleton projects production metrics",
+      "affectedDomains": ["M"],
+      "stagingRequirement": "Requires owner to complete project benchmarks and sanitize code."
+    }
+  ],
+  "domains": [
+    {
+      "id": "A",
+      "name": "Backend Performance",
+      "baseline": 3,
+      "rawScore": 7,
+      "coreClaimUnverified": true,
+      "claimRef": "U10",
+      "reason": "Soak slopes within bounds but no horizontal plateau observed (claims discipline)."
+    },
+    {
+      "id": "B",
+      "name": "Frontend Performance",
+      "baseline": 6,
+      "rawScore": 9,
+      "coreClaimUnverified": true,
+      "claimRef": "U3",
+      "reason": "Lighthouse 99-100 on loopback; real-network mobile Core Web Vitals UNVERIFIED."
+    },
+    {
+      "id": "C",
+      "name": "Responsive Design & UX",
+      "baseline": 5,
+      "rawScore": 8,
+      "coreClaimUnverified": false,
+      "claimRef": null,
+      "reason": "Zero horizontal overflow at 320px, 44px touch targets, mobile navigation verified."
+    },
+    {
+      "id": "D",
+      "name": "Accessibility (WCAG 2.2 AA)",
+      "baseline": 6,
+      "rawScore": 9,
+      "coreClaimUnverified": true,
+      "claimRef": "U5",
+      "reason": "0 axe-core violations across 35 passes; Turnstile 3.3.8 UNVERIFIED on live staging."
+    },
+    {
+      "id": "E",
+      "name": "Tool-by-Tool Features",
+      "baseline": 5,
+      "rawScore": 6,
+      "coreClaimUnverified": true,
+      "claimRef": "U2",
+      "reason": "Presigned Drop v2 architecture; live Cloudflare R2 direct multipart PUTs UNVERIFIED."
+    },
+    {
+      "id": "F",
+      "name": "Security (OWASP Top 10)",
+      "baseline": 4,
+      "rawScore": 9,
+      "coreClaimUnverified": true,
+      "claimRef": "U6",
+      "reason": "Loopback proxy CIDR, query tokens rejected; live proxy trust & Safe Browsing UNVERIFIED."
+    },
+    {
+      "id": "G",
+      "name": "Reliability & Durability",
+      "baseline": 3,
+      "rawScore": 6,
+      "coreClaimUnverified": true,
+      "claimRef": "U1",
+      "reason": "SQLite WAL crash-durable locally; Litestream continuous R2 replication UNVERIFIED."
+    },
+    {
+      "id": "H",
+      "name": "Architecture & Code Quality",
+      "baseline": 4,
+      "rawScore": 9,
+      "coreClaimUnverified": false,
+      "claimRef": null,
+      "reason": "server.js <= 60 lines (52 lines), 27 test suites, 85%+ coverage, modular routers proven."
+    },
+    {
+      "id": "I",
+      "name": "DevOps & Observability",
+      "baseline": 4,
+      "rawScore": 8,
+      "coreClaimUnverified": true,
+      "claimRef": "U9",
+      "reason": "Docker ran locally / mock; hadolint and arm64 UNVERIFIED."
+    },
+    {
+      "id": "J",
+      "name": "SEO & Discoverability",
+      "baseline": 4,
+      "rawScore": 9,
+      "coreClaimUnverified": true,
+      "claimRef": "U4",
+      "reason": "100/100 Lighthouse SEO locally; host-mode robots on Cloudflare edge proxy UNVERIFIED."
+    },
+    {
+      "id": "K",
+      "name": "PWA & Offline Support",
+      "baseline": 2,
+      "rawScore": 8,
+      "coreClaimUnverified": true,
+      "claimRef": "U7",
+      "reason": "Offline zero-egress tools verified; live Service Worker caching on HTTPS UNVERIFIED."
+    },
+    {
+      "id": "L",
+      "name": "Privacy, Legal & Trust",
+      "baseline": 2,
+      "rawScore": 8,
+      "coreClaimUnverified": true,
+      "claimRef": "U8",
+      "reason": "Legal policies in place; live abuse reporting & IP subnet anonymization UNVERIFIED."
+    },
+    {
+      "id": "M",
+      "name": "CV & Portfolio Impact",
+      "baseline": 6,
+      "rawScore": 6,
+      "coreClaimUnverified": true,
+      "claimRef": "U11",
+      "reason": "Flagship case study published; 5 draft skeleton pages retain TODO(owner)."
+    },
+    {
+      "id": "N",
+      "name": "Developer Experience (DX)",
+      "baseline": 3,
+      "rawScore": 8,
+      "coreClaimUnverified": false,
+      "claimRef": null,
+      "reason": "Automated verify:final harness, comprehensive runbook, CI test runner proven locally."
+    }
+  ]
+}

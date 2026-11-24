@@ -1,0 +1,13 @@
+{
+  "Version": "15.0.0",
+  "Name": "pokedb.site - TinyURL",
+  "DestinationType": "URLShortener",
+  "RequestMethod": "POST",
+  "RequestURL": "https://tinyurl.pokedb.site/api/shorten",
+  "Headers": {
+    "Accept": "application/json"
+  },
+  "Body": "JSON",
+  "Data": "{\n  \"url\": \"$input$\"\n}",
+  "URL": "$json:shortUrl$"
+}

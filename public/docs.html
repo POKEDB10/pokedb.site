@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="oled-black">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Developer API Documentation — pokedb.site</title>
+<meta name="description" content="Copy-ready curl examples, shell functions, ShareX custom uploaders, and OpenAPI 3.0 specification for pokedb.site.">
+<link rel="stylesheet" href="/fonts/fonts.css">
+<link rel="preload" href="/fonts/ibm-plex-mono-400.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/fonts/ibm-plex-sans-400.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/tools/shared/theme.css">
+<script src="/tools/shared/theme-switcher.js?v=3"></script>
+<style>
+  .docs-container { width: 100%; max-width: 860px; margin: 2rem auto; padding: 0 1.25rem 4rem; line-height: 1.7; }
+  .code-pane { position: relative; max-width: 100%; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 1rem 1.25rem; font-family: var(--font-mono); font-size: 0.85rem; margin: 1rem 0 1.75rem; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .code-pane pre { margin: 0; overflow-x: auto; }
+  .code-copy-btn { position: absolute; top: 0.5rem; right: 0.5rem; font-size: 0.75rem; padding: 0.25rem 0.6rem; min-height: 30px; }
+  .api-card { margin: 2rem 0; padding-top: 1rem; border-top: 1px solid var(--border); }
+  .api-badge { display: inline-block; padding: 0.2rem 0.5rem; border-radius: 4px; font-family: var(--font-mono); font-size: 0.75rem; font-weight: bold; margin-right: 0.5rem; }
+  .badge-post { background: color-mix(in srgb, var(--accent) 20%, transparent); color: var(--accent); border: 1px solid var(--accent); }
+  .badge-get { background: color-mix(in srgb, var(--success) 20%, transparent); color: var(--success); border: 1px solid var(--success); }
+</style>
+</head>
+<body>
+
+<a href="#main" class="skip-link">Skip to main content</a>
+
+<header class="site-nav">
+  <a class="logo" href="/" data-nav="main">root<span>@</span>pokedb</a>
+  <nav class="nav-links" aria-label="Navigation">
+    <a class="nav-link" href="/">Home</a>
+    <a class="nav-link" href="https://tools.pokedb.site/">Tools</a>
+    <a class="nav-link" href="/projects/pokedb-site">Case Study</a>
+    <a class="nav-link" href="/changelog">Changelog</a>
+    <a class="nav-link active" href="/docs">Docs</a>
+  </nav>
+  <div class="theme-switcher">
+    <span class="theme-swatch" id="theme-swatch"></span>
+    <select id="theme-select" aria-label="Color theme">
+      <option value="oled-black">OLED</option>
+      <option value="paper">Paper</option>
+      <option value="matrix">Matrix</option>
+      <option value="cyberpunk">Cyberpunk</option>
+      <option value="synthwave">Synthwave</option>
+      <option value="nordic-ice">Nordic</option>
+      <option value="dracula-neon">Dracula</option>
+      <option value="gruvbox-retro">Gruvbox</option>
+      <option value="emerald-forest">Emerald</option>
+      <option value="sunset-amber">Sunset</option>
+      <option value="solarized-gold">Solarized</option>
+      <option value="tokyo-neon">Tokyo</option>
+    </select>
+  </div>
+</header>
+
+<main id="main" class="docs-container">
+  <span class="eyebrow">$ man pokedb-api</span>
+  <h1 style="font-size:2rem; margin:0.4rem 0;">Developer API &amp; CLI Reference</h1>
+  <p style="color:var(--muted); font-size:0.95rem;">
+    All public endpoints support direct CLI consumption via <code>curl</code>, <code>Wget</code>, or programmatic HTTP clients. JSON or plaintext responses are negotiated automatically.
+  </p>
+
+  <!-- 1. Shell Helpers -->
+  <section class="api-card">
+    <h2 style="font-size:1.25rem;">1. Shell Functions (Bash / Zsh)</h2>
+    <p>Add these 5-line functions to your <code>~/.bashrc</code> or <code>~/.zshrc</code> for instant command-line sharing:</p>
+
+    <div class="code-pane" tabindex="0" role="region" aria-label="Code snippet">
+      <button class="btn code-copy-btn" type="button">Copy</button>
+<pre><code># Pipe any text or file into pokedb pastebin
+pbpaste() {
+  local text="${1:-$(cat)}"
+  curl -s -X POST https://paste.pokedb.site/api/paste/create \
+    -H "Content-Type: application/json" \
+    -d "{\"content\": $(printf '%s' "$text" | jq -sR .)}" | jq -r .url
+}
+
+# Shorten any URL from command line
+pburl() {
+  curl -s -d "url=$1" https://tinyurl.pokedb.site
+}</code></pre>
+    </div>
+  </section>
+
+  <!-- 2. ShareX Profiles -->
+  <section class="api-card">
+    <h2 style="font-size:1.25rem;">2. ShareX Custom Uploader (.sxcu)</h2>
+    <p>Download pre-configured ShareX destination profiles for Windows:</p>
+    <div style="display:flex; gap:0.75rem; flex-wrap:wrap; margin-top:0.75rem;">
+      <a class="btn" href="/sharex/pokedb-tinyurl.sxcu" download>Download TinyURL (.sxcu)</a>
+      <a class="btn" href="/sharex/pokedb-paste.sxcu" download>Download Pastebin (.sxcu)</a>
+    </div>
+  </section>
+
+  <!-- 3. Shorten URL -->
+  <section class="api-card">
+    <div>
+      <span class="api-badge badge-post">POST</span>
+      <code class="mono" style="font-size:1.1rem;">/api/shorten</code>
+    </div>
+    <p style="margin:0.5rem 0;">Shorten a destination URL. CLI requests receive plain-text response with trailing newline.</p>
+
+    <div class="code-pane" tabindex="0" role="region" aria-label="Code snippet">
+      <button class="btn code-copy-btn" type="button">Copy</button>
+<pre><code># Direct curl usage (returns plain text URL)
+curl -d url=https://github.com/POKEDB10 https://tinyurl.pokedb.site
+
+# JSON API usage
+curl -X POST https://pokedb.site/api/shorten \
+  -H "Content-Type: application/json" \
+  -d '{"url":"https://github.com/POKEDB10","customAlias":"my-profile","expiresInDays":30}'</code></pre>
+    </div>
+  </section>
+
+  <!-- 4. Create Paste -->
+  <section class="api-card">
+    <div>
+      <span class="api-badge badge-post">POST</span>
+      <code class="mono" style="font-size:1.1rem;">/api/paste/create</code>
+    </div>
+    <p style="margin:0.5rem 0;">Create a new code or text paste (max payload 256 KiB).</p>
+
+    <div class="code-pane" tabindex="0" role="region" aria-label="Code snippet">
+      <button class="btn code-copy-btn" type="button">Copy</button>
+<pre><code>curl -X POST https://paste.pokedb.site/api/paste/create \
+  -H "Content-Type: application/json" \
+  -d '{
+    "content": "console.log(\"Hello from pokedb!\");",
+    "title": "demo.js",
+    "language": "javascript",
+    "expiresInDays": 7,
+    "burnOnRead": false
+  }'</code></pre>
+    </div>
+  </section>
+
+  <!-- 5. View Raw Paste -->
+  <section class="api-card">
+    <div>
+      <span class="api-badge badge-get">GET</span>
+      <code class="mono" style="font-size:1.1rem;">/raw/:id</code>
+    </div>
+    <p style="margin:0.5rem 0;">Stream raw plain text with strict <code>sandbox; default-src 'none'</code> CSP and nosniff headers.</p>
+
+    <div class="code-pane" tabindex="0" role="region" aria-label="Code snippet">
+      <button class="btn code-copy-btn" type="button">Copy</button>
+<pre><code>curl https://paste.pokedb.site/raw/v2PasteCode</code></pre>
+    </div>
+  </section>
+
+  <!-- 6. Liveness Probe -->
+  <section class="api-card">
+    <div>
+      <span class="api-badge badge-get">GET</span>
+      <code class="mono" style="font-size:1.1rem;">/healthz</code>
+    </div>
+    <p style="margin:0.5rem 0;">Zero-I/O process liveness probe returning HTTP 200 OK.</p>
+
+    <div class="code-pane" tabindex="0" role="region" aria-label="Code snippet">
+      <button class="btn code-copy-btn" type="button">Copy</button>
+<pre><code>curl -i https://pokedb.site/healthz</code></pre>
+    </div>
+  </section>
+</main>
+
+<footer class="footer">
+  <div class="footer-inner container">
+    <span>© pokedb.site · Developer Documentation</span>
+    <a href="/terms">Terms</a>
+    <a href="/privacy">Privacy</a>
+    <a href="/abuse">Abuse</a>
+  </div>
+</footer>
+
+<script src="/js/docs.js" defer></script>
+
+</body>
+</html>

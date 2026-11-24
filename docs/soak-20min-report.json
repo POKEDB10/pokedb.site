@@ -1,0 +1,770 @@
+{
+  "timestamp": "2026-11-19T06:30:03.054Z",
+  "durationSec": 1200,
+  "warmupSec": 300,
+  "sampleIntervalSec": 30,
+  "totalRequests": 32328,
+  "statusCodes": {
+    "200": 25819,
+    "302": 4701,
+    "429": 1810
+  },
+  "linksCreated": 3199,
+  "pastesCreated": 6398,
+  "scryptCount": 3199,
+  "baselineMemory": {
+    "rss": 79630336,
+    "heapTotal": 36732928,
+    "heapUsed": 16655280,
+    "external": 3817799,
+    "arrayBuffers": 389435
+  },
+  "finalMemory": {
+    "rss": 104435712,
+    "heapTotal": 26136576,
+    "heapUsed": 20049520,
+    "external": 3808975,
+    "arrayBuffers": 298187
+  },
+  "heapSlopePost20Mb": 0.08871617358167024,
+  "rssSlopePost20Mb": 0.8928426837167921,
+  "overallHeapSlopeMb": 0.08448266094739515,
+  "overallRssSlopeMb": 1.4410991959161001,
+  "hasPlateau": false,
+  "plateauDetail": "No horizontal plateau observed: RSS band was 18.18 MB (slope 0.8928 MB/min); Heap band was 1.47 MB (slope 0.0887 MB/min).",
+  "rateLimitHypothesis": {
+    "peakKeys": 10590,
+    "finalKeys": 9600,
+    "finding": "MemoryStore key cardinality is proportional to unique active IPs within windowMs and expires automatically after windowMs elapses."
+  },
+  "snapshots": [
+    {
+      "label": "2m",
+      "elapsedSec": 100,
+      "fileName": "snapshot-2m-100s.heapsnapshot",
+      "totalShallowSizeMb": 21.105,
+      "totalNodeCount": 196509,
+      "topRetainedTypes": [
+        {
+          "name": "string",
+          "type": "string",
+          "count": 37248,
+          "sizeBytes": 7450819,
+          "sizeKb": 7276.19,
+          "sizeMb": 7.106,
+          "percentTotal": 33.67
+        },
+        {
+          "name": "code",
+          "type": "code",
+          "count": 67712,
+          "sizeBytes": 6507312,
+          "sizeKb": 6354.8,
+          "sizeMb": 6.206,
+          "percentTotal": 29.41
+        },
+        {
+          "name": "array",
+          "type": "array",
+          "count": 10831,
+          "sizeBytes": 2652864,
+          "sizeKb": 2590.69,
+          "sizeMb": 2.53,
+          "percentTotal": 11.99
+        },
+        {
+          "name": "object shape",
+          "type": "object shape",
+          "count": 15200,
+          "sizeBytes": 1405792,
+          "sizeKb": 1372.84,
+          "sizeMb": 1.341,
+          "percentTotal": 6.35
+        },
+        {
+          "name": "closure",
+          "type": "closure",
+          "count": 15998,
+          "sizeBytes": 952200,
+          "sizeKb": 929.88,
+          "sizeMb": 0.908,
+          "percentTotal": 4.3
+        },
+        {
+          "name": "native",
+          "type": "native",
+          "count": 290,
+          "sizeBytes": 755922,
+          "sizeKb": 738.21,
+          "sizeMb": 0.721,
+          "percentTotal": 3.42
+        },
+        {
+          "name": "Object",
+          "type": "object",
+          "count": 16372,
+          "sizeBytes": 686600,
+          "sizeKb": 670.51,
+          "sizeMb": 0.655,
+          "percentTotal": 3.1
+        },
+        {
+          "name": "hidden",
+          "type": "hidden",
+          "count": 8630,
+          "sizeBytes": 529944,
+          "sizeKb": 517.52,
+          "sizeMb": 0.505,
+          "percentTotal": 2.39
+        },
+        {
+          "name": "Array",
+          "type": "object",
+          "count": 9055,
+          "sizeBytes": 289856,
+          "sizeKb": 283.06,
+          "sizeMb": 0.276,
+          "percentTotal": 1.31
+        },
+        {
+          "name": "Date",
+          "type": "object",
+          "count": 2496,
+          "sizeBytes": 239616,
+          "sizeKb": 234,
+          "sizeMb": 0.229,
+          "percentTotal": 1.08
+        }
+      ]
+    },
+    {
+      "label": "8m",
+      "elapsedSec": 500,
+      "fileName": "snapshot-8m-500s.heapsnapshot",
+      "totalShallowSizeMb": 22.131,
+      "totalNodeCount": 209815,
+      "topRetainedTypes": [
+        {
+          "name": "string",
+          "type": "string",
+          "count": 41472,
+          "sizeBytes": 7586027,
+          "sizeKb": 7408.23,
+          "sizeMb": 7.235,
+          "percentTotal": 32.69
+        },
+        {
+          "name": "code",
+          "type": "code",
+          "count": 68529,
+          "sizeBytes": 6736800,
+          "sizeKb": 6578.91,
+          "sizeMb": 6.425,
+          "percentTotal": 29.03
+        },
+        {
+          "name": "array",
+          "type": "array",
+          "count": 10835,
+          "sizeBytes": 2771680,
+          "sizeKb": 2706.72,
+          "sizeMb": 2.643,
+          "percentTotal": 11.94
+        },
+        {
+          "name": "object shape",
+          "type": "object shape",
+          "count": 15219,
+          "sizeBytes": 1407384,
+          "sizeKb": 1374.4,
+          "sizeMb": 1.342,
+          "percentTotal": 6.06
+        },
+        {
+          "name": "closure",
+          "type": "closure",
+          "count": 15998,
+          "sizeBytes": 952200,
+          "sizeKb": 929.88,
+          "sizeMb": 0.908,
+          "percentTotal": 4.1
+        },
+        {
+          "name": "Object",
+          "type": "object",
+          "count": 20403,
+          "sizeBytes": 848504,
+          "sizeKb": 828.62,
+          "sizeMb": 0.809,
+          "percentTotal": 3.66
+        },
+        {
+          "name": "native",
+          "type": "native",
+          "count": 290,
+          "sizeBytes": 755922,
+          "sizeKb": 738.21,
+          "sizeMb": 0.721,
+          "percentTotal": 3.26
+        },
+        {
+          "name": "Date",
+          "type": "object",
+          "count": 6496,
+          "sizeBytes": 623616,
+          "sizeKb": 609,
+          "sizeMb": 0.595,
+          "percentTotal": 2.69
+        },
+        {
+          "name": "hidden",
+          "type": "hidden",
+          "count": 8808,
+          "sizeBytes": 575120,
+          "sizeKb": 561.64,
+          "sizeMb": 0.548,
+          "percentTotal": 2.48
+        },
+        {
+          "name": "Array",
+          "type": "object",
+          "count": 9062,
+          "sizeBytes": 290080,
+          "sizeKb": 283.28,
+          "sizeMb": 0.277,
+          "percentTotal": 1.25
+        }
+      ]
+    },
+    {
+      "label": "18m",
+      "elapsedSec": 1100,
+      "fileName": "snapshot-18m-1100s.heapsnapshot",
+      "totalShallowSizeMb": 22.84,
+      "totalNodeCount": 220182,
+      "topRetainedTypes": [
+        {
+          "name": "string",
+          "type": "string",
+          "count": 45445,
+          "sizeBytes": 7713235,
+          "sizeKb": 7532.46,
+          "sizeMb": 7.356,
+          "percentTotal": 32.21
+        },
+        {
+          "name": "code",
+          "type": "code",
+          "count": 68612,
+          "sizeBytes": 6760096,
+          "sizeKb": 6601.66,
+          "sizeMb": 6.447,
+          "percentTotal": 28.23
+        },
+        {
+          "name": "array",
+          "type": "array",
+          "count": 10834,
+          "sizeBytes": 2896944,
+          "sizeKb": 2829.05,
+          "sizeMb": 2.763,
+          "percentTotal": 12.1
+        },
+        {
+          "name": "object shape",
+          "type": "object shape",
+          "count": 15223,
+          "sizeBytes": 1408312,
+          "sizeKb": 1375.3,
+          "sizeMb": 1.343,
+          "percentTotal": 5.88
+        },
+        {
+          "name": "Object",
+          "type": "object",
+          "count": 23542,
+          "sizeBytes": 975200,
+          "sizeKb": 952.34,
+          "sizeMb": 0.93,
+          "percentTotal": 4.07
+        },
+        {
+          "name": "closure",
+          "type": "closure",
+          "count": 15998,
+          "sizeBytes": 952200,
+          "sizeKb": 929.88,
+          "sizeMb": 0.908,
+          "percentTotal": 3.98
+        },
+        {
+          "name": "Date",
+          "type": "object",
+          "count": 9600,
+          "sizeBytes": 921600,
+          "sizeKb": 900,
+          "sizeMb": 0.879,
+          "percentTotal": 3.85
+        },
+        {
+          "name": "native",
+          "type": "native",
+          "count": 290,
+          "sizeBytes": 755924,
+          "sizeKb": 738.21,
+          "sizeMb": 0.721,
+          "percentTotal": 3.16
+        },
+        {
+          "name": "hidden",
+          "type": "hidden",
+          "count": 8827,
+          "sizeBytes": 616080,
+          "sizeKb": 601.64,
+          "sizeMb": 0.588,
+          "percentTotal": 2.57
+        },
+        {
+          "name": "Array",
+          "type": "object",
+          "count": 9072,
+          "sizeBytes": 290400,
+          "sizeKb": 283.59,
+          "sizeMb": 0.277,
+          "percentTotal": 1.21
+        }
+      ]
+    }
+  ],
+  "samples": [
+    {
+      "elapsedSec": 30,
+      "rssMb": 72.95,
+      "heapUsedMb": 18.35,
+      "heapTotalMb": 22.69,
+      "externalMb": 3.53,
+      "arrayBuffersMb": 0.28,
+      "rateLimitKeys": 754,
+      "walSizeKb": 3271,
+      "dbSizeKb": 4
+    },
+    {
+      "elapsedSec": 60,
+      "rssMb": 75.94,
+      "heapUsedMb": 18.53,
+      "heapTotalMb": 25.19,
+      "externalMb": 3.6,
+      "arrayBuffersMb": 0.28,
+      "rateLimitKeys": 1507,
+      "walSizeKb": 4040,
+      "dbSizeKb": 124
+    },
+    {
+      "elapsedSec": 90,
+      "rssMb": 75.21,
+      "heapUsedMb": 18.73,
+      "heapTotalMb": 25.44,
+      "externalMb": 3.53,
+      "arrayBuffersMb": 0.28,
+      "rateLimitKeys": 2258,
+      "walSizeKb": 4040,
+      "dbSizeKb": 188
+    },
+    {
+      "elapsedSec": 120,
+      "rssMb": 84.58,
+      "heapUsedMb": 17.17,
+      "heapTotalMb": 20.7,
+      "externalMb": 3.51,
+      "arrayBuffersMb": 0.28,
+      "rateLimitKeys": 2128,
+      "walSizeKb": 4040,
+      "dbSizeKb": 244
+    },
+    {
+      "elapsedSec": 150,
+      "rssMb": 86.77,
+      "heapUsedMb": 17.45,
+      "heapTotalMb": 23.2,
+      "externalMb": 3.58,
+      "arrayBuffersMb": 0.28,
+      "rateLimitKeys": 2884,
+      "walSizeKb": 4040,
+      "dbSizeKb": 300
+    },
+    {
+      "elapsedSec": 180,
+      "rssMb": 86.8,
+      "heapUsedMb": 17.41,
+      "heapTotalMb": 23.45,
+      "externalMb": 3.62,
+      "arrayBuffersMb": 0.28,
+      "rateLimitKeys": 2787,
+      "walSizeKb": 4040,
+      "dbSizeKb": 352
+    },
+    {
+      "elapsedSec": 210,
+      "rssMb": 90.2,
+      "heapUsedMb": 17.57,
+      "heapTotalMb": 27.45,
+      "externalMb": 3.56,
+      "arrayBuffersMb": 0.28,
+      "rateLimitKeys": 3543,
+      "walSizeKb": 4052,
+      "dbSizeKb": 404
+    },
+    {
+      "elapsedSec": 240,
+      "rssMb": 90.42,
+      "heapUsedMb": 17.57,
+      "heapTotalMb": 27.45,
+      "externalMb": 3.62,
+      "arrayBuffersMb": 0.28,
+      "rateLimitKeys": 3433,
+      "walSizeKb": 4052,
+      "dbSizeKb": 460
+    },
+    {
+      "elapsedSec": 270,
+      "rssMb": 90.99,
+      "heapUsedMb": 17.71,
+      "heapTotalMb": 27.45,
+      "externalMb": 3.62,
+      "arrayBuffersMb": 0.28,
+      "rateLimitKeys": 4189,
+      "walSizeKb": 4052,
+      "dbSizeKb": 512
+    },
+    {
+      "elapsedSec": 300,
+      "rssMb": 91.22,
+      "heapUsedMb": 17.82,
+      "heapTotalMb": 27.7,
+      "externalMb": 3.63,
+      "arrayBuffersMb": 0.28,
+      "rateLimitKeys": 4084,
+      "walSizeKb": 4052,
+      "dbSizeKb": 572
+    },
+    {
+      "elapsedSec": 330,
+      "rssMb": 91.13,
+      "heapUsedMb": 17.94,
+      "heapTotalMb": 27.95,
+      "externalMb": 3.59,
+      "arrayBuffersMb": 0.28,
+      "rateLimitKeys": 4833,
+      "walSizeKb": 4052,
+      "dbSizeKb": 572
+    },
+    {
+      "elapsedSec": 360,
+      "rssMb": 91.1,
+      "heapUsedMb": 17.93,
+      "heapTotalMb": 27.95,
+      "externalMb": 3.53,
+      "arrayBuffersMb": 0.28,
+      "rateLimitKeys": 4718,
+      "walSizeKb": 4052,
+      "dbSizeKb": 628
+    },
+    {
+      "elapsedSec": 390,
+      "rssMb": 98.6,
+      "heapUsedMb": 18.08,
+      "heapTotalMb": 35.95,
+      "externalMb": 3.59,
+      "arrayBuffersMb": 0.28,
+      "rateLimitKeys": 5464,
+      "walSizeKb": 4052,
+      "dbSizeKb": 688
+    },
+    {
+      "elapsedSec": 420,
+      "rssMb": 97.89,
+      "heapUsedMb": 18.05,
+      "heapTotalMb": 35.95,
+      "externalMb": 3.72,
+      "arrayBuffersMb": 0.28,
+      "rateLimitKeys": 5359,
+      "walSizeKb": 4052,
+      "dbSizeKb": 748
+    },
+    {
+      "elapsedSec": 450,
+      "rssMb": 98.34,
+      "heapUsedMb": 18.35,
+      "heapTotalMb": 36.45,
+      "externalMb": 3.73,
+      "arrayBuffersMb": 0.28,
+      "rateLimitKeys": 6113,
+      "walSizeKb": 4052,
+      "dbSizeKb": 812
+    },
+    {
+      "elapsedSec": 480,
+      "rssMb": 99.56,
+      "heapUsedMb": 18.2,
+      "heapTotalMb": 37.2,
+      "externalMb": 3.67,
+      "arrayBuffersMb": 0.28,
+      "rateLimitKeys": 6011,
+      "walSizeKb": 4052,
+      "dbSizeKb": 860
+    },
+    {
+      "elapsedSec": 510,
+      "rssMb": 94.36,
+      "heapUsedMb": 18.29,
+      "heapTotalMb": 21.45,
+      "externalMb": 3.53,
+      "arrayBuffersMb": 0.28,
+      "rateLimitKeys": 6741,
+      "walSizeKb": 4052,
+      "dbSizeKb": 920
+    },
+    {
+      "elapsedSec": 540,
+      "rssMb": 97.04,
+      "heapUsedMb": 18.34,
+      "heapTotalMb": 24.45,
+      "externalMb": 3.59,
+      "arrayBuffersMb": 0.28,
+      "rateLimitKeys": 6632,
+      "walSizeKb": 4052,
+      "dbSizeKb": 972
+    },
+    {
+      "elapsedSec": 570,
+      "rssMb": 97.89,
+      "heapUsedMb": 18.46,
+      "heapTotalMb": 24.45,
+      "externalMb": 3.61,
+      "arrayBuffersMb": 0.35,
+      "rateLimitKeys": 7384,
+      "walSizeKb": 4052,
+      "dbSizeKb": 1020
+    },
+    {
+      "elapsedSec": 601,
+      "rssMb": 97.96,
+      "heapUsedMb": 18.61,
+      "heapTotalMb": 24.68,
+      "externalMb": 3.59,
+      "arrayBuffersMb": 0.28,
+      "rateLimitKeys": 7285,
+      "walSizeKb": 4052,
+      "dbSizeKb": 1076
+    },
+    {
+      "elapsedSec": 631,
+      "rssMb": 101.11,
+      "heapUsedMb": 18.72,
+      "heapTotalMb": 28.43,
+      "externalMb": 3.55,
+      "arrayBuffersMb": 0.28,
+      "rateLimitKeys": 8016,
+      "walSizeKb": 4052,
+      "dbSizeKb": 1152
+    },
+    {
+      "elapsedSec": 661,
+      "rssMb": 101.63,
+      "heapUsedMb": 18.71,
+      "heapTotalMb": 28.68,
+      "externalMb": 3.69,
+      "arrayBuffersMb": 0.28,
+      "rateLimitKeys": 7891,
+      "walSizeKb": 4052,
+      "dbSizeKb": 1208
+    },
+    {
+      "elapsedSec": 691,
+      "rssMb": 101.82,
+      "heapUsedMb": 18.85,
+      "heapTotalMb": 28.93,
+      "externalMb": 3.69,
+      "arrayBuffersMb": 0.28,
+      "rateLimitKeys": 8626,
+      "walSizeKb": 4052,
+      "dbSizeKb": 1208
+    },
+    {
+      "elapsedSec": 721,
+      "rssMb": 101.38,
+      "heapUsedMb": 18.81,
+      "heapTotalMb": 28.93,
+      "externalMb": 3.67,
+      "arrayBuffersMb": 0.28,
+      "rateLimitKeys": 8522,
+      "walSizeKb": 4052,
+      "dbSizeKb": 1264
+    },
+    {
+      "elapsedSec": 751,
+      "rssMb": 101.01,
+      "heapUsedMb": 18.97,
+      "heapTotalMb": 28.93,
+      "externalMb": 3.53,
+      "arrayBuffersMb": 0.28,
+      "rateLimitKeys": 9278,
+      "walSizeKb": 4052,
+      "dbSizeKb": 1312
+    },
+    {
+      "elapsedSec": 781,
+      "rssMb": 108.77,
+      "heapUsedMb": 18.92,
+      "heapTotalMb": 36.93,
+      "externalMb": 3.58,
+      "arrayBuffersMb": 0.28,
+      "rateLimitKeys": 9196,
+      "walSizeKb": 4052,
+      "dbSizeKb": 1352
+    },
+    {
+      "elapsedSec": 811,
+      "rssMb": 107.96,
+      "heapUsedMb": 19.05,
+      "heapTotalMb": 37.18,
+      "externalMb": 3.72,
+      "arrayBuffersMb": 0.28,
+      "rateLimitKeys": 9946,
+      "walSizeKb": 4052,
+      "dbSizeKb": 1424
+    },
+    {
+      "elapsedSec": 841,
+      "rssMb": 108.89,
+      "heapUsedMb": 19.02,
+      "heapTotalMb": 37.18,
+      "externalMb": 3.72,
+      "arrayBuffersMb": 0.28,
+      "rateLimitKeys": 9837,
+      "walSizeKb": 4052,
+      "dbSizeKb": 1476
+    },
+    {
+      "elapsedSec": 871,
+      "rssMb": 108.18,
+      "heapUsedMb": 19.29,
+      "heapTotalMb": 37.43,
+      "externalMb": 3.65,
+      "arrayBuffersMb": 0.28,
+      "rateLimitKeys": 10590,
+      "walSizeKb": 4052,
+      "dbSizeKb": 1536
+    },
+    {
+      "elapsedSec": 901,
+      "rssMb": 108.67,
+      "heapUsedMb": 19.21,
+      "heapTotalMb": 37.43,
+      "externalMb": 3.85,
+      "arrayBuffersMb": 0.28,
+      "rateLimitKeys": 10453,
+      "walSizeKb": 4052,
+      "dbSizeKb": 1588
+    },
+    {
+      "elapsedSec": 931,
+      "rssMb": 108.09,
+      "heapUsedMb": 19.23,
+      "heapTotalMb": 37.43,
+      "externalMb": 3.86,
+      "arrayBuffersMb": 0.28,
+      "rateLimitKeys": 10453,
+      "walSizeKb": 4052,
+      "dbSizeKb": 1588
+    },
+    {
+      "elapsedSec": 961,
+      "rssMb": 109.17,
+      "heapUsedMb": 19,
+      "heapTotalMb": 37.43,
+      "externalMb": 3.89,
+      "arrayBuffersMb": 0.28,
+      "rateLimitKeys": 9600,
+      "walSizeKb": 4052,
+      "dbSizeKb": 1588
+    },
+    {
+      "elapsedSec": 991,
+      "rssMb": 108.09,
+      "heapUsedMb": 18.97,
+      "heapTotalMb": 37.43,
+      "externalMb": 3.83,
+      "arrayBuffersMb": 0.34,
+      "rateLimitKeys": 9600,
+      "walSizeKb": 4052,
+      "dbSizeKb": 1588
+    },
+    {
+      "elapsedSec": 1021,
+      "rssMb": 108.64,
+      "heapUsedMb": 19.08,
+      "heapTotalMb": 37.43,
+      "externalMb": 3.9,
+      "arrayBuffersMb": 0.28,
+      "rateLimitKeys": 9600,
+      "walSizeKb": 4052,
+      "dbSizeKb": 1588
+    },
+    {
+      "elapsedSec": 1051,
+      "rssMb": 109.2,
+      "heapUsedMb": 19.03,
+      "heapTotalMb": 37.43,
+      "externalMb": 3.84,
+      "arrayBuffersMb": 0.28,
+      "rateLimitKeys": 9600,
+      "walSizeKb": 4052,
+      "dbSizeKb": 1588
+    },
+    {
+      "elapsedSec": 1081,
+      "rssMb": 109.28,
+      "heapUsedMb": 18.98,
+      "heapTotalMb": 37.43,
+      "externalMb": 3.87,
+      "arrayBuffersMb": 0.28,
+      "rateLimitKeys": 9600,
+      "walSizeKb": 4052,
+      "dbSizeKb": 1588
+    },
+    {
+      "elapsedSec": 1111,
+      "rssMb": 96.36,
+      "heapUsedMb": 18.96,
+      "heapTotalMb": 22.43,
+      "externalMb": 3.56,
+      "arrayBuffersMb": 0.28,
+      "rateLimitKeys": 9600,
+      "walSizeKb": 4052,
+      "dbSizeKb": 1588
+    },
+    {
+      "elapsedSec": 1141,
+      "rssMb": 96.57,
+      "heapUsedMb": 19.05,
+      "heapTotalMb": 22.68,
+      "externalMb": 3.54,
+      "arrayBuffersMb": 0.28,
+      "rateLimitKeys": 9600,
+      "walSizeKb": 4052,
+      "dbSizeKb": 1588
+    },
+    {
+      "elapsedSec": 1171,
+      "rssMb": 98.93,
+      "heapUsedMb": 19.01,
+      "heapTotalMb": 24.68,
+      "externalMb": 3.62,
+      "arrayBuffersMb": 0.28,
+      "rateLimitKeys": 9600,
+      "walSizeKb": 4052,
+      "dbSizeKb": 1588
+    }
+  ]
+}

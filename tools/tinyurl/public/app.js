@@ -56,6 +56,10 @@
     var downloadPngBtn = document.getElementById('download-png-btn');
     var downloadSvgBtn = document.getElementById('download-svg-btn');
 
+    if (window.PokedbTurnstile) {
+      window.PokedbTurnstile.mount('#tinyurl-turnstile-wrap');
+    }
+
     // Form Submission
     form.addEventListener('submit', async function (e) {
       e.preventDefault();
@@ -68,6 +72,11 @@
         customAlias: customAliasInput.value.trim() || undefined,
         expiresInDays: expiresInSelect.value ? Number(expiresInSelect.value) : 30
       };
+
+      if (window.PokedbTurnstile) {
+        var tsToken = await window.PokedbTurnstile.getToken('#tinyurl-turnstile-wrap');
+        if (tsToken) payload['cf-turnstile-response'] = tsToken;
+      }
 
       try {
         var res = await fetch('/api/shorten', {
@@ -82,13 +91,16 @@
           errorEl.textContent = data.error || 'Failed to shorten URL.';
           errorEl.style.display = 'block';
           renderSuggestions(data.suggestions, customAliasInput);
+          if (window.PokedbTurnstile) window.PokedbTurnstile.reset('#tinyurl-turnstile-wrap');
           return;
         }
+        if (window.PokedbTurnstile) window.PokedbTurnstile.reset('#tinyurl-turnstile-wrap');
 
         activeShortUrl = data.shortUrl;
         if (shortLinkHref) {
           shortLinkHref.href = data.shortUrl;
           shortLinkHref.textContent = data.shortUrl;
+          shortLinkHref.removeAttribute('aria-label');
         }
 
         var statsText = 'Code: ' + data.code;

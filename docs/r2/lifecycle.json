@@ -1,0 +1,17 @@
+{
+  "Rules": [
+    {
+      "ID": "DeleteDropsAfter3Days",
+      "Status": "Enabled",
+      "Filter": {
+        "Prefix": "drops/"
+      },
+      "Expiration": {
+        "Days": 3
+      },
+      "AbortIncompleteMultipartUpload": {
+        "DaysAfterInitiation": 1
+      }
+    }
+  ]
+}

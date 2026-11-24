@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="oled-black">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>JWT Inspector &amp; Verifier — pokedb.site tools</title>
+<meta name="description" content="Offline-first JSON Web Token inspector, claim decoder, and WebCrypto signature verifier.">
+<link rel="stylesheet" href="/fonts/fonts.css">
+<link rel="stylesheet" href="/tools/shared/theme.css">
+<script src="/tools/shared/theme-switcher.js?v=3"></script>
+<script src="/tools/shared/state-url.js"></script>
+<style>
+  .tool-container { max-width: 1000px; margin: 1.5rem auto; padding: 0 1rem; }
+  .jwt-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem; }
+  @media (max-width: 768px) { .jwt-grid { grid-template-columns: 1fr; } }
+  .token-box { width: 100%; height: 200px; font-family: var(--font-mono); font-size: 0.85rem; padding: 0.75rem; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--text); resize: vertical; word-break: break-all; }
+  .claims-section { display: flex; flex-direction: column; gap: 0.75rem; }
+  .claim-box { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 0.75rem; font-family: var(--font-mono); font-size: 0.82rem; }
+  .claim-box h3 { font-size: 0.85rem; margin-bottom: 0.4rem; color: var(--accent); }
+  .claim-pre { margin: 0; white-space: pre-wrap; word-break: break-all; }
+  .badge-offline { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.2rem 0.6rem; border-radius: 4px; background: color-mix(in srgb, var(--success) 15%, transparent); border: 1px solid var(--success); color: var(--success); font-family: var(--font-mono); font-size: 0.75rem; }
+  .verify-row { display: flex; gap: 0.5rem; align-items: center; margin-top: 0.5rem; }
+</style>
+</head>
+<body>
+
+<a href="#main" class="skip-link">Skip to main content</a>
+
+<header class="site-nav">
+  <a class="logo" href="/" data-nav="main">root<span>@</span>pokedb</a>
+  <nav class="nav-links" aria-label="Tools navigation">
+    <a class="nav-link" href="https://tools.pokedb.site/" data-nav="tools">Hub</a>
+    <a class="nav-link" href="/tools/json">JSON</a>
+    <a class="nav-link active" href="/tools/jwt">JWT</a>
+    <a class="nav-link" href="/tools/codec">Codec</a>
+    <a class="nav-link" href="/tools/hash">Hash</a>
+    <a class="nav-link" href="/tools/uuid">UUID</a>
+    <a class="nav-link" href="/tools/cron">Cron</a>
+    <a class="nav-link" href="/tools/diff">Diff</a>
+    <a class="nav-link" href="/tools/minecraft">Minecraft</a>
+    <a class="nav-link" href="/tools/sanitizer">Sanitizer</a>
+  </nav>
+  <div class="theme-switcher">
+    <span class="theme-swatch" id="theme-swatch"></span>
+    <select id="theme-select" aria-label="Color theme">
+      <option value="oled-black">OLED</option>
+      <option value="paper">Paper</option>
+      <option value="matrix">Matrix</option>
+      <option value="cyberpunk">Cyberpunk</option>
+      <option value="synthwave">Synthwave</option>
+      <option value="nordic-ice">Nordic</option>
+      <option value="dracula-neon">Dracula</option>
+      <option value="gruvbox-retro">Gruvbox</option>
+      <option value="emerald-forest">Emerald</option>
+      <option value="sunset-amber">Sunset</option>
+      <option value="solarized-gold">Solarized</option>
+      <option value="tokyo-neon">Tokyo</option>
+    </select>
+  </div>
+</header>
+
+<main id="main" class="tool-container">
+  <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem;">
+    <div>
+      <span class="eyebrow">$ jwt --inspect</span>
+      <h1 style="font-size:1.5rem; margin:0.25rem 0;">JWT Inspector &amp; Signature Verifier</h1>
+    </div>
+    <span class="badge-offline">● 100% Client-Side · connect-src: 'none'</span>
+  </div>
+
+  <div class="jwt-grid">
+    <div>
+      <label for="jwt-input" class="mono">Encoded JWT Token</label>
+      <textarea id="jwt-input" class="token-box" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." spellcheck="false"></textarea>
+      
+      <div style="margin-top:1rem;">
+        <label for="jwt-secret" class="mono">HMAC Secret (Optional Verification)</label>
+        <div class="verify-row">
+          <input type="text" id="jwt-secret" placeholder="your-256-bit-secret" style="flex:1;">
+          <button class="btn btn-solid" id="btn-verify">Verify</button>
+        </div>
+        <div id="verify-status" class="mono" style="margin-top:0.4rem; font-size:0.8rem; color:var(--muted);">Status: Unverified</div>
+      </div>
+
+      <div style="margin-top:1rem; display:flex; gap:0.5rem;">
+        <button class="btn" id="btn-sample">Load Sample</button>
+        <button class="btn" id="btn-clear">Clear</button>
+        <button class="btn" id="btn-share">Share State</button>
+      </div>
+    </div>
+
+    <div class="claims-section">
+      <div class="claim-box">
+        <h3>Header (Algorithm &amp; Token Type)</h3>
+        <pre id="jwt-header" class="claim-pre">{}</pre>
+      </div>
+      <div class="claim-box">
+        <h3>Payload (Claims)</h3>
+        <pre id="jwt-payload" class="claim-pre">{}</pre>
+      </div>
+      <div class="claim-box">
+        <h3>Expiry Assessment</h3>
+        <div id="jwt-expiry" class="mono" style="color:var(--muted);">No token parsed</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="aria-status" aria-live="polite" class="sr-only" style="position:absolute; left:-9999px;"></div>
+</main>
+
+<script src="./app.js" defer></script>
+
+</body>
+</html>

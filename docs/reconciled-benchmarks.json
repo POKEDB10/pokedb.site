@@ -1,0 +1,158 @@
+{
+  "p0": {
+    "name": "P0 Baseline (commit 338b363)",
+    "redirect": {
+      "reqSec": 3.2,
+      "latencyAvg": 312.44,
+      "latencyP50": 311,
+      "latencyP99": 330,
+      "total": 16,
+      "statusCodes": {
+        "302": {
+          "count": 16
+        }
+      }
+    },
+    "health": {
+      "reqSec": 4467.4,
+      "latencyAvg": 3.97,
+      "latencyP50": 4,
+      "latencyP99": 11,
+      "total": 22333,
+      "statusCodes": {
+        "200": {
+          "count": 22333
+        }
+      }
+    },
+    "landing": {
+      "reqSec": 5746.8,
+      "latencyAvg": 2.9,
+      "latencyP50": 3,
+      "latencyP99": 4,
+      "total": 28730,
+      "statusCodes": {
+        "404": {
+          "count": 28730
+        }
+      }
+    }
+  },
+  "r27": {
+    "name": "R2.7 Baseline (commit 3ef3c2a)",
+    "redirect": {
+      "reqSec": 4394.8,
+      "latencyAvg": 4.08,
+      "latencyP50": 4,
+      "latencyP99": 6,
+      "total": 21974,
+      "statusCodes": {
+        "302": {
+          "count": 21974
+        }
+      }
+    },
+    "health": {
+      "reqSec": 3569,
+      "latencyAvg": 5.05,
+      "latencyP50": 5,
+      "latencyP99": 8,
+      "total": 17842,
+      "statusCodes": {
+        "200": {
+          "count": 17842
+        }
+      }
+    },
+    "landing": {
+      "reqSec": 5839.6,
+      "latencyAvg": 2.84,
+      "latencyP50": 3,
+      "latencyP99": 4,
+      "total": 29194,
+      "statusCodes": {
+        "404": {
+          "count": 29194
+        }
+      }
+    }
+  },
+  "head": {
+    "name": "HEAD (v2/overhaul, logging-off)",
+    "redirect": {
+      "reqSec": 3126.6,
+      "latencyAvg": 5.9,
+      "latencyP50": 6,
+      "latencyP99": 8,
+      "total": 15631,
+      "statusCodes": {
+        "302": {
+          "count": 15631
+        }
+      }
+    },
+    "health": {
+      "reqSec": 4765.2,
+      "latencyAvg": 3.72,
+      "latencyP50": 4,
+      "latencyP99": 7,
+      "total": 23825,
+      "statusCodes": {
+        "200": {
+          "count": 23825
+        }
+      }
+    },
+    "landing": {
+      "reqSec": 2493.81,
+      "latencyAvg": 7.53,
+      "latencyP50": 7,
+      "latencyP99": 11,
+      "total": 12468,
+      "statusCodes": {
+        "200": {
+          "count": 12468
+        }
+      }
+    }
+  },
+  "headLogging": {
+    "name": "HEAD (v2/overhaul, logging-on A/B)",
+    "redirect": {
+      "reqSec": 3224.2,
+      "latencyAvg": 5.69,
+      "latencyP50": 6,
+      "latencyP99": 8,
+      "total": 16121,
+      "statusCodes": {
+        "302": {
+          "count": 16121
+        }
+      }
+    },
+    "health": {
+      "reqSec": 4797.2,
+      "latencyAvg": 3.72,
+      "latencyP50": 4,
+      "latencyP99": 7,
+      "total": 23982,
+      "statusCodes": {
+        "200": {
+          "count": 23982
+        }
+      }
+    },
+    "landing": {
+      "reqSec": 2439,
+      "latencyAvg": 7.7,
+      "latencyP50": 7,
+      "latencyP99": 13,
+      "total": 12193,
+      "statusCodes": {
+        "200": {
+          "count": 12193
+        }
+      }
+    }
+  }
+}

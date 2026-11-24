@@ -1,0 +1,35 @@
+{
+  "lines": 80,
+  "branches": 68,
+  "coreModules": {
+    "src/storage/r2.js": 80,
+    "src/utils/urlSecurity.js": 80,
+    "src/middleware/auth.js": 80,
+    "src/middleware/proxyTrust.js": 80,
+    "src/utils/crypto.js": 80
+  },
+  "auditProd": 0,
+  "contrast": 60,
+  "axe": 0,
+  "lighthouse": {
+    "perf": 90,
+    "a11y": 95,
+    "seo": 95,
+    "maxConsoleErrors": 0
+  },
+  "redirectBench": {
+    "conns": 20,
+    "repeats": 5,
+    "minMedianReqSec": 2000,
+    "previousMedianReqSec": 2096,
+    "maxRegressionPct": 25,
+    "minStatus302Pct": 100,
+    "maxP99Ms": 25
+  },
+  "soak": {
+    "durationSec": 1200,
+    "maxHeapSlopeMbMin": 0.2,
+    "maxRssSlopeMbMin": 1.0,
+    "max429Ratio": 0.10
+  }
+}

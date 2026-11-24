@@ -1,0 +1,16 @@
+# etc/litestream.yml
+# Continuous SQLite replication configuration for Cloudflare R2
+# Reference: Task P2.9 & Plan Corrections C2/C3
+
+addr: ":9090"
+
+dbs:
+  - path: /app/data/pokedb.sqlite
+    replicas:
+      - type: s3
+        endpoint: https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com
+        bucket: ${R2_BUCKET_BACKUPS:-pokedb-backups}
+        path: db
+        region: auto
+        sync-interval: 30s
+        retention: 72h

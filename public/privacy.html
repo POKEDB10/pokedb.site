@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Privacy Policy — pokedb.site</title>
+  <link rel="stylesheet" href="/shared/theme.css">
+  <link rel="icon" href="/favicon.ico">
+  <!-- TODO(owner-review): Legal review pending by site owner. Adapted from Basecamp open-source policies under CC BY 4.0. -->
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace; max-width: 800px; margin: clamp(16px, 4vw, 40px) auto; padding: 0 16px max(24px, env(safe-area-inset-bottom)); line-height: 1.6; color: #dcdcdc; background: #0f111a; }
+    h1, h2, h3 { color: #fff; }
+    a { color: #38bdf8; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.85rem; background: #262c40; color: #f59e0b; border: 1px solid #f59e0b; margin-bottom: 20px; }
+    .legal-notice { padding: 12px 16px; background: #1a1e2e; border-left: 4px solid #f59e0b; margin: 20px 0; border-radius: 4px; font-size: 0.9rem; color: #f3f4f6; }
+    footer { margin-top: 50px; padding-top: 20px; border-top: 1px solid #232738; font-size: 0.9rem; color: #888; }
+    table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+    th, td { border: 1px solid #2b3044; padding: 8px 12px; text-align: left; }
+    th { background: #1a1e2e; color: #fff; }
+  </style>
+</head>
+<body>
+  <div class="badge">TODO(owner-review) — Subject to Owner Confirmation</div>
+  <div class="legal-notice">
+    <strong>Legal Notice:</strong> This document is a technical privacy policy template and does <em>not</em> constitute legal advice. Formal review by the domain owner and qualified legal counsel is required prior to public operation.
+  </div>
+
+  <h1>Privacy Policy</h1>
+  <p><em>Last updated: November 2026. Adapted from the Basecamp open-source policies (CC BY 4.0).</em></p>
+
+  <h2>1. Privacy Architecture & Information Collected</h2>
+  <p>pokedb.site is built on privacy-by-design principles. We do not require user accounts, email addresses, personal identification, or tracking cookies.</p>
+  <ul>
+    <li><strong>Network Telemetry & IP Masking:</strong> Client IP addresses are evaluated in volatile memory solely to enforce subnet-level rate limiting (CIDR-based sliding windows) and prevent automated abuse. Client IPs are masked before persisting to any disk or logging system: IPv4 addresses are truncated to their <code>/24</code> subnet (e.g., <code>198.51.100.0/24</code>) and IPv6 addresses to their <code>/48</code> prefix. Raw client IPs are never written to disk.</li>
+    <li><strong>URL Shortener:</strong> We record target destination URLs, creation timestamps, expiration rules, and aggregate click counters.</li>
+    <li><strong>Pastebin:</strong> We record paste titles, syntax languages, payload text (encrypted client-side when requested), creation timestamps, and view counters. When encrypted client-side, the decryption key resides only in the browser URL fragment (<code>#k=</code>) and is never transmitted to our servers.</li>
+    <li><strong>Drop File Transfers:</strong> Drop v2 utilizes direct browser-to-bucket presigned multipart transfers on Cloudflare R2. Zero bytes touch origin server disk. We store the file name, size, expiration date, and sha256 checksum.</li>
+    <li><strong>Offline Developer Tools:</strong> All developer utilities (JSON formatter, JWT inspector, UUID generator, Cron parser, Hash studio, Diff tool, Codec, Minecraft MOTD preview, CSS sanitizer) run 100% client-side in the browser. They enforce a Content Security Policy of <code>connect-src 'none'</code>, ensuring zero network egress.</li>
+  </ul>
+
+  <h2>2. Retention Periods</h2>
+  <div class="table-scroll" tabindex="0" role="region" aria-label="Data Retention Periods"><table>
+    <thead>
+      <tr>
+        <th>Data Category</th>
+        <th>Retention Window</th>
+        <th>Automatic Purge Mechanism</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Short Links</td>
+        <td>1 to 365 days (default 30 days)</td>
+        <td>Continuous background sweeper purge</td>
+      </tr>
+      <tr>
+        <td>Pastes</td>
+        <td>1 to 365 days (or immediate burn-on-read)</td>
+        <td>Sweeper purge / burn-after-download record deletion</td>
+      </tr>
+      <tr>
+        <td>Drop Files</td>
+        <td>1 to 3 days (or immediate burn-on-download)</td>
+        <td>Cloudflare R2 bucket lifecycle rule & sweeper</td>
+      </tr>
+      <tr>
+        <td>Abuse Reports</td>
+        <td>14 days</td>
+        <td>Automated rolling retention purge</td>
+      </tr>
+      <tr>
+        <td>Takedown Audit Logs</td>
+        <td>90 days</td>
+        <td>Automated rolling audit purge</td>
+      </tr>
+    </tbody>
+  </table></div>
+
+  <h2>3. Third-Party Subprocessors & Data Processors</h2>
+  <p>pokedb.site engages the following infrastructure providers and technical data processors to deliver core platform services:</p>
+  <ul>
+    <li><strong>Cloudflare, Inc. (Cloudflare Edge, Cloudflare Tunnel & Turnstile):</strong> Provides reverse-proxy routing, edge TLS termination, DDoS mitigation, and non-interactive CAPTCHA challenge verification (Turnstile) to protect API endpoints against bot attacks.</li>
+    <li><strong>Cloudflare R2 (Object Storage):</strong> Serves as the S3-compatible, geographically distributed object store for presigned multipart file uploads (Drop v2).</li>
+    <li><strong>Google Safe Browsing (Lookup API v4):</strong> Scans submitted destination URLs upon short-link creation to protect users against known phishing and malware threats. <em>Advisory provided by Google</em> (<a href="https://safebrowsing.google.com/">https://safebrowsing.google.com/</a>).</li>
+    <li><strong>Sentry (Functional Software, Inc.):</strong> Server-side error monitoring and exception tracking (if enabled by operator). All events scrub IP addresses, query tokens, and authorization headers, and 4xx client errors are suppressed.</li>
+    <li><strong>Litestream Replication (Streaming Backups to Cloudflare R2):</strong> Continuous WAL snapshot streaming of SQLite state to a private Cloudflare R2 bucket for disaster recovery.</li>
+  </ul>
+
+  <h2>4. Contact & Inquiries</h2>
+  <p>For privacy inquiries, questions regarding data retention, or deletion requests, contact: <a href="mailto:privacy@pokedb.site">privacy@pokedb.site</a> or <a href="mailto:security@pokedb.site">security@pokedb.site</a>.</p>
+
+  <footer>
+    <p><a href="/">Home</a> &bull; <a href="/terms">Terms</a> &bull; <a href="/privacy">Privacy</a> &bull; <a href="/abuse">Abuse & Reporting</a> &bull; <a href="/.well-known/security.txt">Security</a></p>
+  </footer>
+</body>
+</html>

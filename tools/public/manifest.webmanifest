@@ -1,0 +1,24 @@
+{
+  "name": "pokedb.site — Developer Tools Hub",
+  "short_name": "PokeDB Tools",
+  "description": "High-speed developer utilities: URL shortener, vector QR studio, encrypted pastebin, 25 GB file transfer.",
+  "start_url": "/tools/",
+  "scope": "/tools/",
+  "display": "standalone",
+  "background_color": "#070708",
+  "theme_color": "#070708",
+  "icons": [
+    {
+      "src": "/icon-192.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

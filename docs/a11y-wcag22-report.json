@@ -1,0 +1,343 @@
+{
+  "timestamp": "2026-11-24T19:02:34.081Z",
+  "standard": "WCAG 2.2 AA",
+  "themes": [
+    "paper",
+    "matrix",
+    "cyberpunk",
+    "synthwave"
+  ],
+  "pages": [
+    {
+      "name": "Landing Page",
+      "path": "/"
+    },
+    {
+      "name": "Tools Hub",
+      "path": "/tools/"
+    },
+    {
+      "name": "TinyURL Tool",
+      "path": "/tools/tinyurl/"
+    },
+    {
+      "name": "Paste Tool",
+      "path": "/tools/paste/"
+    },
+    {
+      "name": "Drop Tool",
+      "path": "/tools/drop/"
+    },
+    {
+      "name": "QR Studio Tool",
+      "path": "/tools/qr/"
+    },
+    {
+      "name": "Case Study",
+      "path": "/projects/pokedb-site.html"
+    }
+  ],
+  "totalViolations": 0,
+  "wcag22Checks": {
+    "focusAppearance_2_4_11": {
+      "checked": 10,
+      "hasVisibleOutline": true
+    },
+    "draggingMovements_2_5_7": {
+      "hasDropZone": true,
+      "hasFileInputAlternative": true,
+      "isClickable": true
+    },
+    "targetSize_2_5_8": {
+      "total": 37,
+      "violations": []
+    },
+    "accessibleAuthentication_3_3_8": {
+      "pass": false,
+      "status": "UNVERIFIED",
+      "exemption": "Managed non-cognitive challenge requires live staging verification"
+    }
+  },
+  "auditResults": [
+    {
+      "page": "Landing Page",
+      "path": "/",
+      "theme": "paper",
+      "violationsCount": 0,
+      "passesCount": 19,
+      "violations": []
+    },
+    {
+      "page": "Landing Page",
+      "path": "/",
+      "theme": "matrix",
+      "violationsCount": 0,
+      "passesCount": 19,
+      "violations": []
+    },
+    {
+      "page": "Landing Page",
+      "path": "/",
+      "theme": "cyberpunk",
+      "violationsCount": 0,
+      "passesCount": 19,
+      "violations": []
+    },
+    {
+      "page": "Landing Page",
+      "path": "/",
+      "theme": "synthwave",
+      "violationsCount": 0,
+      "passesCount": 19,
+      "violations": []
+    },
+    {
+      "page": "Tools Hub",
+      "path": "/tools/",
+      "theme": "paper",
+      "violationsCount": 0,
+      "passesCount": 18,
+      "violations": []
+    },
+    {
+      "page": "Tools Hub",
+      "path": "/tools/",
+      "theme": "matrix",
+      "violationsCount": 0,
+      "passesCount": 18,
+      "violations": []
+    },
+    {
+      "page": "Tools Hub",
+      "path": "/tools/",
+      "theme": "cyberpunk",
+      "violationsCount": 0,
+      "passesCount": 18,
+      "violations": []
+    },
+    {
+      "page": "Tools Hub",
+      "path": "/tools/",
+      "theme": "synthwave",
+      "violationsCount": 0,
+      "passesCount": 18,
+      "violations": []
+    },
+    {
+      "page": "TinyURL Tool",
+      "path": "/tools/tinyurl/",
+      "theme": "paper",
+      "violationsCount": 0,
+      "passesCount": 21,
+      "violations": []
+    },
+    {
+      "page": "TinyURL Tool",
+      "path": "/tools/tinyurl/",
+      "theme": "matrix",
+      "violationsCount": 0,
+      "passesCount": 21,
+      "violations": []
+    },
+    {
+      "page": "TinyURL Tool",
+      "path": "/tools/tinyurl/",
+      "theme": "cyberpunk",
+      "violationsCount": 0,
+      "passesCount": 21,
+      "violations": []
+    },
+    {
+      "page": "TinyURL Tool",
+      "path": "/tools/tinyurl/",
+      "theme": "synthwave",
+      "violationsCount": 0,
+      "passesCount": 21,
+      "violations": []
+    },
+    {
+      "page": "Paste Tool",
+      "path": "/tools/paste/",
+      "theme": "paper",
+      "violationsCount": 0,
+      "passesCount": 21,
+      "violations": []
+    },
+    {
+      "page": "Paste Tool",
+      "path": "/tools/paste/",
+      "theme": "matrix",
+      "violationsCount": 0,
+      "passesCount": 21,
+      "violations": []
+    },
+    {
+      "page": "Paste Tool",
+      "path": "/tools/paste/",
+      "theme": "cyberpunk",
+      "violationsCount": 0,
+      "passesCount": 21,
+      "violations": []
+    },
+    {
+      "page": "Paste Tool",
+      "path": "/tools/paste/",
+      "theme": "synthwave",
+      "violationsCount": 0,
+      "passesCount": 21,
+      "violations": []
+    },
+    {
+      "page": "Drop Tool",
+      "path": "/tools/drop/",
+      "theme": "paper",
+      "violationsCount": 0,
+      "passesCount": 26,
+      "violations": []
+    },
+    {
+      "page": "Drop Tool",
+      "path": "/tools/drop/",
+      "theme": "matrix",
+      "violationsCount": 0,
+      "passesCount": 26,
+      "violations": []
+    },
+    {
+      "page": "Drop Tool",
+      "path": "/tools/drop/",
+      "theme": "cyberpunk",
+      "violationsCount": 0,
+      "passesCount": 26,
+      "violations": []
+    },
+    {
+      "page": "Drop Tool",
+      "path": "/tools/drop/",
+      "theme": "synthwave",
+      "violationsCount": 0,
+      "passesCount": 26,
+      "violations": []
+    },
+    {
+      "page": "QR Studio Tool",
+      "path": "/tools/qr/",
+      "theme": "paper",
+      "violationsCount": 0,
+      "passesCount": 26,
+      "violations": []
+    },
+    {
+      "page": "QR Studio Tool",
+      "path": "/tools/qr/",
+      "theme": "matrix",
+      "violationsCount": 0,
+      "passesCount": 26,
+      "violations": []
+    },
+    {
+      "page": "QR Studio Tool",
+      "path": "/tools/qr/",
+      "theme": "cyberpunk",
+      "violationsCount": 0,
+      "passesCount": 26,
+      "violations": []
+    },
+    {
+      "page": "QR Studio Tool",
+      "path": "/tools/qr/",
+      "theme": "synthwave",
+      "violationsCount": 0,
+      "passesCount": 26,
+      "violations": []
+    },
+    {
+      "page": "Case Study",
+      "path": "/projects/pokedb-site.html",
+      "theme": "paper",
+      "violationsCount": 0,
+      "passesCount": 25,
+      "violations": []
+    },
+    {
+      "page": "Case Study",
+      "path": "/projects/pokedb-site.html",
+      "theme": "matrix",
+      "violationsCount": 0,
+      "passesCount": 25,
+      "violations": []
+    },
+    {
+      "page": "Case Study",
+      "path": "/projects/pokedb-site.html",
+      "theme": "cyberpunk",
+      "violationsCount": 0,
+      "passesCount": 25,
+      "violations": []
+    },
+    {
+      "page": "Case Study",
+      "path": "/projects/pokedb-site.html",
+      "theme": "synthwave",
+      "violationsCount": 0,
+      "passesCount": 25,
+      "violations": []
+    },
+    {
+      "page": "Landing Page (320px)",
+      "path": "/",
+      "theme": "320px-viewport",
+      "violationsCount": 0,
+      "passesCount": 20,
+      "violations": []
+    },
+    {
+      "page": "Tools Hub (320px)",
+      "path": "/tools/",
+      "theme": "320px-viewport",
+      "violationsCount": 0,
+      "passesCount": 19,
+      "violations": []
+    },
+    {
+      "page": "TinyURL Tool (320px)",
+      "path": "/tools/tinyurl/",
+      "theme": "320px-viewport",
+      "violationsCount": 0,
+      "passesCount": 22,
+      "violations": []
+    },
+    {
+      "page": "Paste Tool (320px)",
+      "path": "/tools/paste/",
+      "theme": "320px-viewport",
+      "violationsCount": 0,
+      "passesCount": 22,
+      "violations": []
+    },
+    {
+      "page": "Drop Tool (320px)",
+      "path": "/tools/drop/",
+      "theme": "320px-viewport",
+      "violationsCount": 0,
+      "passesCount": 27,
+      "violations": []
+    },
+    {
+      "page": "QR Studio Tool (320px)",
+      "path": "/tools/qr/",
+      "theme": "320px-viewport",
+      "violationsCount": 0,
+      "passesCount": 27,
+      "violations": []
+    },
+    {
+      "page": "Case Study (320px)",
+      "path": "/projects/pokedb-site.html",
+      "theme": "320px-viewport",
+      "violationsCount": 0,
+      "passesCount": 26,
+      "violations": []
+    }
+  ]
+}

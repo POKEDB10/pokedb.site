@@ -3,26 +3,43 @@
   "version": "1.0.0",
   "description": "Unified platform & self-hosted tools hub for pokedb.site",
   "main": "server.js",
+  "engines": {
+    "node": ">=24.0.0",
+    "npm": ">=10.0.0"
+  },
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js",
-    "test": "jest --detectOpenHandles --forceExit",
+    "test": "jest --detectOpenHandles --forceExit --testTimeout=15000",
     "check": "node --check server.js",
+    "check:placeholders": "node scripts/check-placeholders.js",
+    "verify:final": "node scripts/ops/verify-final.js",
+    "verify:docker": "node scripts/ops/verify-docker.js",
+    "verify:staging": "node scripts/ops/verify-staging.js",
     "health": "node -e \"require('http').get('http://localhost:5050/health', r => r.pipe(process.stdout))\""
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1164.0",
+    "@aws-sdk/s3-request-presigner": "^3.1164.0",
     "cors": "^2.8.5",
-    "express": "^4.19.2",
-    "express-rate-limit": "^7.3.1",
-    "helmet": "^7.1.0",
-    "ioredis": "^5.4.1",
-    "multer": "^2.2.0",
+    "express": "^5.3.0",
+    "express-rate-limit": "^8.7.2",
+    "helmet": "^8.3.0",
     "nanoid": "^3.3.7",
-    "qrcode": "^1.5.4",
-    "rate-limit-redis": "^4.2.0"
+    "pino": "^10.4.0",
+    "qrcode": "^1.5.4"
   },
   "devDependencies": {
-    "jest": "^29.7.0",
+    "axe-core": "^4.14.0",
+    "ioredis": "^5.4.1",
+    "jest": "^30.5.2",
+    "lighthouse": "^13.6.0",
+    "rate-limit-redis": "^4.2.0",
     "supertest": "^7.0.0"
+  },
+  "overrides": {
+    "body-parser": "^1.20.9",
+    "proxy-addr": "^2.0.8",
+    "qs": "^6.16.1"
   }
 }

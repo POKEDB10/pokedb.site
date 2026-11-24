@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="oled-black">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Cryptographic Hash Studio — pokedb.site tools</title>
+<meta name="description" content="Offline-first cryptographic hash studio for text and streaming file integrity verification.">
+<link rel="stylesheet" href="/fonts/fonts.css">
+<link rel="stylesheet" href="/tools/shared/theme.css">
+<script src="/tools/shared/theme-switcher.js?v=3"></script>
+<script src="/tools/shared/state-url.js"></script>
+<style>
+  .tool-container { max-width: 900px; margin: 1.5rem auto; padding: 0 1rem; }
+  .drop-zone { border: 2px dashed var(--border); border-radius: 8px; padding: 2rem; text-align: center; background: var(--surface); cursor: pointer; transition: border-color 0.2s ease; margin: 1rem 0; }
+  .drop-zone:hover { border-color: var(--accent); }
+  .hash-row { display: flex; flex-direction: column; gap: 0.35rem; margin-bottom: 1rem; }
+  .hash-input-group { display: flex; gap: 0.5rem; }
+  .hash-input-group input { font-family: var(--font-mono); font-size: 0.82rem; }
+  .badge-offline { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.2rem 0.6rem; border-radius: 4px; background: color-mix(in srgb, var(--success) 15%, transparent); border: 1px solid var(--success); color: var(--success); font-family: var(--font-mono); font-size: 0.75rem; }
+</style>
+</head>
+<body>
+
+<a href="#main" class="skip-link">Skip to main content</a>
+
+<header class="site-nav">
+  <a class="logo" href="/" data-nav="main">root<span>@</span>pokedb</a>
+  <nav class="nav-links" aria-label="Tools navigation">
+    <a class="nav-link" href="https://tools.pokedb.site/" data-nav="tools">Hub</a>
+    <a class="nav-link" href="/tools/json">JSON</a>
+    <a class="nav-link" href="/tools/jwt">JWT</a>
+    <a class="nav-link" href="/tools/codec">Codec</a>
+    <a class="nav-link active" href="/tools/hash">Hash</a>
+    <a class="nav-link" href="/tools/uuid">UUID</a>
+    <a class="nav-link" href="/tools/cron">Cron</a>
+    <a class="nav-link" href="/tools/diff">Diff</a>
+    <a class="nav-link" href="/tools/minecraft">Minecraft</a>
+    <a class="nav-link" href="/tools/sanitizer">Sanitizer</a>
+  </nav>
+  <div class="theme-switcher">
+    <span class="theme-swatch" id="theme-swatch"></span>
+    <select id="theme-select" aria-label="Color theme">
+      <option value="oled-black">OLED</option>
+      <option value="paper">Paper</option>
+      <option value="matrix">Matrix</option>
+      <option value="cyberpunk">Cyberpunk</option>
+      <option value="synthwave">Synthwave</option>
+      <option value="nordic-ice">Nordic</option>
+      <option value="dracula-neon">Dracula</option>
+      <option value="gruvbox-retro">Gruvbox</option>
+      <option value="emerald-forest">Emerald</option>
+      <option value="sunset-amber">Sunset</option>
+      <option value="solarized-gold">Solarized</option>
+      <option value="tokyo-neon">Tokyo</option>
+    </select>
+  </div>
+</header>
+
+<main id="main" class="tool-container">
+  <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem;">
+    <div>
+      <span class="eyebrow">$ hash --studio</span>
+      <h1 style="font-size:1.5rem; margin:0.25rem 0;">Cryptographic Hash Studio</h1>
+    </div>
+    <span class="badge-offline">● 100% Client-Side · connect-src: 'none'</span>
+  </div>
+
+  <div style="margin-top:1rem;">
+    <label for="text-input" class="mono">Input Text</label>
+    <textarea id="text-input" class="mono" style="width:100%; height:100px; padding:0.75rem; border:1px solid var(--border); border-radius:6px; background:var(--surface); color:var(--text);" placeholder="Enter text to hash in real-time..."></textarea>
+  </div>
+
+  <div class="drop-zone" id="drop-zone">
+    <p class="mono" style="margin:0; font-size:0.9rem;">Drop a file here to compute cryptographic checksums locally</p>
+    <span style="color:var(--muted); font-size:0.78rem;">Files are streamed in browser memory and never uploaded to any server</span>
+    <input type="file" id="file-input" style="display:none;">
+  </div>
+
+  <div style="margin-top:1.5rem;">
+    <div class="hash-row">
+      <label for="hash-sha256" class="mono">SHA-256 (WebCrypto)</label>
+      <div class="hash-input-group">
+        <input type="text" id="hash-sha256" readonly class="mono" style="flex:1;">
+        <button class="btn" type="button" data-copy-target="hash-sha256">Copy</button>
+      </div>
+    </div>
+
+    <div class="hash-row">
+      <label for="hash-sha512" class="mono">SHA-512 (WebCrypto)</label>
+      <div class="hash-input-group">
+        <input type="text" id="hash-sha512" readonly class="mono" style="flex:1;">
+        <button class="btn" type="button" data-copy-target="hash-sha512">Copy</button>
+      </div>
+    </div>
+
+    <div class="hash-row">
+      <label for="hash-sha384" class="mono">SHA-384 (WebCrypto)</label>
+      <div class="hash-input-group">
+        <input type="text" id="hash-sha384" readonly class="mono" style="flex:1;">
+        <button class="btn" type="button" data-copy-target="hash-sha384">Copy</button>
+      </div>
+    </div>
+
+    <div class="hash-row">
+      <label for="hash-sha1" class="mono">SHA-1 (Legacy Integrity)</label>
+      <div class="hash-input-group">
+        <input type="text" id="hash-sha1" readonly class="mono" style="flex:1;">
+        <button class="btn" type="button" data-copy-target="hash-sha1">Copy</button>
+      </div>
+    </div>
+  </div>
+
+  <div style="margin-top:1.5rem; padding:1rem; border:1px solid var(--border); border-radius:6px; background:var(--surface);">
+    <label for="verify-input" class="mono">Checksum Matcher / Verifier</label>
+    <div class="hash-input-group" style="margin-top:0.4rem;">
+      <input type="text" id="verify-input" placeholder="Paste expected hash to verify..." class="mono" style="flex:1;">
+      <button class="btn btn-solid" id="btn-compare">Verify Match</button>
+    </div>
+    <div id="match-status" class="mono" style="margin-top:0.5rem; font-size:0.82rem; color:var(--muted);">Paste expected checksum above</div>
+  </div>
+</main>
+
+<script src="./app.js" defer></script>
+
+</body>
+</html>

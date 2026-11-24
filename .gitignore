@@ -8,6 +8,7 @@ yarn-error.log*
 data/config.json
 data/store.json
 data/uploads/
+data/*.sqlite*
 .env
 .env.local
 .env.production
@@ -16,3 +17,9 @@ data/uploads/
 .DS_Store
 Thumbs.db
 *.log
+docs/evidence/**/*.log
+*.heapsnapshot
+coverage/
+
+# Security Audit Reports (local only until production is patched)
+audit-reports/

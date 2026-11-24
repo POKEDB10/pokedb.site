@@ -1,0 +1,239 @@
+{
+  "timestamp": "2026-11-19T06-04-04-856Z",
+  "gitHead": "3d196669ab51841ca5cf19e7ebfafb22649e4a41",
+  "gitDirty": false,
+  "gates": {
+    "lines": 80,
+    "branches": 68,
+    "coreModules": {
+      "src/storage/r2.js": 80,
+      "src/utils/urlSecurity.js": 80,
+      "src/middleware/auth.js": 80,
+      "src/middleware/proxyTrust.js": 80,
+      "src/utils/crypto.js": 80
+    },
+    "auditProd": 0,
+    "contrast": 60,
+    "axe": 0,
+    "lighthouse": {
+      "perf": 90,
+      "a11y": 95,
+      "seo": 95,
+      "maxConsoleErrors": 0
+    },
+    "redirectBench": {
+      "conns": 20,
+      "repeats": 5,
+      "minMedianReqSec": 2000,
+      "minStatus302Pct": 100,
+      "maxP99Ms": 25
+    },
+    "soak": {
+      "durationSec": 1200,
+      "maxHeapSlopeMbMin": 0.5,
+      "maxRssSlopeMbMin": 0.5
+    }
+  },
+  "checks": [
+    {
+      "id": "01",
+      "name": "git-status-clean",
+      "title": "Git Working Tree Cleanliness Check",
+      "status": "PASS",
+      "pass": true,
+      "durationMs": 120,
+      "logFile": "docs/evidence/2026-11-19T06-04-04-856Z/01-git-status-clean.log",
+      "sha256": "41159dfab82d881508394055c71cc9a30b62f77ec482d1484636c2e51228350a"
+    },
+    {
+      "id": "02",
+      "name": "git-tests-diff",
+      "title": "Test Files List & ce594ac Diff Audit",
+      "status": "PASS",
+      "pass": true,
+      "durationMs": 213,
+      "logFile": "docs/evidence/2026-11-19T06-04-04-856Z/02-git-tests-diff.log",
+      "sha256": "079f7f6be3a1b789589c09b87906c0c64a91dcf2363253254d1ca09503286613"
+    },
+    {
+      "id": "03",
+      "name": "node-syntax-check",
+      "title": "Node Syntax Verification (--check)",
+      "status": "PASS",
+      "pass": true,
+      "durationMs": 8294,
+      "logFile": "docs/evidence/2026-11-19T06-04-04-856Z/03-node-syntax-check.log",
+      "sha256": "07515c2930fdf99f88d158bee8bcc8d9b70c117cf2ad204bca1c93cf5ef3ceca"
+    },
+    {
+      "id": "04",
+      "name": "npm-test",
+      "title": "Full Jest Test Suite Execution",
+      "status": "PASS",
+      "pass": true,
+      "durationMs": 49241,
+      "logFile": "docs/evidence/2026-11-19T06-04-04-856Z/04-npm-test.log",
+      "sha256": "5959ba7cf428379fec6ebc8ac06a95e6859673d6e9b3d1eae2a3719f23647fe2"
+    },
+    {
+      "id": "05",
+      "name": "coverage-src",
+      "title": "Code Coverage on src/ (Lines, Branches, Core Modules)",
+      "status": "PASS",
+      "pass": true,
+      "durationMs": 52532,
+      "logFile": "docs/evidence/2026-11-19T06-04-04-856Z/05-coverage-src.log",
+      "sha256": "f565777c22806e31f2007bfc440444e5beb7082f8ab98374c580fb1ef88a09a6"
+    },
+    {
+      "id": "06",
+      "name": "npm-audit",
+      "title": "Production Dependency Vulnerability Audit",
+      "status": "PASS",
+      "pass": true,
+      "durationMs": 10777,
+      "logFile": "docs/evidence/2026-11-19T06-04-04-856Z/06-npm-audit.log",
+      "sha256": "38b6cbd067eb1f2f75bb1535208b3ce3c92a87fd16a7de7a471d3bc4cac7af4d"
+    },
+    {
+      "id": "07",
+      "name": "check-env-docs",
+      "title": "Environment Variables Documentation Consistency",
+      "status": "PASS",
+      "pass": true,
+      "durationMs": 102,
+      "logFile": "docs/evidence/2026-11-19T06-04-04-856Z/07-check-env-docs.log",
+      "sha256": "5e9f266fe38d616f05be3e570f13849e3157ee99b8ef24efcfa026f0698f6d95"
+    },
+    {
+      "id": "08",
+      "name": "check-placeholders",
+      "title": "Unapproved Placeholder Check",
+      "status": "PASS",
+      "pass": true,
+      "durationMs": 114,
+      "logFile": "docs/evidence/2026-11-19T06-04-04-856Z/08-check-placeholders.log",
+      "sha256": "92ad92b7b82a6650684727c1271a93aa9efc764d11bd07cb9276cf7c576cce33"
+    },
+    {
+      "id": "09",
+      "name": "check-budget",
+      "title": "Asset and Bundle Size Performance Budgets",
+      "status": "PASS",
+      "pass": true,
+      "durationMs": 100,
+      "logFile": "docs/evidence/2026-11-19T06-04-04-856Z/09-check-budget.log",
+      "sha256": "875090d6b08c737e912c915715fae27ecbc9033a9c29c04bb0a0835b5b45be85"
+    },
+    {
+      "id": "10",
+      "name": "audit-contrast",
+      "title": "Design Token WCAG AA Contrast Audit (60/60)",
+      "status": "PASS",
+      "pass": true,
+      "durationMs": 79,
+      "logFile": "docs/evidence/2026-11-19T06-04-04-856Z/10-audit-contrast.log",
+      "sha256": "a37bdefb630d5c5003fa26b70afb37a0ea7a43ae5f42c361244bf5a63dc9844f"
+    },
+    {
+      "id": "11",
+      "name": "runbook-env-test",
+      "title": "Runbook Environment & Proxy-Trust Test Suite",
+      "status": "PASS",
+      "pass": true,
+      "durationMs": 1849,
+      "logFile": "docs/evidence/2026-11-19T06-04-04-856Z/11-runbook-env-test.log",
+      "sha256": "2f6005f7a09cb66bf1474474e331a35d26d76b7638997234b11880353afb670b"
+    },
+    {
+      "id": "12",
+      "name": "check-compose-ports",
+      "title": "Docker Compose Expose-Only Port Audit",
+      "status": "PASS",
+      "pass": true,
+      "durationMs": 84,
+      "logFile": "docs/evidence/2026-11-19T06-04-04-856Z/12-check-compose-ports.log",
+      "sha256": "798923a45baaf3c4bc63339ade5ff9feef26310e63acedd07ddca2c9bb79459b"
+    },
+    {
+      "id": "13",
+      "name": "migration-rehearsal",
+      "title": "Legacy Storage Migration Rehearsal on Copy Fixtures",
+      "status": "PASS",
+      "pass": true,
+      "durationMs": 225,
+      "logFile": "docs/evidence/2026-11-19T06-04-04-856Z/13-migration-rehearsal.log",
+      "sha256": "ec44409ff8e8aaba122d923e2dbf9e92311534294adaff76853a595bf52c4bc8"
+    },
+    {
+      "id": "14",
+      "name": "axe-accessibility",
+      "title": "axe-core Accessibility Audit & Full Keyboard Traversal",
+      "status": "PASS",
+      "pass": true,
+      "durationMs": 41239,
+      "logFile": "docs/evidence/2026-11-19T06-04-04-856Z/14-axe-accessibility.log",
+      "sha256": "2602dc5deae17b749e8054572a4e171f57afb3231bb49bde98fc801fe0a54f07"
+    },
+    {
+      "id": "15",
+      "name": "lighthouse-audit",
+      "title": "Lighthouse Performance & SEO Simulated Throttling",
+      "status": "PASS",
+      "pass": true,
+      "durationMs": 119748,
+      "logFile": "docs/evidence/2026-11-19T06-04-04-856Z/15-lighthouse-audit.log",
+      "sha256": "454025877a48ec5e96b6fb2beec84cb73f06f94492cdfef58aaac3aab1387a4f"
+    },
+    {
+      "id": "16",
+      "name": "host-mode-seo",
+      "title": "Host-Mode vs Path-Mode Robots & SEO Tests",
+      "status": "PASS",
+      "pass": true,
+      "durationMs": 2977,
+      "logFile": "docs/evidence/2026-11-19T06-04-04-856Z/16-host-mode-seo.log",
+      "sha256": "7d20d86246b538eadc92caa736677a4a0c3de7381b0589e14d6144f0a1d36eff"
+    },
+    {
+      "id": "17",
+      "name": "bench-redirect",
+      "title": "Redirect Benchmark (20c, 5 Repeats, 100% 302, Median >= 2000 req/s)",
+      "status": "PASS",
+      "pass": true,
+      "durationMs": 69060,
+      "logFile": "docs/evidence/2026-11-19T06-04-04-856Z/17-bench-redirect.log",
+      "sha256": "e983e447f6dc5b792f498c3b3551355359c2af9229c0d45e313bb48ca82a3658"
+    },
+    {
+      "id": "18",
+      "name": "soak-test",
+      "title": "20-Minute Soak Benchmark & Memory Telemetry",
+      "status": "PASS",
+      "pass": true,
+      "durationMs": 1206109,
+      "logFile": "docs/evidence/2026-11-19T06-04-04-856Z/18-soak-test.log",
+      "sha256": "94115d55fd9229b1af3ceaef6285e54a77ad261bb4159202535711069b353d4f"
+    },
+    {
+      "id": "19",
+      "name": "verify-docker",
+      "title": "Docker & Container Services End-to-End Verification",
+      "status": "SKIPPED (NO DOCKER)",
+      "pass": true,
+      "durationMs": 591,
+      "logFile": "docs/evidence/2026-11-19T06-04-04-856Z/19-verify-docker.log",
+      "sha256": "15b90fbc739537f3d313a13ffaa4ac43ca8f10d039fd8452167aaf8239494db4"
+    },
+    {
+      "id": "20",
+      "name": "verify-staging",
+      "title": "Staging Environment Runner & Mock Security Tests",
+      "status": "PASS [UNVERIFIED]",
+      "pass": true,
+      "durationMs": 2217,
+      "logFile": "docs/evidence/2026-11-19T06-04-04-856Z/20-verify-staging.log",
+      "sha256": "9a54f653284651de56a9337857c0484ee745936ceb5dec39cd11264b9eb7967c"
+    }
+  ]
+}

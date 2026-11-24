@@ -2,16 +2,23 @@
   var THEME_KEY = 'pokedb-theme';
   var root = document.documentElement;
 
+  var STATIC_TOKENS = {
+    'paper': { accent: '#bf3b2d', surface: '#fffdf8' },
+    'matrix': { accent: '#56f49a', surface: '#0c1911' },
+    'cyberpunk': { accent: '#35e6ff', surface: '#101c26' },
+    'synthwave': { accent: '#ff579b', surface: '#251743' },
+    'nordic-ice': { accent: '#72d6ff', surface: '#172637' },
+    'dracula-neon': { accent: '#bd87ff', surface: '#242438' },
+    'gruvbox-retro': { accent: '#f6a23d', surface: '#292827' },
+    'emerald-forest': { accent: '#4de4a5', surface: '#10251b' },
+    'sunset-amber': { accent: '#ff9362', surface: '#2a191d' },
+    'solarized-gold': { accent: '#f2c94c', surface: '#053440' },
+    'oled-black': { accent: '#8d7cff', surface: '#111114' },
+    'tokyo-neon': { accent: '#ff879c', surface: '#21233a' }
+  };
+
   function getAccentAndSurface(theme) {
-    var probe = document.createElement('div');
-    probe.setAttribute('data-theme', theme);
-    probe.style.display = 'none';
-    document.body ? document.body.appendChild(probe) : document.documentElement.appendChild(probe);
-    var cs = getComputedStyle(probe);
-    var accent = cs.getPropertyValue('--accent').trim();
-    var surface = cs.getPropertyValue('--surface').trim();
-    if (probe.parentNode) probe.parentNode.removeChild(probe);
-    return { accent: accent, surface: surface };
+    return STATIC_TOKENS[theme] || STATIC_TOKENS['oled-black'];
   }
 
   var ALL_THEMES = [
@@ -53,6 +60,10 @@
 
     if (persist) {
       try { localStorage.setItem(THEME_KEY, theme); } catch (e) {}
+      try {
+        var domainPart = window.location.hostname.endsWith('pokedb.site') ? '; domain=.pokedb.site' : '';
+        document.cookie = 'theme=' + encodeURIComponent(theme) + '; path=/; max-age=31536000; SameSite=Lax' + domainPart;
+      } catch (e) {}
     }
 
     window.dispatchEvent(new CustomEvent('themeChanged', {
@@ -63,8 +74,13 @@
   // Restore theme immediately before paint
   var savedTheme = 'oled-black';
   try {
-    var stored = localStorage.getItem(THEME_KEY);
-    if (stored) savedTheme = stored;
+    var cookieMatch = document.cookie.match(/(?:^|;\s*)theme=([^;]+)/);
+    if (cookieMatch) {
+      savedTheme = decodeURIComponent(cookieMatch[1]);
+    } else {
+      var stored = localStorage.getItem(THEME_KEY);
+      if (stored) savedTheme = stored;
+    }
   } catch (e) {}
   root.setAttribute('data-theme', savedTheme);
 

@@ -2,136 +2,474 @@
 <html lang="en" data-theme="oled-black">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow, noarchive, nosnippet">
 <title>View Paste — paste.pokedb.site</title>
-<meta name="description" content="View paste content on Pokedb Pastebin with syntax highlighting, raw download, and QR code sharing.">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<meta name="description" content="View encrypted or plain-text pastes on Pokedb Pastebin with syntax highlighting, raw decrypted output, extension-aware download, and QR sharing.">
+<link rel="stylesheet" href="/fonts/fonts.css">
+<link rel="preload" href="/fonts/ibm-plex-mono-400.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/fonts/ibm-plex-sans-400.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/shared/theme.css">
 <script src="/shared/theme-switcher.js?v=3"></script>
 <script src="/shared/utils.js"></script>
-<script src="/shared/site.js"></script>
-<script src="/shared/qrcode.js"></script>
+<script src="/shared/site.js" defer></script>
+<script src="/shared/qrcode.min.js" defer></script>
+<script src="/tools/shared/crypto-web.js"></script>
 
 <style>
+/* Allow sticky paste header to lock cleanly at top: 0 on scroll */
+.site-nav {
+  position: relative;
+  top: auto;
+}
+
 .paste-view-card {
-  max-width: 960px;
-  margin: clamp(2rem, 5vw, 4rem) auto;
+  width: min(100% - 2rem, 1060px);
+  margin: clamp(1rem, 3vw, 2.25rem) auto clamp(2rem, 4vw, 3.5rem);
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 14px;
-  padding: clamp(1.25rem, 4vw, 2.25rem);
   box-shadow: var(--shadow);
+  overflow: visible;
+  padding: 0;
 }
-.paste-header {
+
+.paste-sticky-header {
+  position: sticky;
+  top: 0;
+  z-index: 18;
+  padding: 1rem clamp(1rem, 3vw, 1.5rem);
+  background: color-mix(in srgb, var(--surface) 94%, transparent);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border-bottom: 1px solid var(--border);
+  border-radius: 14px 14px 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: .75rem;
+}
+
+.viewer-top-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 1rem;
-  padding-bottom: 1.25rem;
-  border-bottom: 1px solid var(--border);
+  gap: .75rem;
 }
+
+.viewer-title-group {
+  min-width: 0;
+}
+
+.viewer-title {
+  font-size: clamp(1.1rem, 2.8vw, 1.5rem);
+  line-height: 1.25;
+  margin: .2rem 0 0 0;
+  overflow-wrap: anywhere;
+}
+
+.new-paste-cta {
+  width: auto !important;
+  min-height: 44px;
+  padding: .45rem .85rem !important;
+  font-size: .78rem !important;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.meta-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .4rem;
+  margin-top: .5rem;
+}
+
+.meta-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: .3rem;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: .74rem;
+  font-variant-numeric: tabular-nums;
+  padding: .22rem .55rem;
+  border-radius: 999px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.meta-pill.is-muted {
+  color: var(--muted);
+}
+
+.meta-pill.is-success {
+  border-color: color-mix(in srgb, var(--success) 50%, transparent);
+  background: color-mix(in srgb, var(--success) 10%, transparent);
+  color: var(--success);
+}
+
+.meta-pill.is-danger {
+  border-color: color-mix(in srgb, var(--danger) 50%, transparent);
+  background: color-mix(in srgb, var(--danger) 10%, transparent);
+  color: var(--danger);
+}
+
+.meta-pill.is-accent {
+  border-color: color-mix(in srgb, var(--accent) 50%, transparent);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  color: var(--accent);
+}
+
+.actions-row {
+  display: flex;
+  gap: .45rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.actions-row .btn {
+  min-height: 44px;
+  padding: .45rem .8rem;
+  font-size: .78rem;
+  width: auto;
+  flex: 0 0 auto;
+}
+
+.btn.is-toggled {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 15%, var(--surface));
+  color: var(--text);
+}
+
+.viewer-body-pad {
+  padding: clamp(.85rem, 2.5vw, 1.35rem);
+}
+
+/* Code Viewer */
 .paste-code-box {
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: 10px;
-  padding: 1.25rem;
+  padding: .75rem 0;
+  margin: 0;
   font-family: 'IBM Plex Mono', monospace;
   font-size: .88rem;
-  line-height: 1.6;
-  white-space: pre-wrap;
-  word-break: break-all;
-  overflow-x: auto;
-  margin: 1.5rem 0;
+  line-height: 1.62;
   color: var(--text);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
   tab-size: 2;
+  --ln-width: 3.2ch;
 }
-.actions-row {
+
+.paste-code-box:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.paste-line {
   display: flex;
-  gap: .6rem;
-  flex-wrap: wrap;
+  align-items: flex-start;
+  padding: 0 1rem;
+  min-width: fit-content;
 }
-.modal-overlay {
+
+.paste-code-box.is-wrapped .paste-line {
+  min-width: 0;
+}
+
+.paste-line:hover {
+  background: color-mix(in srgb, var(--accent) 7%, transparent);
+}
+
+.paste-line-num {
+  flex: 0 0 var(--ln-width);
+  color: var(--muted);
+  user-select: none;
+  text-align: right;
+  padding-right: 1em;
+  font-variant-numeric: tabular-nums;
+}
+
+.paste-code-box.hide-line-nums .paste-line-num {
   display: none;
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.75);
-  backdrop-filter: blur(4px);
-  z-index: 1000;
-  place-items: center;
 }
-.modal-box {
+
+.paste-line-text {
+  flex: 1;
+  min-width: 0;
+  white-space: pre;
+}
+
+.paste-code-box.is-wrapped .paste-line-text {
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+.tok-kw { color: var(--accent); font-weight: 600; }
+.tok-str { color: var(--success); }
+.tok-com { color: var(--muted); font-style: italic; }
+.tok-num { color: var(--danger); }
+.tok-key { color: var(--accent); }
+
+/* Auth / Key / Error Cards */
+.state-card {
+  display: none;
+  padding: clamp(1.15rem, 3vw, 1.75rem);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  text-align: center;
+}
+
+.state-card.is-visible {
+  display: block;
+}
+
+.state-card h2 {
+  font-size: 1.05rem;
+  margin-bottom: .45rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .5rem;
+}
+
+.state-card p {
+  color: var(--muted);
+  font-size: .88rem;
+  max-width: 52ch;
+  margin: 0 auto 1rem;
+}
+
+.unlock-form {
+  display: flex;
+  gap: .5rem;
+  max-width: 460px;
+  margin: 0 auto;
+  align-items: stretch;
+}
+
+.unlock-form input {
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 1.75rem;
-  max-width: 420px;
-  width: 90%;
-  text-align: center;
-  box-shadow: var(--shadow);
+  border-radius: 8px;
+  padding: .5rem .75rem;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: .88rem;
+  color: var(--text);
+}
+
+.unlock-error {
+  margin-top: .75rem;
+  color: var(--danger);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: .8rem;
+  min-height: 1.1em;
+}
+
+.modal-close-btn {
+  min-width: 44px;
+  min-height: 44px;
+}
+
+.qr-frame {
+  width: 210px;
+  height: 210px;
+  margin: 0 auto 1rem;
+  background: #ffffff;
+  padding: 10px;
+  border-radius: 10px;
+}
+
+.qr-frame svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+@media (max-width: 768px) {
+  .unlock-form input {
+    font-size: 16px !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .paste-view-card {
+    width: calc(100% - 1rem);
+    margin: .75rem auto 1.5rem;
+    padding: 0;
+  }
+
+  .paste-sticky-header {
+    padding: .75rem .85rem;
+    gap: .55rem;
+  }
+
+  .new-paste-cta {
+    padding: .4rem .7rem !important;
+    font-size: .75rem !important;
+  }
+
+  .actions-row {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: .4rem;
+  }
+
+  .actions-row .btn {
+    width: 100% !important;
+    min-width: 0;
+    min-height: 44px;
+    padding: .45rem .35rem;
+    font-size: .75rem;
+    justify-content: center;
+  }
+
+  .viewer-body-pad {
+    padding: .75rem;
+  }
+
+  .paste-code-box {
+    font-size: .82rem;
+    line-height: 1.55;
+  }
+
+  .paste-line {
+    padding: 0 .65rem;
+  }
+
+  .paste-line-num {
+    padding-right: .65em;
+  }
+
+  .unlock-form {
+    flex-direction: column;
+  }
+
+  .unlock-form .btn {
+    width: 100%;
+  }
 }
 </style>
 </head>
 <body>
-  <header class="site-nav">
-    <a class="logo" href="https://pokedb.site/" data-nav="main">root<span>@</span>pokedb</a>
-    <nav class="nav-links">
-      <a class="nav-link" href="https://tools.pokedb.site/" data-nav="tools">Tools hub</a>
-      <a class="nav-link" href="https://tinyurl.pokedb.site/" data-nav="tinyurl">TinyURL</a>
-      <a class="nav-link" href="https://qr.pokedb.site/" data-nav="qr">QR studio</a>
-      <a class="nav-link" href="https://drop.pokedb.site/" data-nav="drop">Drop</a>
-      <a class="nav-link active" href="https://paste.pokedb.site/" data-nav="paste">Pastebin</a>
-      <a class="nav-link" href="https://health.pokedb.site/" data-nav="health">Health</a>
-    </nav>
-    <div class="theme-switcher">
-      <span class="theme-swatch" id="theme-swatch"></span>
-      <select id="theme-select" aria-label="Choose a theme"></select>
-    </div>
-  </header>
+<a href="#main" class="skip-link">Skip to main content</a>
 
-  <main class="paste-view-card">
-    <div class="paste-header">
-      <div>
-        <h1 style="font-size:clamp(1.2rem, 3.5vw, 1.6rem); margin:0;" id="paste-title">Loading paste…</h1>
-        <div style="font-family:'IBM Plex Mono',monospace; font-size:.8rem; color:var(--muted); margin-top:.3rem;">
-          <span id="paste-lang">plaintext</span> · <span id="paste-size">— bytes</span> · <span id="paste-views">0 views</span> · <span id="paste-burn-status"></span>
-        </div>
+<header class="site-nav">
+  <a class="logo" href="https://pokedb.site/" data-nav="main">root<span>@</span>pokedb</a>
+  <nav class="nav-links" aria-label="Tools navigation">
+    <a class="nav-link" href="https://tools.pokedb.site/" data-nav="tools">Tools hub</a>
+    <a class="nav-link" href="https://tinyurl.pokedb.site/" data-nav="tinyurl">TinyURL</a>
+    <a class="nav-link" href="https://qr.pokedb.site/" data-nav="qr">QR studio</a>
+    <a class="nav-link" href="https://drop.pokedb.site/" data-nav="drop">Drop</a>
+    <a class="nav-link active" href="https://paste.pokedb.site/" data-nav="paste">Pastebin</a>
+    <a class="nav-link" href="https://health.pokedb.site/" data-nav="health">Health</a>
+  </nav>
+  <div class="theme-switcher">
+    <span class="theme-swatch" id="theme-swatch"></span>
+    <select id="theme-select" aria-label="Choose a theme"></select>
+  </div>
+</header>
+
+<main id="main" class="paste-view-card">
+  <div class="paste-sticky-header">
+    <div class="viewer-top-row">
+      <span class="eyebrow" style="margin-bottom:0; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"><span>$ pastebin --view <span id="paste-code-label"></span></span></span>
+      <a class="btn btn-solid new-paste-cta" id="new-paste-btn" href="/tools/paste/" data-nav="paste">+ New Paste</a>
+    </div>
+    <div class="viewer-title-group">
+      <h1 class="viewer-title" id="paste-title">Loading paste…</h1>
+      <div class="meta-pills">
+        <span class="meta-pill is-accent" id="paste-lang">plaintext</span>
+        <span class="meta-pill" id="paste-size">— bytes</span>
+        <span class="meta-pill is-muted" id="paste-lines" hidden>0 lines</span>
+        <span class="meta-pill is-muted" id="paste-views">0 views</span>
+        <span class="meta-pill" id="paste-burn-status" hidden></span>
+        <span class="meta-pill" id="paste-e2e-badge" hidden></span>
       </div>
-      <div class="actions-row">
-        <a class="btn btn-solid" id="raw-btn" target="_blank" rel="noopener">Raw Text</a>
-        <button class="btn" id="copy-btn">Copy Text</button>
-        <button class="btn" id="qr-btn">Show QR</button>
-      </div>
     </div>
 
-    <!-- Password Modal for Protected Pastes -->
-    <div id="pass-auth-box" style="display:none; margin:2rem 0; padding:1.5rem; background:var(--bg); border:1px solid var(--border); border-radius:10px; text-align:center;">
-      <h3 style="font-family:'IBM Plex Mono',monospace; margin-bottom:.5rem; display:flex; align-items:center; justify-content:center; gap:0.5rem;">
-        <svg class="icon-svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-        <span>Password Protected Paste</span>
-      </h3>
-      <p style="color:var(--muted); font-size:.88rem; margin-bottom:1rem;">Enter the password set by the author to unlock this paste.</p>
-      <form id="pass-form" action="javascript:void(0);" onsubmit="event.preventDefault();" style="display:inline-flex; gap:.5rem; max-width:400px; width:100%;">
-        <input type="password" id="pass-input" placeholder="Enter password…" style="flex:1; background:var(--surface); border:1px solid var(--border); border-radius:6px; padding:.5rem .75rem; font-family:'IBM Plex Mono',monospace; font-size:.85rem; color:var(--text);" required>
-        <button class="btn btn-solid" type="submit">Unlock</button>
-      </form>
-    </div>
-
-    <pre class="paste-code-box" id="paste-body-box" style="display:none;"></pre>
-  </main>
-
-  <!-- QR Modal -->
-  <div class="modal-overlay" id="qr-modal">
-    <div class="modal-box">
-      <h3 style="font-family:'IBM Plex Mono',monospace; margin-bottom:1rem;">QR Code</h3>
-      <div id="qr-svg-wrap" style="width:200px; height:200px; margin:0 auto 1rem auto; background:#fff; padding:10px; border-radius:8px;"></div>
-      <button class="btn btn-solid" id="close-qr-btn">Close</button>
+    <div class="actions-row" role="toolbar" aria-label="Paste actions">
+      <button class="btn btn-solid" id="copy-btn" type="button">Copy</button>
+      <button class="btn" id="wrap-btn" type="button" aria-pressed="false">Wrap</button>
+      <button class="btn is-toggled" id="lines-btn" type="button" aria-pressed="true">Lines</button>
+      <a class="btn" id="raw-btn" href="/tools/paste/" target="_blank" rel="noopener">Raw</a>
+      <button class="btn" id="download-btn" type="button">Download</button>
+      <button class="btn" id="qr-btn" type="button">QR</button>
     </div>
   </div>
 
-  <script src="/view.js"></script>
+  <div class="viewer-body-pad">
+    <!-- Password Prompt -->
+    <section id="pass-auth-box" class="state-card" aria-label="Password unlock">
+      <h2>
+        <svg class="icon-svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+        <span>Password Protected Paste</span>
+      </h2>
+      <p id="pass-auth-desc">Enter the password set by the author to unlock this paste.</p>
+      <form id="pass-form" class="unlock-form">
+        <input type="password" id="pass-input" aria-label="Paste password" placeholder="Enter password…" autocomplete="current-password" required>
+        <button class="btn" id="toggle-unlock-pass" type="button" aria-label="Show password" aria-pressed="false" style="width:auto;">Show</button>
+        <button class="btn btn-solid" type="submit" id="unlock-btn">Unlock</button>
+      </form>
+      <div class="unlock-error" id="pass-error" role="alert"></div>
+    </section>
+
+    <!-- Missing / Mismatched #k= Decryption Key -->
+    <section id="key-auth-box" class="state-card" aria-label="Encryption key input">
+      <h2>
+        <svg class="icon-svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path></svg>
+        <span id="key-auth-title">Decryption Key Required (#k=)</span>
+      </h2>
+      <p id="key-auth-desc">This paste is end-to-end encrypted. Paste the #k= fragment key below to decrypt locally in your browser.</p>
+      <form id="key-form" class="unlock-form">
+        <input type="text" id="key-input" aria-label="Decryption key" placeholder="Paste #k= key…" required>
+        <button class="btn btn-solid" type="submit">Decrypt</button>
+      </form>
+      <div class="unlock-error" id="key-error" role="alert"></div>
+    </section>
+
+    <!-- Not Found / Expired State -->
+    <section id="paste-error-box" class="state-card" aria-label="Paste status error">
+      <h2>Paste Unavailable</h2>
+      <p id="paste-error-msg">This paste may have expired, been burned after reading, or never existed.</p>
+      <a class="btn btn-solid" href="/tools/paste/" data-nav="paste">+ Create a New Paste</a>
+    </section>
+
+    <pre class="paste-code-box" id="paste-body-box" style="display:none;" tabindex="0" aria-label="Paste content"></pre>
+  </div>
+</main>
+
+<!-- QR Modal -->
+<div class="result-modal-backdrop" id="qr-modal" role="dialog" aria-modal="true" aria-labelledby="qr-modal-title">
+  <div class="result-modal-dialog" style="max-width:380px; text-align:center;">
+    <div class="modal-header">
+      <div class="modal-title-group" style="text-align:left;">
+        <span class="eyebrow">$ pastebin --qr</span>
+        <h2 id="qr-modal-title">Share via QR</h2>
+      </div>
+      <button class="modal-close-btn" id="close-qr-btn" type="button" aria-label="Close QR dialog">✕</button>
+    </div>
+    <div class="qr-frame" id="qr-svg-wrap"></div>
+    <div class="modal-actions-bar">
+      <button class="btn" id="qr-copy-link-btn" type="button">Copy Link</button>
+      <button class="btn btn-solid" id="qr-done-btn" type="button">Close</button>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <div class="footer-inner">
+    <span>© pokedb.site · encrypted pastebin</span>
+    <span id="uptime">session uptime · 00:00:00</span>
+  </div>
+</footer>
+
+<script src="/tools/paste/view.js" defer></script>
 </body>
 </html>

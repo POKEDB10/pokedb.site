@@ -2,19 +2,19 @@
 <html lang="en" data-theme="oled-black">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>TinyURL Shortener — pokedb.site</title>
 <meta name="description" content="Self-hosted terminal URL shortener with non-sequential codes, rate limiting, and optional QR code generation.">
-<meta name="robots" content="noindex, nofollow, noarchive, nosnippet">
-
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<meta name="robots" content="index, follow">
+<link rel="stylesheet" href="/fonts/fonts.css">
+<link rel="preload" href="/fonts/ibm-plex-mono-400.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/fonts/ibm-plex-sans-400.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/shared/theme.css?v=20260913-modal-ui">
 <script src="/shared/theme-switcher.js?v=3"></script>
 <script src="/shared/utils.js"></script>
 <script src="/shared/site.js"></script>
 <script src="/shared/qrcode.js"></script>
+<script src="/shared/turnstile.js" defer></script>
 
 <style>
 .form-group {
@@ -147,6 +147,7 @@ input:focus, select:focus {
 </style>
 </head>
 <body>
+<a href="#main" class="skip-link">Skip to main content</a>
 
 <header class="site-nav">
   <a class="logo" href="https://pokedb.site/" data-nav="main">root<span>@</span>pokedb</a>
@@ -177,7 +178,7 @@ input:focus, select:focus {
   </div>
 </header>
 
-<main class="container">
+<main id="main" class="container">
 
   <section class="section" style="border-top:none; padding-top:2.5rem; max-width:820px; margin:0 auto;">
     <div style="margin-bottom: 1.5rem;">
@@ -196,6 +197,10 @@ input:focus, select:focus {
         <label for="long-url">Destination URL *</label>
         <input type="url" id="long-url" placeholder="https://example.com/very-long-url-path" required>
       </div>
+      <button type="submit" class="btn btn-solid" id="shorten-btn" style="width:100%; min-height:44px; font-size:.9rem; margin-top:.75rem; margin-bottom:1rem;">
+        <svg class="icon-svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+        Create Short Link
+      </button>
 
       <div class="form-row">
         <div class="form-group">
@@ -219,10 +224,8 @@ input:focus, select:focus {
         <span>Generate QR Code for short link</span>
       </label>
 
-      <button type="submit" class="btn btn-solid" id="shorten-btn" style="width:100%; min-height:44px; font-size:.9rem;">
-        <svg class="icon-svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
-        Create Short Link
-      </button>
+      
+      <div id="tinyurl-turnstile-wrap" style="margin-top:.75rem;"></div>
       <div class="error-msg" id="shorten-error"></div>
       <div class="alias-suggestions" id="alias-suggestions" aria-live="polite"></div>
     </form>
@@ -239,7 +242,7 @@ input:focus, select:focus {
         </div>
 
         <div class="modal-url-box">
-          <input type="text" id="modal-url-input" class="modal-url-input" readonly>
+          <input type="text" id="modal-url-input" class="modal-url-input" aria-label="Generated short link URL" readonly>
           <button class="btn btn-solid" id="modal-copy-btn" type="button" style="padding:.4rem .85rem; font-size:.8rem; min-height:36px; white-space:nowrap;">
             Copy
           </button>
@@ -279,11 +282,11 @@ input:focus, select:focus {
     </div>
 
     <!-- Hidden compatibility nodes for existing script/tests if referenced -->
-    <div class="result-card" id="shorten-result" style="display:none !important;">
-      <a class="result-url" id="short-link-href" href="#"></a>
+    <div class="result-card" id="shorten-result" hidden style="display:none !important;">
+      <a class="result-url" id="short-link-href" href="#">Short link URL</a>
       <div id="stats-info"></div>
-      <button id="copy-btn"></button>
-      <div id="qr-result-wrap"><div id="qr-container"></div><button id="download-png-btn"></button><button id="download-svg-btn"></button></div>
+      <button id="copy-btn" type="button" aria-label="Copy short link" style="min-width:24px; min-height:24px;">Copy</button>
+      <div id="qr-result-wrap"><div id="qr-container"></div><button id="download-png-btn" type="button" aria-label="Download QR code as PNG" style="min-width:24px; min-height:24px;">PNG</button><button id="download-svg-btn" type="button" aria-label="Download QR code as SVG" style="min-width:24px; min-height:24px;">SVG</button></div>
     </div>
   </section>
 

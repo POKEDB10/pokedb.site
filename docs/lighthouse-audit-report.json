@@ -1,0 +1,266 @@
+{
+  "timestamp": "2026-11-19T14:44:35.196Z",
+  "throttlingConfig": {
+    "mobile": {
+      "method": "simulate",
+      "cpuSlowdownMultiplier": 4,
+      "rttMs": 150,
+      "throughputKbps": 1638.4,
+      "requestLatencyMs": 562.5,
+      "downloadThroughputKbps": 1638.4,
+      "uploadThroughputKbps": 750
+    },
+    "desktop": {
+      "method": "simulate",
+      "cpuSlowdownMultiplier": 1,
+      "rttMs": 40,
+      "throughputKbps": 10240,
+      "requestLatencyMs": 0,
+      "downloadThroughputKbps": 10240,
+      "uploadThroughputKbps": 10240
+    }
+  },
+  "failingBestPracticesAudits": [],
+  "consoleErrorItems": [],
+  "inspectorIssueItems": [],
+  "results": [
+    {
+      "page": "Landing Page",
+      "path": "/",
+      "formFactor": "mobile",
+      "scores": {
+        "perf": 97,
+        "a11y": 98,
+        "bp": 100,
+        "seo": 100
+      },
+      "metrics": {
+        "lcpMs": 1286,
+        "tbtMs": 179,
+        "cls": 0.001,
+        "inp": "N/A"
+      }
+    },
+    {
+      "page": "Landing Page",
+      "path": "/",
+      "formFactor": "desktop",
+      "scores": {
+        "perf": 100,
+        "a11y": 98,
+        "bp": 100,
+        "seo": 100
+      },
+      "metrics": {
+        "lcpMs": 366,
+        "tbtMs": 0,
+        "cls": 0.005,
+        "inp": "N/A"
+      }
+    },
+    {
+      "page": "Tools Hub",
+      "path": "/tools/",
+      "formFactor": "mobile",
+      "scores": {
+        "perf": 100,
+        "a11y": 100,
+        "bp": 100,
+        "seo": 100
+      },
+      "metrics": {
+        "lcpMs": 1264,
+        "tbtMs": 85,
+        "cls": 0.001,
+        "inp": "N/A"
+      }
+    },
+    {
+      "page": "Tools Hub",
+      "path": "/tools/",
+      "formFactor": "desktop",
+      "scores": {
+        "perf": 100,
+        "a11y": 100,
+        "bp": 100,
+        "seo": 100
+      },
+      "metrics": {
+        "lcpMs": 352,
+        "tbtMs": 0,
+        "cls": 0.001,
+        "inp": "N/A"
+      }
+    },
+    {
+      "page": "TinyURL Tool",
+      "path": "/tools/tinyurl/",
+      "formFactor": "mobile",
+      "scores": {
+        "perf": 100,
+        "a11y": 100,
+        "bp": 100,
+        "seo": 100
+      },
+      "metrics": {
+        "lcpMs": 1528,
+        "tbtMs": 34,
+        "cls": 0.007,
+        "inp": "N/A"
+      }
+    },
+    {
+      "page": "TinyURL Tool",
+      "path": "/tools/tinyurl/",
+      "formFactor": "desktop",
+      "scores": {
+        "perf": 100,
+        "a11y": 100,
+        "bp": 100,
+        "seo": 100
+      },
+      "metrics": {
+        "lcpMs": 359,
+        "tbtMs": 0,
+        "cls": 0.002,
+        "inp": "N/A"
+      }
+    },
+    {
+      "page": "Paste Tool",
+      "path": "/tools/paste/",
+      "formFactor": "mobile",
+      "scores": {
+        "perf": 100,
+        "a11y": 100,
+        "bp": 100,
+        "seo": 100
+      },
+      "metrics": {
+        "lcpMs": 1268,
+        "tbtMs": 45,
+        "cls": 0.001,
+        "inp": "N/A"
+      }
+    },
+    {
+      "page": "Paste Tool",
+      "path": "/tools/paste/",
+      "formFactor": "desktop",
+      "scores": {
+        "perf": 100,
+        "a11y": 100,
+        "bp": 100,
+        "seo": 100
+      },
+      "metrics": {
+        "lcpMs": 348,
+        "tbtMs": 0,
+        "cls": 0.001,
+        "inp": "N/A"
+      }
+    },
+    {
+      "page": "Drop Tool",
+      "path": "/tools/drop/",
+      "formFactor": "mobile",
+      "scores": {
+        "perf": 98,
+        "a11y": 100,
+        "bp": 100,
+        "seo": 100
+      },
+      "metrics": {
+        "lcpMs": 1911,
+        "tbtMs": 68,
+        "cls": 0.031,
+        "inp": "N/A"
+      }
+    },
+    {
+      "page": "Drop Tool",
+      "path": "/tools/drop/",
+      "formFactor": "desktop",
+      "scores": {
+        "perf": 100,
+        "a11y": 100,
+        "bp": 100,
+        "seo": 100
+      },
+      "metrics": {
+        "lcpMs": 443,
+        "tbtMs": 0,
+        "cls": 0.001,
+        "inp": "N/A"
+      }
+    },
+    {
+      "page": "QR Studio Tool",
+      "path": "/tools/qr/",
+      "formFactor": "mobile",
+      "scores": {
+        "perf": 98,
+        "a11y": 100,
+        "bp": 100,
+        "seo": 100
+      },
+      "metrics": {
+        "lcpMs": 1769,
+        "tbtMs": 108,
+        "cls": 0.003,
+        "inp": "N/A"
+      }
+    },
+    {
+      "page": "QR Studio Tool",
+      "path": "/tools/qr/",
+      "formFactor": "desktop",
+      "scores": {
+        "perf": 100,
+        "a11y": 100,
+        "bp": 100,
+        "seo": 100
+      },
+      "metrics": {
+        "lcpMs": 459,
+        "tbtMs": 0,
+        "cls": 0.004,
+        "inp": "N/A"
+      }
+    },
+    {
+      "page": "Case Study",
+      "path": "/projects/pokedb-site.html",
+      "formFactor": "mobile",
+      "scores": {
+        "perf": 99,
+        "a11y": 100,
+        "bp": 100,
+        "seo": 100
+      },
+      "metrics": {
+        "lcpMs": 1062,
+        "tbtMs": 127,
+        "cls": 0.013,
+        "inp": "N/A"
+      }
+    },
+    {
+      "page": "Case Study",
+      "path": "/projects/pokedb-site.html",
+      "formFactor": "desktop",
+      "scores": {
+        "perf": 100,
+        "a11y": 100,
+        "bp": 100,
+        "seo": 100
+      },
+      "metrics": {
+        "lcpMs": 325,
+        "tbtMs": 0,
+        "cls": 0,
+        "inp": "N/A"
+      }
+    }
+  ]
+}

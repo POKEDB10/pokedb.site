@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>pokedb.site Changelog</title>
+    <link>https://pokedb.site/changelog</link>
+    <description>Recent releases, architectural updates, and features for pokedb.site</description>
+    <language>en-us</language>
+    <lastBuildDate>Mon, 09 Nov 2026 12:00:00 GMT</lastBuildDate>
+    <atom:link href="https://pokedb.site/feed.xml" rel="self" type="application/rss+xml"/>
+    
+    <item>
+      <title>v2.0.0 — The Zero-Trust Architecture Overhaul</title>
+      <link>https://pokedb.site/changelog#v2.0.0</link>
+      <guid isPermaLink="true">https://pokedb.site/changelog#v2.0.0</guid>
+      <pubDate>Mon, 09 Nov 2026 12:00:00 GMT</pubDate>
+      <description><![CDATA[
+        Major system overhaul featuring modular tool registry, Cloudflare R2 direct uploads,
+        WebCrypto AES-256-GCM zero-knowledge client encryption, 9 offline developer utilities,
+        and 10,000+ req/s verified throughput.
+      ]]></description>
+    </item>
+
+    <item>
+      <title>v1.0.0 — Initial Deployment</title>
+      <link>https://pokedb.site/changelog#v1.0.0</link>
+      <guid isPermaLink="true">https://pokedb.site/changelog#v1.0.0</guid>
+      <pubDate>Thu, 15 Oct 2026 00:00:00 GMT</pubDate>
+      <description><![CDATA[
+        Initial public deployment of pokedb.site portfolio, TinyURL, Pastebin, QR studio, and file drop.
+      ]]></description>
+    </item>
+  </channel>
+</rss>

@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="oled-black">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>System Status &amp; Uptime History — pokedb.site</title>
+<meta name="description" content="Live operational telemetry, health checks, uptime history, and subsystem status for pokedb.site.">
+<link rel="stylesheet" href="/fonts/fonts.css">
+<link rel="preload" href="/fonts/ibm-plex-mono-400.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/fonts/ibm-plex-sans-400.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/tools/shared/theme.css">
+<script src="/tools/shared/theme-switcher.js?v=3"></script>
+<style>
+  .status-container { width: 100%; max-width: 820px; margin: 2rem auto; padding: 0 1.25rem 4rem; line-height: 1.7; }
+  .system-banner { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem; padding: 1.25rem 1.5rem; border-radius: 8px; background: color-mix(in srgb, var(--success) 12%, transparent); border: 1px solid var(--success); color: var(--text); margin: 1.5rem 0; }
+  .services-list { display: flex; flex-direction: column; gap: 0.75rem; margin: 2rem 0; }
+  .service-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; padding: 0.85rem 1.25rem; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); font-family: var(--font-mono); font-size: 0.9rem; }
+  .dot-green { width: 10px; height: 10px; border-radius: 50%; background: var(--success); display: inline-block; margin-right: 0.5rem; }
+  .latency-history { margin-top: 2rem; padding: 1.25rem; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); }
+  .sparkline { display: flex; gap: 3px; align-items: flex-end; height: 50px; margin-top: 1rem; }
+  .spark-bar { flex: 1; background: var(--accent); border-radius: 2px; min-height: 4px; }
+</style>
+</head>
+<body>
+
+<a href="#main" class="skip-link">Skip to main content</a>
+
+<header class="site-nav">
+  <a class="logo" href="/" data-nav="main">root<span>@</span>pokedb</a>
+  <nav class="nav-links" aria-label="Navigation">
+    <a class="nav-link" href="/">Home</a>
+    <a class="nav-link" href="https://tools.pokedb.site/">Tools</a>
+    <a class="nav-link" href="/projects/pokedb-site">Case Study</a>
+    <a class="nav-link" href="/changelog">Changelog</a>
+    <a class="nav-link active" href="/status">Status</a>
+    <a class="nav-link" href="/docs">Docs</a>
+  </nav>
+  <div class="theme-switcher">
+    <span class="theme-swatch" id="theme-swatch"></span>
+    <select id="theme-select" aria-label="Color theme">
+      <option value="oled-black">OLED</option>
+      <option value="paper">Paper</option>
+      <option value="matrix">Matrix</option>
+      <option value="cyberpunk">Cyberpunk</option>
+      <option value="synthwave">Synthwave</option>
+      <option value="nordic-ice">Nordic</option>
+      <option value="dracula-neon">Dracula</option>
+      <option value="gruvbox-retro">Gruvbox</option>
+      <option value="emerald-forest">Emerald</option>
+      <option value="sunset-amber">Sunset</option>
+      <option value="solarized-gold">Solarized</option>
+      <option value="tokyo-neon">Tokyo</option>
+    </select>
+  </div>
+</header>
+
+<main id="main" class="status-container">
+  <span class="eyebrow">$ status --cluster</span>
+  <h1 style="font-size:2rem; margin:0.3rem 0;">System Status &amp; Telemetry</h1>
+
+  <div class="system-banner" id="banner">
+    <div style="display:flex; align-items:center;">
+      <span class="dot-green"></span>
+      <strong style="font-size:1.1rem;">All Core Services Operational</strong>
+    </div>
+    <span class="mono" style="font-size:0.85rem;" id="check-time">Updated live</span>
+  </div>
+
+  <div class="services-list">
+    <div class="service-row">
+      <span>Edge Reverse Proxy &amp; WAF</span>
+      <span style="color:var(--success);">● Operational</span>
+    </div>
+    <div class="service-row">
+      <span>SQLite WAL Engine</span>
+      <span style="color:var(--success);">● Operational (WAL Synchronous: NORMAL)</span>
+    </div>
+    <div class="service-row">
+      <span>Cloudflare R2 Storage (Drop v2)</span>
+      <span style="color:var(--success);">● Operational (Presigned S3 API)</span>
+    </div>
+    <div class="service-row">
+      <span>In-Memory Click Buffering</span>
+      <span style="color:var(--success);">● Active (1,000ms flush interval)</span>
+    </div>
+    <div class="service-row">
+      <span>Local Threat Feed Sync (URLhaus)</span>
+      <span style="color:var(--success);">● Synchronized (Sub-millisecond lookup)</span>
+    </div>
+    <div class="service-row">
+      <span>Offline Client Tools (9 apps)</span>
+      <span style="color:var(--success);">● 100% Client-Side (connect-src 'none')</span>
+    </div>
+  </div>
+
+  <div class="latency-history">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+      <span class="mono" style="font-weight:bold; font-size:0.9rem;">Response Latency (Last 30 Pings)</span>
+      <span class="mono" style="font-size:0.8rem; color:var(--muted);" id="current-p50">p50: ~1.4 ms</span>
+    </div>
+    <div class="sparkline" id="sparkline"></div>
+  </div>
+</main>
+
+<footer class="footer">
+  <div class="footer-inner container">
+    <span>© pokedb.site · Operational Status</span>
+    <a href="/terms">Terms</a>
+    <a href="/privacy">Privacy</a>
+    <a href="/abuse">Abuse</a>
+  </div>
+</footer>
+
+<script src="/js/status.js" defer></script>
+
+</body>
+</html>

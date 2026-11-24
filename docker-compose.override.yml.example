@@ -1,0 +1,9 @@
+# docker-compose.override.yml.example
+# For local developer diagnostics only (Task R2.6f).
+# Copy to docker-compose.override.yml to bind port 5050 to localhost (127.0.0.1).
+# NEVER deploy or publish ports on 0.0.0.0 in production.
+
+services:
+  web:
+    ports:
+      - "127.0.0.1:5050:5050"

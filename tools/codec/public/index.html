@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="oled-black">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Base64, Hex &amp; URL Codec — pokedb.site tools</title>
+<meta name="description" content="Offline-first encoder and decoder for Base64, Base64URL, Hex, URL-encoding, and Binary bitstreams.">
+<link rel="stylesheet" href="/fonts/fonts.css">
+<link rel="stylesheet" href="/tools/shared/theme.css">
+<script src="/tools/shared/theme-switcher.js?v=3"></script>
+<script src="/tools/shared/state-url.js"></script>
+<style>
+  .tool-container { max-width: 1000px; margin: 1.5rem auto; padding: 0 1rem; }
+  .codec-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem; }
+  @media (max-width: 768px) { .codec-grid { grid-template-columns: 1fr; } }
+  .editor-box { width: 100%; height: 350px; font-family: var(--font-mono); font-size: 0.85rem; padding: 0.75rem; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--text); resize: vertical; }
+  .controls-row { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin-top: 0.75rem; }
+  .badge-offline { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.2rem 0.6rem; border-radius: 4px; background: color-mix(in srgb, var(--success) 15%, transparent); border: 1px solid var(--success); color: var(--success); font-family: var(--font-mono); font-size: 0.75rem; }
+</style>
+</head>
+<body>
+
+<a href="#main" class="skip-link">Skip to main content</a>
+
+<header class="site-nav">
+  <a class="logo" href="/" data-nav="main">root<span>@</span>pokedb</a>
+  <nav class="nav-links" aria-label="Tools navigation">
+    <a class="nav-link" href="https://tools.pokedb.site/" data-nav="tools">Hub</a>
+    <a class="nav-link" href="/tools/json">JSON</a>
+    <a class="nav-link" href="/tools/jwt">JWT</a>
+    <a class="nav-link active" href="/tools/codec">Codec</a>
+    <a class="nav-link" href="/tools/hash">Hash</a>
+    <a class="nav-link" href="/tools/uuid">UUID</a>
+    <a class="nav-link" href="/tools/cron">Cron</a>
+    <a class="nav-link" href="/tools/diff">Diff</a>
+    <a class="nav-link" href="/tools/minecraft">Minecraft</a>
+    <a class="nav-link" href="/tools/sanitizer">Sanitizer</a>
+  </nav>
+  <div class="theme-switcher">
+    <span class="theme-swatch" id="theme-swatch"></span>
+    <select id="theme-select" aria-label="Color theme">
+      <option value="oled-black">OLED</option>
+      <option value="paper">Paper</option>
+      <option value="matrix">Matrix</option>
+      <option value="cyberpunk">Cyberpunk</option>
+      <option value="synthwave">Synthwave</option>
+      <option value="nordic-ice">Nordic</option>
+      <option value="dracula-neon">Dracula</option>
+      <option value="gruvbox-retro">Gruvbox</option>
+      <option value="emerald-forest">Emerald</option>
+      <option value="sunset-amber">Sunset</option>
+      <option value="solarized-gold">Solarized</option>
+      <option value="tokyo-neon">Tokyo</option>
+    </select>
+  </div>
+</header>
+
+<main id="main" class="tool-container">
+  <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem;">
+    <div>
+      <span class="eyebrow">$ codec --convert</span>
+      <h1 style="font-size:1.5rem; margin:0.25rem 0;">Base64, Hex &amp; URL Codec</h1>
+    </div>
+    <span class="badge-offline">● 100% Client-Side · connect-src: 'none'</span>
+  </div>
+
+  <div class="controls-row">
+    <label for="format-select" class="mono">Target Encoding:</label>
+    <select id="format-select" class="mono" style="max-width:180px;">
+      <option value="base64">Base64</option>
+      <option value="base64url">Base64URL</option>
+      <option value="hex">Hexadecimal</option>
+      <option value="url">URL Encoding</option>
+      <option value="binary">Binary Bits</option>
+    </select>
+    <button class="btn btn-solid" id="btn-encode">Encode →</button>
+    <button class="btn btn-solid" id="btn-decode">← Decode</button>
+    <button class="btn" id="btn-swap">Swap</button>
+    <button class="btn" id="btn-copy">Copy Result</button>
+    <button class="btn" id="btn-clear">Clear</button>
+    <button class="btn" id="btn-share">Share State</button>
+  </div>
+
+  <div class="codec-grid">
+    <div>
+      <label for="input-text" class="mono">Plain / Source Text</label>
+      <textarea id="input-text" class="editor-box" placeholder="Type or paste plain text here..." spellcheck="false"></textarea>
+    </div>
+    <div>
+      <label for="output-text" class="mono">Encoded / Target Representation</label>
+      <textarea id="output-text" class="editor-box" placeholder="Encoded output appears here..." spellcheck="false"></textarea>
+    </div>
+  </div>
+
+  <div id="status-bar" class="mono" style="margin-top:0.75rem; font-size:0.8rem; color:var(--muted);">Ready</div>
+</main>
+
+<script src="./app.js" defer></script>
+
+</body>
+</html>

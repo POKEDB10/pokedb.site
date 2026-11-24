@@ -94,11 +94,23 @@
       frame.style.background = '#ffffff';
     }
 
-    // Generate through the same hardened API used for exports so the preview
-    // stays reliable even when a browser blocks the local SVG data URL.
+    // Task P6.6: Client-side generation with vendored in-browser QRCode library; fallback to hardened API
     try {
-      var dataUrl = '/api/qr?format=png&text=' + encodeURIComponent(activeText) +
-        '&dark=' + encodeURIComponent(opts.dark) + '&light=' + encodeURIComponent(opts.light);
+      var dataUrl;
+      if (window.QRCode && typeof window.QRCode.toDataURL === 'function') {
+        dataUrl = await window.QRCode.toDataURL(activeText, {
+          margin: 1,
+          errorCorrectionLevel: 'H',
+          color: {
+            dark: opts.dark,
+            light: opts.light === 'transparent' ? '#ffffff00' : opts.light
+          },
+          width: 512
+        });
+      } else {
+        dataUrl = '/api/qr?format=png&text=' + encodeURIComponent(activeText) +
+          '&dark=' + encodeURIComponent(opts.dark) + '&light=' + encodeURIComponent(opts.light);
+      }
 
       // 4. Composite Center Emblem using HTML5 Canvas (600x600)
       var canvas = document.createElement('canvas');
@@ -316,11 +328,26 @@
 
       try {
         var opts = getStyleOptions();
-        var url = '/api/qr?format=svg&download=1&text=' + encodeURIComponent(activeText) +
-          '&dark=' + encodeURIComponent(opts.dark) + '&light=' + encodeURIComponent(opts.light);
-        var response = await fetch(url);
-        if (!response.ok) throw new Error('SVG export failed');
-        var blobUrl = URL.createObjectURL(await response.blob());
+        var svgStr;
+        if (window.QRCode && typeof window.QRCode.toString === 'function') {
+          svgStr = await window.QRCode.toString(activeText, {
+            margin: 1,
+            errorCorrectionLevel: 'H',
+            type: 'svg',
+            color: {
+              dark: opts.dark,
+              light: opts.light === 'transparent' ? '#ffffff00' : opts.light
+            }
+          });
+        } else {
+          var url = '/api/qr?format=svg&download=1&text=' + encodeURIComponent(activeText) +
+            '&dark=' + encodeURIComponent(opts.dark) + '&light=' + encodeURIComponent(opts.light);
+          var response = await fetch(url);
+          if (!response.ok) throw new Error('SVG export failed');
+          svgStr = await response.text();
+        }
+        var blob = new Blob([svgStr], { type: 'image/svg+xml' });
+        var blobUrl = URL.createObjectURL(blob);
         var link = document.createElement('a');
         link.href = blobUrl;
         link.download = 'qrcode.svg';

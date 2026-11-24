@@ -1,0 +1,242 @@
+{
+  "timestamp": "2026-11-19T14-39-17-373Z",
+  "gitHead": "0ab8d5b769e7219966cf1b69d61402c503f2448a",
+  "gitDirty": false,
+  "gates": {
+    "lines": 80,
+    "branches": 68,
+    "coreModules": {
+      "src/storage/r2.js": 80,
+      "src/utils/urlSecurity.js": 80,
+      "src/middleware/auth.js": 80,
+      "src/middleware/proxyTrust.js": 80,
+      "src/utils/crypto.js": 80
+    },
+    "auditProd": 0,
+    "contrast": 60,
+    "axe": 0,
+    "lighthouse": {
+      "perf": 90,
+      "a11y": 95,
+      "seo": 95,
+      "maxConsoleErrors": 0
+    },
+    "redirectBench": {
+      "conns": 20,
+      "repeats": 5,
+      "minMedianReqSec": 2000,
+      "previousMedianReqSec": 2096,
+      "maxRegressionPct": 25,
+      "minStatus302Pct": 100,
+      "maxP99Ms": 25
+    },
+    "soak": {
+      "durationSec": 1200,
+      "maxHeapSlopeMbMin": 0.2,
+      "maxRssSlopeMbMin": 1,
+      "max429Ratio": 0.1
+    }
+  },
+  "checks": [
+    {
+      "id": "01",
+      "name": "git-status-clean",
+      "title": "Git Working Tree Cleanliness Check",
+      "status": "PASS",
+      "pass": true,
+      "durationMs": 173,
+      "logFile": "docs/evidence/2026-11-19T14-39-17-373Z/01-git-status-clean.log",
+      "sha256": "41159dfab82d881508394055c71cc9a30b62f77ec482d1484636c2e51228350a"
+    },
+    {
+      "id": "02",
+      "name": "git-tests-diff",
+      "title": "Test Files List & ce594ac Diff Audit",
+      "status": "PASS",
+      "pass": true,
+      "durationMs": 251,
+      "logFile": "docs/evidence/2026-11-19T14-39-17-373Z/02-git-tests-diff.log",
+      "sha256": "eeb5a63f91d32d5f35ff4dc6bd6082e63d518fca02fa60fe96fb72f6e785809d"
+    },
+    {
+      "id": "03",
+      "name": "node-syntax-check",
+      "title": "Node Syntax Verification (--check)",
+      "status": "PASS",
+      "pass": true,
+      "durationMs": 10021,
+      "logFile": "docs/evidence/2026-11-19T14-39-17-373Z/03-node-syntax-check.log",
+      "sha256": "104c2710403403b33de69af6d37630b238e13001183f2a47261319c2537cfca3"
+    },
+    {
+      "id": "04",
+      "name": "npm-test",
+      "title": "Full Jest Test Suite Execution",
+      "status": "PASS",
+      "pass": true,
+      "durationMs": 59231,
+      "logFile": "docs/evidence/2026-11-19T14-39-17-373Z/04-npm-test.log",
+      "sha256": "d46b8289270d32558215d452bc9d090513983c75ad35af9bb171cf4c7c35a028"
+    },
+    {
+      "id": "05",
+      "name": "coverage-src",
+      "title": "Code Coverage on src/ (Lines, Branches, Core Modules)",
+      "status": "PASS",
+      "pass": true,
+      "durationMs": 58377,
+      "logFile": "docs/evidence/2026-11-19T14-39-17-373Z/05-coverage-src.log",
+      "sha256": "1718a8b83b3c5c8ba84d34bdf2de21adfc08281b3e38c12eb62ac5276e63e1a5"
+    },
+    {
+      "id": "06",
+      "name": "npm-audit",
+      "title": "Production Dependency Vulnerability Audit",
+      "status": "PASS",
+      "pass": true,
+      "durationMs": 10160,
+      "logFile": "docs/evidence/2026-11-19T14-39-17-373Z/06-npm-audit.log",
+      "sha256": "38b6cbd067eb1f2f75bb1535208b3ce3c92a87fd16a7de7a471d3bc4cac7af4d"
+    },
+    {
+      "id": "07",
+      "name": "check-env-docs",
+      "title": "Environment Variables Documentation Consistency",
+      "status": "PASS",
+      "pass": true,
+      "durationMs": 149,
+      "logFile": "docs/evidence/2026-11-19T14-39-17-373Z/07-check-env-docs.log",
+      "sha256": "5e9f266fe38d616f05be3e570f13849e3157ee99b8ef24efcfa026f0698f6d95"
+    },
+    {
+      "id": "08",
+      "name": "check-placeholders",
+      "title": "Unapproved Placeholder Check",
+      "status": "PASS",
+      "pass": true,
+      "durationMs": 147,
+      "logFile": "docs/evidence/2026-11-19T14-39-17-373Z/08-check-placeholders.log",
+      "sha256": "ec3074a3670eca5640e618dd12471aa17ec28745f4b1d5e5dc97e7fe236722e4"
+    },
+    {
+      "id": "09",
+      "name": "check-budget",
+      "title": "Asset and Bundle Size Performance Budgets",
+      "status": "PASS",
+      "pass": true,
+      "durationMs": 122,
+      "logFile": "docs/evidence/2026-11-19T14-39-17-373Z/09-check-budget.log",
+      "sha256": "cae25f15c9f46343311d9511562e4afa68a511ff8186a1b68991e4f095a05a6e"
+    },
+    {
+      "id": "10",
+      "name": "audit-contrast",
+      "title": "Design Token WCAG AA Contrast Audit (60/60)",
+      "status": "PASS",
+      "pass": true,
+      "durationMs": 97,
+      "logFile": "docs/evidence/2026-11-19T14-39-17-373Z/10-audit-contrast.log",
+      "sha256": "a37bdefb630d5c5003fa26b70afb37a0ea7a43ae5f42c361244bf5a63dc9844f"
+    },
+    {
+      "id": "11",
+      "name": "runbook-env-test",
+      "title": "Runbook Environment & Proxy-Trust Test Suite",
+      "status": "PASS",
+      "pass": true,
+      "durationMs": 2327,
+      "logFile": "docs/evidence/2026-11-19T14-39-17-373Z/11-runbook-env-test.log",
+      "sha256": "64b317120af81e9b7920916caf2322224265315b42ddb927c2bb6c7911c8ae15"
+    },
+    {
+      "id": "12",
+      "name": "check-compose-ports",
+      "title": "Docker Compose Expose-Only Port Audit",
+      "status": "PASS",
+      "pass": true,
+      "durationMs": 95,
+      "logFile": "docs/evidence/2026-11-19T14-39-17-373Z/12-check-compose-ports.log",
+      "sha256": "798923a45baaf3c4bc63339ade5ff9feef26310e63acedd07ddca2c9bb79459b"
+    },
+    {
+      "id": "13",
+      "name": "migration-rehearsal",
+      "title": "Legacy Storage Migration Rehearsal on Copy Fixtures",
+      "status": "PASS",
+      "pass": true,
+      "durationMs": 260,
+      "logFile": "docs/evidence/2026-11-19T14-39-17-373Z/13-migration-rehearsal.log",
+      "sha256": "a678b66f97213b6a64a347318e40da25055d5afac49257257cf0cdfbfb249882"
+    },
+    {
+      "id": "14",
+      "name": "axe-accessibility",
+      "title": "axe-core Accessibility Audit & Full Keyboard Traversal",
+      "status": "PASS",
+      "pass": true,
+      "durationMs": 44341,
+      "logFile": "docs/evidence/2026-11-19T14-39-17-373Z/14-axe-accessibility.log",
+      "sha256": "b75596f3ff09694a2025ef83904a42f74b6903c359c223645212cbd37aa499f6"
+    },
+    {
+      "id": "15",
+      "name": "lighthouse-audit",
+      "title": "Lighthouse Performance & SEO Simulated Throttling",
+      "status": "PASS",
+      "pass": true,
+      "durationMs": 133957,
+      "logFile": "docs/evidence/2026-11-19T14-39-17-373Z/15-lighthouse-audit.log",
+      "sha256": "1ccda0f0a3fbf8fa982329b9bf6a2737fd36b040f9d5931a1a037407bb11e265"
+    },
+    {
+      "id": "16",
+      "name": "host-mode-seo",
+      "title": "Host-Mode vs Path-Mode Robots & SEO Tests",
+      "status": "PASS",
+      "pass": true,
+      "durationMs": 4796,
+      "logFile": "docs/evidence/2026-11-19T14-39-17-373Z/16-host-mode-seo.log",
+      "sha256": "ba1a5c2bfaa4fd9eb28f133c60f8468a055f2e56842bd6b613fdea8fc4061a88"
+    },
+    {
+      "id": "17",
+      "name": "bench-redirect",
+      "title": "Redirect Benchmark (20c, 5 Repeats, 100% 302, Median >= 2000 req/s)",
+      "status": "PASS",
+      "pass": true,
+      "durationMs": 77204,
+      "logFile": "docs/evidence/2026-11-19T14-39-17-373Z/17-bench-redirect.log",
+      "sha256": "905c5924f140bad5bb4db94bc78885c224825c60c7a448d8406a3c9ba7197965"
+    },
+    {
+      "id": "18",
+      "name": "soak-test",
+      "title": "Soak Benchmark & Memory Telemetry (Post-Warmup Slopes & 429 Ratio)",
+      "status": "STALE-ARTIFACT",
+      "pass": true,
+      "durationMs": 72,
+      "logFile": "docs/evidence/2026-11-19T14-39-17-373Z/18-soak-test.log",
+      "sha256": "e73eed3948cac1de6b679ba8a40c229aadacc52f26d59e37b6cc72216d1c7a1f"
+    },
+    {
+      "id": "19",
+      "name": "verify-docker",
+      "title": "Docker & Container Services End-to-End Verification",
+      "status": "SKIPPED (NO DOCKER)",
+      "pass": true,
+      "durationMs": 588,
+      "logFile": "docs/evidence/2026-11-19T14-39-17-373Z/19-verify-docker.log",
+      "sha256": "15b90fbc739537f3d313a13ffaa4ac43ca8f10d039fd8452167aaf8239494db4"
+    },
+    {
+      "id": "20",
+      "name": "verify-staging",
+      "title": "Staging Environment Runner & Mock Security Tests",
+      "status": "PASS [UNVERIFIED]",
+      "pass": true,
+      "durationMs": 2293,
+      "logFile": "docs/evidence/2026-11-19T14-39-17-373Z/20-verify-staging.log",
+      "sha256": "6b1691b3d38ea786943a3936b4cb1b674ab65c85d1affdd465e75395f7bd1e82"
+    }
+  ]
+}

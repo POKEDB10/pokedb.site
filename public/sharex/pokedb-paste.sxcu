@@ -1,0 +1,13 @@
+{
+  "Version": "15.0.0",
+  "Name": "pokedb.site - Pastebin",
+  "DestinationType": "TextUploader",
+  "RequestMethod": "POST",
+  "RequestURL": "https://paste.pokedb.site/api/paste/create",
+  "Headers": {
+    "Accept": "application/json"
+  },
+  "Body": "JSON",
+  "Data": "{\n  \"content\": \"$input$\",\n  \"language\": \"plaintext\"\n}",
+  "URL": "$json:url$"
+}

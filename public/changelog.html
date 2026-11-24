@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="oled-black">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Changelog &amp; Architecture Evolution — pokedb.site</title>
+<meta name="description" content="Detailed version history, feature releases, and architectural improvements for pokedb.site.">
+<link rel="stylesheet" href="/fonts/fonts.css">
+<link rel="preload" href="/fonts/ibm-plex-mono-400.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/fonts/ibm-plex-sans-400.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/tools/shared/theme.css">
+<link rel="alternate" type="application/rss+xml" title="pokedb.site Changelog RSS" href="/feed.xml">
+<script src="/tools/shared/theme-switcher.js?v=3"></script>
+<style>
+  .changelog-container { max-width: 820px; margin: 2rem auto; padding: 0 1.25rem 4rem; line-height: 1.7; }
+  .release-card { margin: 2rem 0; padding: 1.5rem; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); }
+  .release-title { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.75rem; }
+  .release-version { font-family: var(--font-mono); font-size: 1.3rem; font-weight: bold; color: var(--accent); }
+  .release-date { font-family: var(--font-mono); font-size: 0.82rem; color: var(--muted); }
+  .change-section { margin-top: 1rem; }
+  .change-section h3 { font-size: 0.95rem; font-family: var(--font-mono); color: var(--text); margin-bottom: 0.4rem; }
+  .change-list { margin: 0; padding-left: 1.25rem; font-size: 0.9rem; }
+  .change-list li { margin-bottom: 0.4rem; }
+</style>
+</head>
+<body>
+
+<a href="#main" class="skip-link">Skip to main content</a>
+
+<header class="site-nav">
+  <a class="logo" href="/" data-nav="main">root<span>@</span>pokedb</a>
+  <nav class="nav-links" aria-label="Navigation">
+    <a class="nav-link" href="/">Home</a>
+    <a class="nav-link" href="https://tools.pokedb.site/">Tools</a>
+    <a class="nav-link" href="/projects/pokedb-site">Case Study</a>
+    <a class="nav-link active" href="/changelog">Changelog</a>
+    <a class="nav-link" href="/docs">Docs</a>
+  </nav>
+  <div class="theme-switcher">
+    <span class="theme-swatch" id="theme-swatch"></span>
+    <select id="theme-select" aria-label="Color theme">
+      <option value="oled-black">OLED</option>
+      <option value="paper">Paper</option>
+      <option value="matrix">Matrix</option>
+      <option value="cyberpunk">Cyberpunk</option>
+      <option value="synthwave">Synthwave</option>
+      <option value="nordic-ice">Nordic</option>
+      <option value="dracula-neon">Dracula</option>
+      <option value="gruvbox-retro">Gruvbox</option>
+      <option value="emerald-forest">Emerald</option>
+      <option value="sunset-amber">Sunset</option>
+      <option value="solarized-gold">Solarized</option>
+      <option value="tokyo-neon">Tokyo</option>
+    </select>
+  </div>
+</header>
+
+<main id="main" class="changelog-container">
+  <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem;">
+    <div>
+      <span class="eyebrow">$ git log --releases</span>
+      <h1 style="font-size:2rem; margin:0.3rem 0;">System Changelog</h1>
+    </div>
+    <a class="btn" href="/feed.xml" target="_blank" rel="noopener">RSS Feed ↗</a>
+  </div>
+
+  <p style="color:var(--muted); font-size:0.95rem; margin-top:0.5rem;">
+    Continuous deployment and engineering milestones for the pokedb.site platform.
+  </p>
+
+  <article class="release-card">
+    <div class="release-title">
+      <span class="release-version">v2.0.0 — The Zero-Trust Architecture Overhaul</span>
+      <span class="release-date">2026-11-09</span>
+    </div>
+    <p>Comprehensive system rebuild transitioning from monolith to modular tool registry, Cloudflare R2 direct uploads, SQLite WAL storage, and zero-egress offline utilities.</p>
+
+    <div class="change-section">
+      <h3>Added</h3>
+      <ul class="change-list">
+        <li><strong>Drop v2 on Cloudflare R2:</strong> Direct-to-storage presigned S3 multipart uploads eliminating local disk I/O. Purged Multer completely.</li>
+        <li><strong>Client-Side Cryptography:</strong> WebCrypto AES-256-GCM zero-knowledge encryption for Pastebin and File Drop with keys in URL fragment (<code>#k=</code>).</li>
+        <li><strong>Offline Developer Suite:</strong> 9 client-side tools running under strict <code>connect-src 'none'</code> CSP (JSON, JWT, Codec, Hash, UUID, Cron, Diff, Minecraft, Sanitizer).</li>
+        <li><strong>Abuse Resistance:</strong> Local URLhaus parent-domain walking, Google Safe Browsing Lookup v4 (30m cache), Turnstile bot mitigation, and auto-quarantine upon 3 subnet reports.</li>
+        <li><strong>Cross-Tool Command Palette:</strong> Global <code>Ctrl+K</code> palette, keyboard shortcut help, and paste-anywhere clipboard support.</li>
+        <li><strong>Self-Hosted Fonts &amp; WCAG AA:</strong> IBM Plex Mono &amp; Sans Latin WOFF2 subsets served locally; 60/60 checks passing across all 12 themes.</li>
+      </ul>
+    </div>
+
+    <div class="change-section">
+      <h3>Performance</h3>
+      <ul class="change-list">
+        <li><strong>10,000+ req/s Throughput:</strong> Decoupled short-link redirects from synchronous persistence via atomic in-memory <code>ClickBufferManager</code>.</li>
+        <li><strong>Zero Leaks Verified:</strong> 20-minute soak test stabilized at 0.000 MB/min heap and RSS slopes following initial SQLite WAL buffer warmup.</li>
+      </ul>
+    </div>
+  </article>
+
+  <article class="release-card">
+    <div class="release-title">
+      <span class="release-version">v1.0.0 — Initial Deployment</span>
+      <span class="release-date">2026-10-15</span>
+    </div>
+    <p>Initial release of personal portfolio, link shortener, Pastebin, QR code generator, and basic file storage.</p>
+  </article>
+</main>
+
+<footer class="footer">
+  <div class="footer-inner container">
+    <span>© pokedb.site · System Changelog</span>
+    <a href="/terms">Terms</a>
+    <a href="/privacy">Privacy</a>
+    <a href="/abuse">Abuse</a>
+  </div>
+</footer>
+
+</body>
+</html>
