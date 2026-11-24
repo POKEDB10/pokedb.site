@@ -35,7 +35,7 @@
     "jest": "^30.5.2",
     "lighthouse": "^13.6.0",
     "rate-limit-redis": "^4.2.0",
-    "supertest": "^7.0.0"
+    "supertest": "^7.3.2"
   },
   "overrides": {
     "body-parser": "^1.20.9",
