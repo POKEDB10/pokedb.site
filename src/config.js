@@ -106,10 +106,12 @@ function loadConfig(env = process.env) {
   const r2BucketName = env.R2_BUCKET_NAME || 'pokedb-drops';
   const r2Endpoint = env.R2_ENDPOINT || undefined;
   const dropPolicy = env.DROP_POLICY || 'open_limited';
+  const dropDirectFallback = env.DROP_DIRECT_FALLBACK === '1';
 
   // Abuse resistance, Turnstile, and Scanning (Task P5.1 - P5.6)
   const turnstileSecretKey = env.TURNSTILE_SECRET_KEY || '';
   const turnstileSiteKey = env.TURNSTILE_SITE_KEY || '';
+  const turnstileMode = (env.TURNSTILE_MODE || 'strict').toLowerCase() === 'optional' ? 'optional' : 'strict';
   const abuseWebhookUrl = env.ABUSE_WEBHOOK_URL || '';
   const redirectMode = env.REDIRECT_MODE ? env.REDIRECT_MODE.toLowerCase() : '';
   const abuseChAuthKey = env.ABUSE_CH_AUTH_KEY || '';
@@ -145,8 +147,10 @@ function loadConfig(env = process.env) {
     r2BucketName,
     r2Endpoint,
     dropPolicy,
+    dropDirectFallback,
     turnstileSecretKey,
     turnstileSiteKey,
+    turnstileMode,
     abuseWebhookUrl,
     redirectMode,
     abuseChAuthKey,

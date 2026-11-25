@@ -218,10 +218,12 @@ ${urlEntries}
 }
 
 function getNavUrl(targetId, isProduction = false) {
+  const SUBDOMAIN_TOOLS = new Set(['tools', 'tinyurl', 'qr', 'drop', 'paste', 'health']);
   if (isProduction) {
     if (targetId === 'main') return 'https://pokedb.site/';
     if (targetId === 'tools') return 'https://tools.pokedb.site/';
-    return `https://${targetId}.pokedb.site/`;
+    if (SUBDOMAIN_TOOLS.has(targetId)) return `https://${targetId}.pokedb.site/`;
+    return `https://pokedb.site/tools/${targetId}/`;
   }
   if (targetId === 'main') return '/';
   if (targetId === 'tools') return '/tools/';

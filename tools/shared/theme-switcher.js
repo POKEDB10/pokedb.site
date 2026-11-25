@@ -97,7 +97,11 @@
       if (isProduction) {
         if (key === 'main') el.href = proto + '//pokedb.site/';
         else if (key === 'tools') el.href = proto + '//tools.pokedb.site/';
-        else el.href = proto + '//' + key + '.pokedb.site/';
+        else if (key === 'tinyurl' || key === 'qr' || key === 'drop' || key === 'paste' || key === 'health') {
+          el.href = proto + '//' + key + '.pokedb.site/';
+        } else {
+          el.href = proto + '//pokedb.site/tools/' + key + '/';
+        }
       } else {
         if (key === 'main') el.href = '/';
         else if (key === 'tools') el.href = '/tools/';
@@ -119,7 +123,10 @@
       if (isProduction) {
         if (target === 'main') return proto + '//pokedb.site/';
         if (target === 'tools') return proto + '//tools.pokedb.site/';
-        return proto + '//' + target + '.pokedb.site/';
+        if (target === 'tinyurl' || target === 'qr' || target === 'drop' || target === 'paste' || target === 'health') {
+          return proto + '//' + target + '.pokedb.site/';
+        }
+        return proto + '//pokedb.site/tools/' + target + '/';
       } else {
         if (target === 'main') return '/';
         if (target === 'tools') return '/tools/';
@@ -206,7 +213,10 @@
       if (isProduction) {
         if (target === 'main') return proto + '//pokedb.site/';
         if (target === 'tools') return proto + '//tools.pokedb.site/';
-        return proto + '//' + target + '.pokedb.site/';
+        if (target === 'tinyurl' || target === 'qr' || target === 'drop' || target === 'paste' || target === 'health') {
+          return proto + '//' + target + '.pokedb.site/';
+        }
+        return proto + '//pokedb.site/tools/' + target + '/';
       } else {
         if (target === 'main') return '/';
         if (target === 'tools') return '/tools/';

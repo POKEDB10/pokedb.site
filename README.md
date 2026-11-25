@@ -130,8 +130,10 @@ Documented environment variables:
 | `R2_ENDPOINT` | Optional | Custom S3 endpoint override for MinIO / local testing (leave unset for Cloudflare R2). |
 | `R2_BUCKET_BACKUPS` | Conditional | Cloudflare R2 bucket name for Litestream snapshots (defaults to `pokedb-backups`). |
 | `DROP_POLICY` | Optional | Drop upload access policy (`open_limited` default). |
+| `DROP_DIRECT_FALLBACK` | Optional | Set `1` to allow ephemeral disk Drop fallback when R2 is unconfigured (default `0`). |
 | `TURNSTILE_SITE_KEY` | Optional | Cloudflare Turnstile public site key. |
 | `TURNSTILE_SECRET_KEY` | Optional | Cloudflare Turnstile secret verification key. |
+| `TURNSTILE_MODE` | Optional | `strict` (fail-closed `503` if unconfigured) or `optional` (skip if key unset; default `strict`). |
 | `ABUSE_CH_AUTH_KEY` | Optional | Threat intelligence feed authentication key. |
 | `ABUSE_WEBHOOK_URL` | Optional | Discord/Slack incoming webhook URL for abuse reports. |
 | `REDIRECT_MODE` | Optional | Short link redirect behavior (`direct` default). |

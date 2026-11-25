@@ -9,6 +9,7 @@ function createTurnstileMiddleware(options = {}) {
   const config = options.config || {};
   const secretKey = options.secretKey || config.turnstileSecretKey || '';
   const isProduction = config.isProduction ?? (process.env.NODE_ENV === 'production');
+  const turnstileMode = String(options.mode || config.turnstileMode || 'strict').toLowerCase();
   const timeoutMs = options.timeoutMs || 2000;
 
   return async function turnstileMiddleware(req, res, next) {
@@ -41,8 +42,11 @@ function createTurnstileMiddleware(options = {}) {
       }
     }
 
-    // Production mode: fail closed
+    // Production mode: fail closed unless TURNSTILE_MODE=optional
     if (isProduction && !secretKey) {
+      if (turnstileMode === 'optional') {
+        return next();
+      }
       return res.status(503).json({
         error: 'turnstile_not_configured',
         message: 'Security verification is temporarily unavailable.'

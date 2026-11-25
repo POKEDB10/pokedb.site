@@ -2,8 +2,11 @@
 // Drop File Storage Tool API and Views Router (Phase 4 — Drop v2 on Cloudflare R2 + Legacy Compatibility).
 
 const express = require('express');
+const fs = require('node:fs');
+const os = require('node:os');
 const path = require('node:path');
 const crypto = require('node:crypto');
+const { Readable } = require('node:stream');
 const { nanoid } = require('nanoid');
 const { anonymizeIp } = require('../../logger');
 const { renderTemplate, htmlEscape } = require('../../utils/template');
@@ -475,7 +478,7 @@ ${renderSsrHeader()}
       <span class="mono" style="font-size:0.75rem;color:var(--muted);">Scan to download on mobile</span>
     </div>
     <div class="report-wrap">
-      <span>Cloudflare R2 presigned delivery</span>
+      <span>${String(drop.objectKey || '').startsWith('rootz:') ? 'Rootz cloud delivery' : (String(drop.objectKey || '').startsWith('local:') ? 'Encrypted temporary storage' : 'Cloudflare R2 presigned delivery')}</span>
       <a href="/abuse?kind=drop&amp;id=${safeId}" class="report-link">Report Abuse</a>
     </div>
   </article>
@@ -491,6 +494,10 @@ function createDropRouter({ store, objectStore, limiters = {}, config = {}, cloc
   const adminLimiter = limiters.adminLimiter || ((req, res, next) => next());
   const turnstile = createTurnstileMiddleware({ config });
   const folderAttachQueues = new Map();
+  const hasFallbackStorage = !objectStore && (Boolean(config.rootzApiKey) || Boolean(config.dropDirectFallback));
+  const blobsDir = config.sqliteDbPath && config.sqliteDbPath !== ':memory:'
+    ? path.join(path.dirname(path.resolve(config.sqliteDbPath)), 'drop-blobs')
+    : path.join(os.tmpdir(), 'pokedb-drop-blobs');
   const assetHasher = getAssetHasher();
   const ssrAssets = {
     fontsCss: assetHasher.getHashedPath('/fonts/fonts.css'),
@@ -598,7 +605,8 @@ function createDropRouter({ store, objectStore, limiters = {}, config = {}, cloc
       if (!objectStore || !objectStore.createMultipart) {
         return res.status(503).json({
           error: 'storage_service_unavailable',
-          message: 'Drop storage service is not configured.'
+          message: 'Drop storage service is not configured.',
+          fallbackAvailable: hasFallbackStorage
         });
       }
 
@@ -882,6 +890,119 @@ function createDropRouter({ store, objectStore, limiters = {}, config = {}, cloc
         });
       }
 
+      const safeHeaderName = String(drop.name || 'file').replace(/["\r\n]/g, '_');
+      const encodedName = encodeURIComponent(drop.name || 'file');
+      const contentDisp = `attachment; filename="${safeHeaderName}"; filename*=UTF-8''${encodedName}`;
+
+      if (typeof drop.objectKey === 'string' && drop.objectKey.startsWith('local:')) {
+        const blobId = path.basename(drop.objectKey.slice('local:'.length).replace(/[^a-zA-Z0-9_-]/g, ''));
+        const blobPath = path.join(blobsDir, `${blobId}.bin`);
+        if (!blobId || !fs.existsSync(blobPath)) {
+          return res.status(404).json({ error: 'Drop file payload is no longer available.' });
+        }
+        const stat = fs.statSync(blobPath);
+        res.set('Content-Disposition', contentDisp);
+        res.set('Content-Type', 'application/octet-stream');
+        res.set('X-Content-Type-Options', 'nosniff');
+        res.set('Accept-Ranges', 'bytes');
+
+        const rangeHeader = req.headers.range;
+        let streamOpts = {};
+        if (rangeHeader && /^bytes=\d*-\d*$/.test(rangeHeader)) {
+          const [rawStart, rawEnd] = rangeHeader.replace(/^bytes=/, '').split('-');
+          const start = rawStart ? Number(rawStart) : 0;
+          const end = rawEnd ? Math.min(Number(rawEnd), stat.size - 1) : stat.size - 1;
+          if (Number.isFinite(start) && Number.isFinite(end) && start <= end && start >= 0 && end < stat.size) {
+            res.status(206);
+            res.set('Content-Range', `bytes ${start}-${end}/${stat.size}`);
+            res.set('Content-Length', String(end - start + 1));
+            streamOpts = { start, end };
+          } else {
+            return res.status(416).set('Content-Range', `bytes */${stat.size}`).end();
+          }
+        } else {
+          res.status(200);
+          res.set('Content-Length', String(stat.size));
+        }
+
+        const rs = fs.createReadStream(blobPath, streamOpts);
+        rs.on('error', (streamErr) => {
+          console.error('Local drop stream error:', streamErr);
+          if (!res.headersSent) res.status(500).end();
+          else res.destroy();
+        });
+        if (drop.maxDownloads !== null) {
+          res.on('finish', () => {
+            fs.promises.unlink(blobPath).catch(() => {});
+          });
+        }
+        return rs.pipe(res);
+      }
+
+      if (typeof drop.objectKey === 'string' && drop.objectKey.startsWith('rootz:')) {
+        const remoteCode = drop.objectKey.slice('rootz:'.length);
+        const rootzUrl = `https://rootz.so/api/files/retrieve?file_code=${encodeURIComponent(remoteCode)}`;
+        const headers = {};
+        if (config.rootzApiKey) {
+          headers.Authorization = config.rootzApiKey.startsWith('Bearer ')
+            ? config.rootzApiKey
+            : `Bearer ${config.rootzApiKey}`;
+        }
+        if (req.headers.range) headers.Range = req.headers.range;
+
+        let rootzRes = await fetch(rootzUrl, {
+          headers,
+          redirect: 'manual',
+          signal: AbortSignal.timeout(15000)
+        });
+
+        if ([301, 302, 303, 307, 308].includes(rootzRes.status)) {
+          let loc = rootzRes.headers.get('location');
+          if (loc) {
+            if (loc.startsWith('/')) loc = `https://rootz.so${loc}`;
+            if (loc.includes('/login')) {
+              return res.status(404).json({ error: 'Drop file not found.' });
+            }
+            const cdnHeaders = {};
+            if (req.headers.range) cdnHeaders.Range = req.headers.range;
+            rootzRes = await fetch(loc, { headers: cdnHeaders, signal: AbortSignal.timeout(30000) });
+          }
+        }
+
+        const ct = (rootzRes.headers.get('content-type') || '').toLowerCase();
+        if (rootzRes.ok && ct.includes('application/json')) {
+          const payload = await rootzRes.json().catch(() => ({}));
+          const directUrl = payload.url || payload.download_url || payload.direct_url || payload.data?.url || payload.data?.download_url;
+          if (directUrl) {
+            const cdnHeaders = {};
+            if (req.headers.range) cdnHeaders.Range = req.headers.range;
+            rootzRes = await fetch(directUrl, { headers: cdnHeaders, signal: AbortSignal.timeout(30000) });
+          }
+        }
+
+        if (!rootzRes.ok || !rootzRes.body) {
+          return res.status(502).json({ error: 'Upstream file storage could not deliver this file.' });
+        }
+
+        res.status(rootzRes.status);
+        res.set('Content-Disposition', contentDisp);
+        res.set('Content-Type', 'application/octet-stream');
+        res.set('X-Content-Type-Options', 'nosniff');
+        for (const hName of ['content-length', 'content-range', 'accept-ranges']) {
+          const hVal = rootzRes.headers.get(hName);
+          if (hVal) res.set(hName, hVal);
+        }
+        if (!res.get('accept-ranges')) res.set('Accept-Ranges', 'bytes');
+
+        const webStream = Readable.fromWeb(rootzRes.body);
+        webStream.on('error', (err) => {
+          console.error('Rootz stream error:', err);
+          if (!res.headersSent) res.status(502).end();
+          else res.destroy();
+        });
+        return webStream.pipe(res);
+      }
+
       let downloadUrl = null;
       if (objectStore && objectStore.presignGet) {
         const presigned = await objectStore.presignGet({
@@ -1059,6 +1180,31 @@ function createDropRouter({ store, objectStore, limiters = {}, config = {}, cloc
     }
   });
 
+  async function cleanupStoredPayload(dropObj) {
+    if (!dropObj || !dropObj.objectKey) return;
+    const key = String(dropObj.objectKey);
+    if (key.startsWith('local:')) {
+      const blobId = path.basename(key.slice('local:'.length).replace(/[^a-zA-Z0-9_-]/g, ''));
+      if (blobId) {
+        await fs.promises.unlink(path.join(blobsDir, `${blobId}.bin`)).catch(() => {});
+      }
+      return;
+    }
+    if (key.startsWith('rootz:') && config.rootzApiKey) {
+      const remoteCode = key.slice('rootz:'.length);
+      const auth = config.rootzApiKey.startsWith('Bearer ') ? config.rootzApiKey : `Bearer ${config.rootzApiKey}`;
+      await fetch(`https://rootz.so/api/files/delete?fileId=${encodeURIComponent(remoteCode)}`, {
+        method: 'DELETE',
+        headers: { Authorization: auth },
+        signal: AbortSignal.timeout(5000)
+      }).catch(() => {});
+      return;
+    }
+    if (objectStore && objectStore.delete) {
+      await objectStore.delete({ key }).catch(() => {});
+    }
+  }
+
   // 8. Delete Drop: DELETE /api/drop/:id and DELETE /api/drop/delete
   const handleDelete = async (req, res) => {
     try {
@@ -1095,6 +1241,10 @@ function createDropRouter({ store, objectStore, limiters = {}, config = {}, cloc
               if (!dropRecord.deletionToken || !tokensMatch(providedToken, dropRecord.deletionToken)) {
                 return res.status(403).json({ error: 'A valid deletion token is required.' });
               }
+              const existingDrop = resolveDrop(store, cand);
+              if (existingDrop) {
+                await cleanupStoredPayload(existingDrop);
+              }
               if (store.delKv) store.delKv(`drop:${cand}`);
               if (store.updateDropState) store.updateDropState(cand, 'deleted');
               return res.status(200).json({ success: true, id: cand, message: 'Drop file deleted successfully.' });
@@ -1113,9 +1263,7 @@ function createDropRouter({ store, objectStore, limiters = {}, config = {}, cloc
         return res.status(403).json({ error: 'Invalid deletion token.' });
       }
 
-      if (objectStore && objectStore.delete && drop.objectKey) {
-        await objectStore.delete({ key: drop.objectKey }).catch(() => {});
-      }
+      await cleanupStoredPayload(drop);
       store.updateDropState(drop.id, 'deleted');
 
       return res.status(200).json({ success: true, id: drop.id, message: 'Drop file deleted successfully.' });
@@ -1160,7 +1308,10 @@ function createDropRouter({ store, objectStore, limiters = {}, config = {}, cloc
     if (!isAdminAuthorized(req, config)) {
       return res.status(403).json({ error: 'Unauthorized: valid admin token required.' });
     }
-    return res.status(200).json({ success: true, drops: [] });
+    const drops = typeof store.listActiveDrops === 'function'
+      ? store.listActiveDrops(100, clock.now())
+      : [];
+    return res.status(200).json({ success: true, drops });
   });
 
   // Create folder: POST /api/drop/create-folder
@@ -1250,22 +1401,61 @@ function createDropRouter({ store, objectStore, limiters = {}, config = {}, cloc
     await updateTask;
   }
 
+  const promoteHeaderTurnstile = (req, res, next) => {
+    const hdrToken = req.get('x-turnstile-token') || req.get('cf-turnstile-response');
+    if (hdrToken && !(req.body && req.body['cf-turnstile-response'])) {
+      req.body = Object.assign({}, req.body, { 'cf-turnstile-response': hdrToken });
+    }
+    next();
+  };
+
   // Direct upload handler: POST /api/drop/upload
-  // Strictly restricted to development and test environments (Task R9.2 Part 2 Item 2).
-  // In production, all file uploads bypass origin server disk and memory via browser->R2 presigned multipart PUTs.
+  // Restricted in production when R2 presigned uploads are active or fallback storage is disabled (Task R9.2 Part 2 Item 2).
   router.post('/api/drop/upload', uploadLimiter, (req, res, next) => {
-    if (config.isProduction || process.env.NODE_ENV === 'production') {
+    if ((config.isProduction || process.env.NODE_ENV === 'production') && !hasFallbackStorage) {
       return res.status(404).json({
         error: 'not_found',
         message: 'Direct server upload is disabled in production. Use browser->R2 presigned multipart upload.'
       });
     }
+    next();
+  }, promoteHeaderTurnstile, turnstile, (req, res) => {
+    const isProd = Boolean(config.isProduction || process.env.NODE_ENV === 'production');
+    const dropPolicy = config.dropPolicy || 'open_limited';
+    if (dropPolicy === 'disabled') {
+      return res.status(503).json({ error: 'Drop uploads are currently disabled by policy.' });
+    }
+
+    const largeFilePw = process.env.LARGE_FILE_PASSWORD || config.largeFilePassword || '';
+    const suppliedPw = req.get('x-upload-password') || '';
+    const isLargeOwner = Boolean(largeFilePw && suppliedPw && tokensMatch(suppliedPw, largeFilePw));
+    const maxDirectBytes = isLargeOwner
+      ? (config.ownerMaxBytes || 250 * 1024 * 1024)
+      : (config.dropDirectMaxBytes || 100 * 1024 * 1024);
+
+    let totalBytes = 0;
+    let abortedTooLarge = false;
     const chunks = [];
-    req.on('data', (c) => chunks.push(c));
+    req.on('data', (c) => {
+      if (abortedTooLarge) return;
+      totalBytes += c.length;
+      if (totalBytes > maxDirectBytes + 1024 * 1024) {
+        abortedTooLarge = true;
+        chunks.length = 0;
+        if (!res.headersSent) {
+          res.status(413).json({ error: `File size exceeds direct upload limit (${formatBytes(maxDirectBytes)}).` });
+        }
+        req.destroy();
+        return;
+      }
+      chunks.push(c);
+    });
     req.on('end', async () => {
+      if (abortedTooLarge) return;
       try {
         res.set('Cache-Control', 'no-store');
         const rawBuffer = Buffer.concat(chunks);
+        chunks.length = 0;
         const contentType = req.headers['content-type'] || '';
         let file = null;
         let body = req.body || {};
@@ -1284,45 +1474,119 @@ function createDropRouter({ store, objectStore, limiters = {}, config = {}, cloc
           return res.status(400).json({ error: 'No file provided in upload request.' });
         }
 
+        if (file.size > maxDirectBytes) {
+          return res.status(413).json({
+            error: `File size exceeds the maximum allowed direct upload limit (${formatBytes(maxDirectBytes)}).`
+          });
+        }
+
+        const safeName = sanitizeFileName(file.originalname || 'file');
+        const isEncrypted = body.encrypted === '1' || body.encrypted === 'true' || body.encrypted === true;
+        const isBurn = body.burn === '1' || body.burn === 'true' || body.burn === true;
+
+        if (isProd && !isEncrypted && isBlockedExtension(safeName)) {
+          return res.status(400).json({
+            error: 'Executable file types (.exe, .msi, .dll, etc.) are blocked unless encrypted mode is used.'
+          });
+        }
+
         if (body.customId) {
           const cleanCustomId = String(body.customId).trim();
           if (!/^[a-zA-Z0-9_-]{3,64}$/.test(cleanCustomId)) {
             return res.status(400).json({ error: 'Invalid customId format.' });
           }
+          if (isDropIdTaken(store, cleanCustomId)) {
+            return res.status(409).json({ error: 'Custom upload ID is already in use.' });
+          }
         }
 
         const dropId = body.customId ? String(body.customId).trim() : generateTypeableDropId(store);
-        const objectKey = `drops/${dropId}`;
         const deleteToken = nanoid(32);
         const deleteHash = hashDeleteToken(deleteToken);
 
         const { flags: virusFlags, sha256 } = await scanBufferVirus(file.buffer, config.abuseChAuthKey);
 
+        const allowedTtls = [1, 12, 24, 72];
+        const parsedTtlHours = body.ttlHours !== undefined ? Number(body.ttlHours) : NaN;
+        let ttlHours = 24;
+        let expiresAt;
+        if (Number.isFinite(parsedTtlHours) && allowedTtls.includes(parsedTtlHours)) {
+          ttlHours = parsedTtlHours;
+          expiresAt = clock.now() + ttlHours * 3600000;
+        } else {
+          const expDays = parseExpiresInDays(body.expiresInDays, 1) || 1;
+          ttlHours = expDays * 24;
+          expiresAt = clock.now() + expDays * 86400000;
+        }
+
+        let objectKey = `drops/${dropId}`;
+        let provider = 'r2';
+
         if (objectStore && objectStore.putMockObject) {
           objectStore.putMockObject(objectKey, {
             size: file.size,
             contentType: file.mimetype,
-            contentDisposition: `attachment; filename="${encodeURIComponent(file.originalname)}"`
+            contentDisposition: `attachment; filename="${encodeURIComponent(safeName)}"`
           });
-        }
+        } else {
+          let storedRemotely = false;
+          if (config.rootzApiKey) {
+            try {
+              const form = new FormData();
+              const blob = new Blob([file.buffer], { type: 'application/octet-stream' });
+              form.append('file', blob, safeName);
+              form.append('expiresInDays', String(Math.max(1, Math.ceil(ttlHours / 24))));
+              if (config.rootzFolderId) {
+                form.append('folderId', String(config.rootzFolderId));
+              }
+              const auth = config.rootzApiKey.startsWith('Bearer ')
+                ? config.rootzApiKey
+                : `Bearer ${config.rootzApiKey}`;
+              const rootzTimeout = Math.min(config.rootzTimeoutMs || 120000, 120000);
+              const rootzRes = await fetch('https://rootz.so/api/files/upload', {
+                method: 'POST',
+                headers: { Authorization: auth },
+                body: form,
+                signal: AbortSignal.timeout(rootzTimeout)
+              });
+              if (rootzRes.ok) {
+                const rootzData = await rootzRes.json().catch(() => ({}));
+                const rObj = rootzData.data || rootzData.result || rootzData;
+                const remoteCode = rObj.short_id || rObj.shortId || rObj.file_code || rObj.filecode || rObj.id;
+                if (remoteCode) {
+                  objectKey = `rootz:${String(remoteCode)}`;
+                  provider = 'rootz';
+                  storedRemotely = true;
+                }
+              }
+            } catch (rootzErr) {
+              console.warn('Rootz direct upload fallback triggered:', rootzErr.message);
+            }
+          }
 
-        const expDays = parseExpiresInDays(body.expiresInDays, 30) || 30;
-        const expiresAt = clock.now() + expDays * 86400000;
+          if (!storedRemotely) {
+            const safeBlobId = path.basename(dropId.replace(/[^a-zA-Z0-9_-]/g, '')) || generateTypeableDropId(store);
+            await fs.promises.mkdir(blobsDir, { recursive: true });
+            await fs.promises.writeFile(path.join(blobsDir, `${safeBlobId}.bin`), file.buffer);
+            objectKey = `local:${safeBlobId}`;
+            provider = 'local';
+          }
+        }
 
         store.createDrop({
           id: dropId,
           objectKey,
           uploadId: null,
-          name: file.originalname,
+          name: safeName,
           size: file.size,
           state: 'complete',
           createdAt: clock.now(),
           expiresAt,
           downloads: 0,
-          maxDownloads: null,
+          maxDownloads: isBurn ? 1 : null,
           sha256,
           deleteHash,
-          encrypted: 0,
+          encrypted: isEncrypted ? 1 : 0,
           creator: anonymizeIp(req.ip)
         });
 
@@ -1332,9 +1596,12 @@ function createDropRouter({ store, objectStore, limiters = {}, config = {}, cloc
           fileId: dropId,
           shortId: dropId,
           code: dropId,
-          name: file.originalname,
+          name: safeName,
           size: file.size,
           sha256,
+          provider,
+          burn: isBurn,
+          ttlHours,
           deletionToken: deleteToken,
           deleteToken: deleteToken,
           downloadUrl: `${baseUrl}/d/${dropId}`,
@@ -1355,6 +1622,12 @@ function createDropRouter({ store, objectStore, limiters = {}, config = {}, cloc
           fileId: dropId,
           shortId: dropId,
           code: dropId,
+          name: safeName,
+          size: file.size,
+          provider,
+          burn: isBurn,
+          ttlHours,
+          expiresAt,
           deletionToken: deleteToken,
           sha256,
           virusFlags,
@@ -1362,11 +1635,13 @@ function createDropRouter({ store, objectStore, limiters = {}, config = {}, cloc
             id: dropId,
             shortId: dropId,
             code: dropId,
-            name: file.originalname,
+            name: safeName,
             size: file.size,
             sha256,
             viewUrl: `${baseUrl}/v/${dropId}`
           },
+          curl: `curl -LOJ ${baseUrl}/d/${dropId}`,
+          shareUrl: `${baseUrl}/d/${dropId}`,
           viewUrl: `${baseUrl}/v/${dropId}`,
           downloadUrl: `${baseUrl}/d/${dropId}`
         });

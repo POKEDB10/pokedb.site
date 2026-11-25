@@ -180,8 +180,9 @@
           ctx.fillText('P10', 300, 304);
           finishComposite();
         } else if (emblemChoice === 'emoji') {
-          // 2) ANY EMOJI
-          ctx.fillStyle = opts.light && opts.light !== 'transparent' ? opts.light : '#ffffff';
+          // 2) ANY EMOJI OR MONOGRAM
+          var badgeFill = (opts.light && opts.light !== 'transparent') ? opts.light : '#ffffff';
+          ctx.fillStyle = badgeFill;
           ctx.strokeStyle = opts.dark;
           ctx.lineWidth = 3;
           drawRoundedRect(ctx, px, py, padSize, padSize, 14);
@@ -189,10 +190,19 @@
           ctx.stroke();
 
           var emojiText = document.getElementById('emoji-input').value.trim() || '⚡';
-          ctx.font = '40px sans-serif, "Apple Color Emoji", "Segoe UI Emoji"';
+          var badgeTextColor = (opts.dark && String(opts.dark).toLowerCase() !== String(badgeFill).toLowerCase())
+            ? opts.dark
+            : '#000000';
+          if (String(badgeTextColor).toLowerCase() === String(badgeFill).toLowerCase()) {
+            badgeTextColor = '#ffffff';
+          }
+          ctx.fillStyle = badgeTextColor;
+          var charCount = Array.from(emojiText).length;
+          var fontSize = charCount >= 4 ? 20 : (charCount === 3 ? 26 : (charCount === 2 ? 34 : 42));
+          ctx.font = 'bold ' + fontSize + 'px "IBM Plex Mono", "IBM Plex Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji"';
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
-          ctx.fillText(emojiText, 300, 305);
+          ctx.fillText(emojiText, 300, 302);
           finishComposite();
         } else if (emblemChoice === 'custom_pic' && uploadedLogoDataUrl) {
           // 3) CUSTOM PICTURE UPLOAD

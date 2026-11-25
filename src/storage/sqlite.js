@@ -181,6 +181,15 @@ function createSqliteStorage(dbFilePath) {
       FROM drops
       WHERE id = ?;
     `),
+    listActiveDrops: db.prepare(`
+      SELECT id, name, size, state, created_at, expires_at, downloads, max_downloads, encrypted
+      FROM drops
+      WHERE state = 'complete'
+        AND (expires_at IS NULL OR expires_at > ?)
+        AND (max_downloads IS NULL OR downloads < max_downloads)
+      ORDER BY created_at DESC
+      LIMIT ?;
+    `),
     updateDropState: db.prepare(`
       UPDATE drops SET state = ? WHERE id = ?;
     `),
@@ -528,6 +537,23 @@ function createSqliteStorage(dbFilePath) {
     stmts.updateDropState.run(state, id);
   }
 
+  function listActiveDrops(limit = 100, now = Date.now()) {
+    const safeLimit = Math.min(Math.max(1, Number(limit) || 100), 200);
+    return stmts.listActiveDrops.all(now, safeLimit).map((row) => ({
+      id: row.id,
+      code: row.id,
+      shortId: row.id,
+      name: row.name,
+      size: row.size,
+      state: row.state,
+      createdAt: row.created_at,
+      expiresAt: row.expires_at,
+      downloads: row.downloads,
+      maxDownloads: row.max_downloads,
+      encrypted: Boolean(row.encrypted)
+    }));
+  }
+
   function updateDropComplete(id, size, sha256 = null) {
     stmts.updateDropComplete.run(size, sha256, id);
   }
@@ -801,6 +827,7 @@ function createSqliteStorage(dbFilePath) {
     hasKv,
     createDrop,
     getDrop,
+    listActiveDrops,
     updateDropState,
     updateDropComplete,
     claimDropDownload,

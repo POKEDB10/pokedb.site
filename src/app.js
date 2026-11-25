@@ -180,8 +180,12 @@ function createApp(options = {}) {
   // Public client configuration (strictly non-secret runtime values only)
   app.get('/api/config/public', (req, res) => {
     res.setHeader('Cache-Control', 'public, max-age=60, s-maxage=300');
+    const dropStorage = objectStore
+      ? 'r2'
+      : ((config.rootzApiKey || config.dropDirectFallback) ? 'direct' : 'disabled');
     return res.status(200).json({
-      turnstileSiteKey: config.turnstileSiteKey || ''
+      turnstileSiteKey: config.turnstileSiteKey || '',
+      dropStorage
     });
   });
 

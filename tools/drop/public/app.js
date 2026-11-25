@@ -417,7 +417,25 @@
       updateControls();
       return;
     }
+    var pubCfg = await getPublicConfig();
+    if (pubCfg && pubCfg.dropStorage === 'direct') {
+      uploadItemDirect(item);
+      return;
+    }
     uploadViaPresignedR2(item);
+  }
+
+  var publicConfigCache = null;
+  async function getPublicConfig() {
+    if (publicConfigCache) return publicConfigCache;
+    try {
+      var res = await fetch('/api/config/public');
+      if (res.ok) {
+        publicConfigCache = await res.json();
+        return publicConfigCache;
+      }
+    } catch (_) {}
+    return {};
   }
 
   async function uploadViaPresignedR2(item) {
@@ -485,12 +503,12 @@
         var initData = await initRes.json().catch(function () { return {}; });
         if (!initRes.ok) {
           var isLocal = /^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname);
-          if (initRes.status === 503 && initData.error === 'storage_service_unavailable' && isLocal) {
+          if (initRes.status === 503 && initData.error === 'storage_service_unavailable' && (isLocal || initData.fallbackAvailable)) {
             activeUpload = null;
             uploadItemDirect(item);
             return;
           }
-          throw new Error(initData.error || initData.message || ('Upload rejected (HTTP ' + initRes.status + ')'));
+          throw new Error(initData.message || initData.error || ('Upload rejected (HTTP ' + initRes.status + ')'));
         }
 
         id = initData.code || initData.shortId || initData.id;
@@ -728,22 +746,33 @@
     }
   }
 
-  function uploadItemDirect(item) {
+  async function uploadItemDirect(item) {
     clearNotice();
     item.status = 'uploading';
     item.progress = 0;
     updateItemDom(item);
     updateControls();
 
+    var ttlHours = getTtlHours();
+    var burn = getBurnOption();
     var formData = new FormData();
     formData.append('file', item.file);
-    formData.append('expiresInDays', '1');
+    formData.append('ttlHours', String(ttlHours));
+    formData.append('expiresInDays', String(Math.max(1, Math.ceil(ttlHours / 24))));
+    formData.append('burn', burn ? '1' : '0');
     formData.append('relativePath', item.path);
     if (activeFolderBatch) formData.append('folderCode', activeFolderBatch.folderCode);
+
+    var tsToken = '';
+    if (window.PokedbTurnstile) {
+      tsToken = await window.PokedbTurnstile.getToken('#drop-turnstile-wrap');
+      if (tsToken) formData.append('cf-turnstile-response', tsToken);
+    }
 
     var xhr = new XMLHttpRequest();
     activeUpload = { xhr: xhr };
     xhr.open('POST', '/api/drop/upload', true);
+    if (tsToken) xhr.setRequestHeader('x-turnstile-token', tsToken);
     if (item.password) xhr.setRequestHeader('x-upload-password', item.password);
 
     var lastTime = Date.now();
@@ -764,6 +793,7 @@
 
     xhr.onload = function () {
       activeUpload = null;
+      if (window.PokedbTurnstile) window.PokedbTurnstile.reset('#drop-turnstile-wrap');
       if (xhr.status >= 200 && xhr.status < 300) {
         try {
           var result = JSON.parse(xhr.responseText);
@@ -780,8 +810,8 @@
           } else if (!activeFolderBatch) {
             result.name = result.name || (result.file && result.file.name) || item.file.name;
             result.size = result.size != null ? result.size : ((result.file && result.file.size) != null ? result.file.size : item.file.size);
-            if (result.burn === undefined) result.burn = getBurnOption();
-            if (result.ttlHours === undefined) result.ttlHours = getTtlHours();
+            if (result.burn === undefined) result.burn = burn;
+            if (result.ttlHours === undefined) result.ttlHours = ttlHours;
             displayResult(result);
           }
           beginQueue();
@@ -794,7 +824,8 @@
       } else {
         item.status = 'failed';
         try {
-          showNotice('Upload failed: ' + (JSON.parse(xhr.responseText).error || 'HTTP ' + xhr.status));
+          var errPayload = JSON.parse(xhr.responseText);
+          showNotice('Upload failed: ' + (errPayload.message || errPayload.error || ('HTTP ' + xhr.status)));
         } catch (_) {
           showNotice('Upload failed (HTTP ' + xhr.status + ')');
         }
@@ -871,7 +902,9 @@
 
     element('res-file-name').textContent = resolvedName;
     element('res-file-size').textContent = formatBytes(resolvedSize);
-    element('res-storage-provider').textContent = 'Cloudflare R2';
+    element('res-storage-provider').textContent = result.provider === 'rootz'
+      ? 'Rootz Cloud'
+      : (result.provider === 'local' ? 'Ephemeral Server Store' : 'Cloudflare R2');
     element('res-downloads-tag').textContent = result.burn ? '0 / 1 burn' : '0 downloads';
 
     var burnPill = element('res-burn-pill');

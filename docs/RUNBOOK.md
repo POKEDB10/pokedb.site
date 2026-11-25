@@ -110,13 +110,15 @@ Every environment variable parsed by `src/config.js` and application services is
 | `R2_BUCKET_NAME` | **YES** | Bucket name | `pokedb-drops` | Cloudflare R2 bucket for PokéDB Drop presigned direct-to-object uploads. |
 | `R2_ENDPOINT` | Optional (Dev/Test) | S3 Endpoint URL | `""` | Custom S3/R2 endpoint override for MinIO / local testing. Leave unset in production. |
 | `DROP_POLICY` | Optional | `open_limited`, `token_only` | `open_limited` | Quota enforcement policy for Drop storage. |
+| `DROP_DIRECT_FALLBACK` | Optional | `0`, `1` | `0` | Allow direct server/local ephemeral Drop fallback in production when R2 is unconfigured. |
 | `LARGE_FILE_PASSWORD` | **YES** | Secret Passphrase | `""` | Required password for Drop uploads exceeding 100 MB up to 1 GiB cap. |
 | `ROOTZ_API_KEY` | Optional (Legacy) | String | `""` | Legacy Rootz storage API key (deprecated in PokéDB v2 in favor of Cloudflare R2). |
 | `ROOTZ_FOLDER_ID` | Optional (Legacy) | String | `""` | Legacy Rootz folder ID. |
 | `ROOTZ_FOLDER_NAME` | Optional (Legacy) | String | `pokedb.site` | Legacy Rootz folder name. |
 | `ROOTZ_TIMEOUT_MS` | Optional (Legacy) | Integer | `1200000` | Legacy Rootz upload timeout in milliseconds (20 min). |
 | `TURNSTILE_SITE_KEY` | **YES** | Cloudflare Sitekey | `""` | Public sitekey for Cloudflare Turnstile human verification widget. |
-| `TURNSTILE_SECRET_KEY` | **YES** | Cloudflare Secret | `""` | Secret key for Turnstile server verification. If missing in production, **fails closed (HTTP 503)**. |
+| `TURNSTILE_SECRET_KEY` | **YES** | Cloudflare Secret | `""` | Secret key for Turnstile server verification. If missing in production, **fails closed (HTTP 503)** unless `TURNSTILE_MODE=optional`. |
+| `TURNSTILE_MODE` | Optional | `strict`, `optional` | `strict` | Enforcement mode when Turnstile keys are unset (`strict` returns 503 in production; `optional` permits submissions while enforcing whenever a key is configured). |
 | `GOOGLE_SAFE_BROWSING_KEY`| **YES** | Google API Key | `""` | Google Safe Browsing v4 lookup key for URL shortener threat screening. |
 | `ABUSE_CH_AUTH_KEY` | Optional | Auth Key | `""` | Abuse.ch MalwareBazaar API key for threat indicator updates. |
 | `ABUSE_WEBHOOK_URL` | Optional | Webhook URL | `""` | Webhook (Discord / Slack) for instant abuse notification alerts. |
@@ -161,6 +163,7 @@ ROOTZ_FOLDER_NAME=pokedb.site
 ROOTZ_TIMEOUT_MS=1200000
 R2_BUCKET_NAME=pokedb-drops
 DROP_POLICY=open_limited
+DROP_DIRECT_FALLBACK=0
 # R2_ENDPOINT: Custom S3 endpoint override (leave unset for Cloudflare R2; used in testing/MinIO)
 # R2_ENDPOINT=
 
@@ -168,6 +171,7 @@ DROP_POLICY=open_limited
 GOOGLE_SAFE_BROWSING_KEY=replace_with_google_api_key
 TURNSTILE_SECRET_KEY=replace_with_turnstile_secret_key
 TURNSTILE_SITE_KEY=replace_with_turnstile_site_key
+TURNSTILE_MODE=strict
 ABUSE_WEBHOOK_URL=
 REDIRECT_MODE=direct
 ABUSE_CH_AUTH_KEY=
