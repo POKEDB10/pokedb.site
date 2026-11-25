@@ -4,85 +4,67 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Text Diff Studio — pokedb.site tools</title>
-<meta name="description" content="Offline-first line-by-line text and code difference viewer with zero tracking.">
+<meta name="description" content="Offline line-by-line text and code difference viewer.">
 <link rel="stylesheet" href="/fonts/fonts.css">
 <link rel="stylesheet" href="/tools/shared/theme.css">
 <script src="/tools/shared/theme-switcher.js?v=3"></script>
 <script src="/tools/shared/state-url.js"></script>
 <style>
-  .tool-container { max-width: 1000px; margin: 1.5rem auto; padding: 0 1rem; }
-  .diff-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem; }
+  .diff-inputs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; margin-top: .85rem; }
   @media (max-width: 768px) { .diff-inputs { grid-template-columns: 1fr; } }
-  .editor-box { width: 100%; height: 240px; font-family: var(--font-mono); font-size: 0.85rem; padding: 0.75rem; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--text); resize: vertical; }
-  .diff-output { margin-top: 1.5rem; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); overflow-x: auto; font-family: var(--font-mono); font-size: 0.82rem; }
-  .diff-line { padding: 0.2rem 0.6rem; display: flex; gap: 0.75rem; border-bottom: 1px solid color-mix(in srgb, var(--border) 40%, transparent); }
+  .editor-box { width: 100%; height: 240px; font-family: 'IBM Plex Mono', monospace; font-size: .85rem; padding: .75rem; border: 1px solid var(--border); border-radius: 7px; background: var(--surface); color: var(--text); resize: vertical; margin-top: .4rem; }
+  .diff-output { margin-top: 1.25rem; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); overflow-x: auto; font-family: 'IBM Plex Mono', monospace; font-size: .82rem; }
+  .diff-line { padding: .22rem .65rem; display: flex; gap: .75rem; border-bottom: 1px solid color-mix(in srgb, var(--border) 40%, transparent); }
   .diff-line.add { background: color-mix(in srgb, var(--success) 15%, transparent); color: var(--success); }
   .diff-line.del { background: color-mix(in srgb, var(--danger) 15%, transparent); color: var(--danger); }
   .diff-line.same { color: var(--text); }
-  .diff-ln { width: 30px; text-align: right; color: var(--muted); user-select: none; }
-  .badge-offline { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.2rem 0.6rem; border-radius: 4px; background: color-mix(in srgb, var(--success) 15%, transparent); border: 1px solid var(--success); color: var(--success); font-family: var(--font-mono); font-size: 0.75rem; }
+  .diff-ln { width: 30px; text-align: right; color: var(--muted); user-select: none; flex-shrink: 0; }
 </style>
 </head>
-<body>
+<body class="tool-page">
 
 <a href="#main" class="skip-link">Skip to main content</a>
 
 <header class="site-nav">
   <a class="logo" href="/" data-nav="main">root<span>@</span>pokedb</a>
   <nav class="nav-links" aria-label="Tools navigation">
-    <a class="nav-link" href="https://tools.pokedb.site/" data-nav="tools">Hub</a>
-    <a class="nav-link" href="/tools/json">JSON</a>
-    <a class="nav-link" href="/tools/jwt">JWT</a>
-    <a class="nav-link" href="/tools/codec">Codec</a>
-    <a class="nav-link" href="/tools/hash">Hash</a>
-    <a class="nav-link" href="/tools/uuid">UUID</a>
-    <a class="nav-link" href="/tools/cron">Cron</a>
-    <a class="nav-link active" href="/tools/diff">Diff</a>
-    <a class="nav-link" href="/tools/minecraft">Minecraft</a>
-    <a class="nav-link" href="/tools/sanitizer">Sanitizer</a>
+    <a class="nav-link" href="https://tools.pokedb.site/" data-nav="tools">Tools hub</a>
+    <a class="nav-link" href="https://tinyurl.pokedb.site/" data-nav="tinyurl">TinyURL</a>
+    <a class="nav-link" href="https://qr.pokedb.site/" data-nav="qr">QR studio</a>
+    <a class="nav-link" href="https://drop.pokedb.site/" data-nav="drop">Drop</a>
+    <a class="nav-link" href="https://lan.pokedb.site/" data-nav="lan">LAN</a>
+    <a class="nav-link" href="https://paste.pokedb.site/" data-nav="paste">Pastebin</a>
+    <a class="nav-link" href="https://health.pokedb.site/" data-nav="health">Health</a>
   </nav>
   <div class="theme-switcher">
     <span class="theme-swatch" id="theme-swatch"></span>
-    <select id="theme-select" aria-label="Color theme">
-      <option value="oled-black">OLED</option>
-      <option value="paper">Paper</option>
-      <option value="matrix">Matrix</option>
-      <option value="cyberpunk">Cyberpunk</option>
-      <option value="synthwave">Synthwave</option>
-      <option value="nordic-ice">Nordic</option>
-      <option value="dracula-neon">Dracula</option>
-      <option value="gruvbox-retro">Gruvbox</option>
-      <option value="emerald-forest">Emerald</option>
-      <option value="sunset-amber">Sunset</option>
-      <option value="solarized-gold">Solarized</option>
-      <option value="tokyo-neon">Tokyo</option>
-    </select>
+    <select id="theme-select" aria-label="Color theme"></select>
   </div>
 </header>
 
-<main id="main" class="tool-container">
-  <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem;">
+<main id="main" class="tool-shell">
+  <div class="tool-head">
     <div>
-      <span class="eyebrow">$ diff -u old new</span>
-      <h1 style="font-size:1.5rem; margin:0.25rem 0;">Text Diff Studio</h1>
+      <h1>Text Diff Studio</h1>
+      <p class="tool-sub">Compare two text blocks line by line in pure browser JavaScript.</p>
     </div>
-    <span class="badge-offline">● 100% Client-Side · connect-src: 'none'</span>
+    <span class="tool-quiet-meta">Local browser only · connect-src: none</span>
   </div>
 
-  <div style="display:flex; gap:0.5rem; margin-top:1rem; flex-wrap:wrap;">
-    <button class="btn btn-solid" id="btn-compare">Compare</button>
-    <button class="btn" id="btn-swap">Swap</button>
-    <button class="btn" id="btn-clear">Clear</button>
-    <button class="btn" id="btn-share">Share State</button>
+  <div style="display:flex; gap:.5rem; flex-wrap:wrap;">
+    <button class="btn btn-solid" id="btn-compare" type="button">Compare</button>
+    <button class="btn" id="btn-swap" type="button">Swap</button>
+    <button class="btn" id="btn-clear" type="button">Clear</button>
+    <button class="btn" id="btn-share" type="button">Share state</button>
   </div>
 
   <div class="diff-inputs">
     <div>
-      <label for="text-old" class="mono">Original (Old)</label>
+      <label for="text-old" class="mono">Original (old)</label>
       <textarea id="text-old" class="editor-box" placeholder="Original text..." spellcheck="false"></textarea>
     </div>
     <div>
-      <label for="text-new" class="mono">Modified (New)</label>
+      <label for="text-new" class="mono">Modified (new)</label>
       <textarea id="text-new" class="editor-box" placeholder="Modified text..." spellcheck="false"></textarea>
     </div>
   </div>

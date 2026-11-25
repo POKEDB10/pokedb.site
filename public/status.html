@@ -11,17 +11,17 @@
 <link rel="stylesheet" href="/tools/shared/theme.css">
 <script src="/tools/shared/theme-switcher.js?v=3"></script>
 <style>
-  .status-container { width: 100%; max-width: 820px; margin: 2rem auto; padding: 0 1.25rem 4rem; line-height: 1.7; }
-  .system-banner { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem; padding: 1.25rem 1.5rem; border-radius: 8px; background: color-mix(in srgb, var(--success) 12%, transparent); border: 1px solid var(--success); color: var(--text); margin: 1.5rem 0; }
-  .services-list { display: flex; flex-direction: column; gap: 0.75rem; margin: 2rem 0; }
-  .service-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; padding: 0.85rem 1.25rem; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); font-family: var(--font-mono); font-size: 0.9rem; }
-  .dot-green { width: 10px; height: 10px; border-radius: 50%; background: var(--success); display: inline-block; margin-right: 0.5rem; }
-  .latency-history { margin-top: 2rem; padding: 1.25rem; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); }
-  .sparkline { display: flex; gap: 3px; align-items: flex-end; height: 50px; margin-top: 1rem; }
+  .status-container { max-width: 820px; margin-inline: auto; line-height: 1.65; }
+  .system-banner { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: .75rem; padding: 1rem 1.25rem; border-radius: 8px; background: var(--surface); border: 1px solid var(--success); color: var(--text); margin-bottom: 1.25rem; }
+  .services-list { display: flex; flex-direction: column; gap: .6rem; margin: 1.25rem 0; }
+  .service-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: .5rem; padding: .8rem 1.1rem; border: 1px solid var(--border); border-radius: 7px; background: var(--surface); font-family: 'IBM Plex Mono', monospace; font-size: .88rem; }
+  .dot-green { width: 8px; height: 8px; border-radius: 50%; background: var(--success); display: inline-block; margin-right: .55rem; }
+  .latency-history { margin-top: 1.25rem; padding: 1.1rem 1.25rem; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); }
+  .sparkline { display: flex; gap: 3px; align-items: flex-end; height: 50px; margin-top: .9rem; }
   .spark-bar { flex: 1; background: var(--accent); border-radius: 2px; min-height: 4px; }
 </style>
 </head>
-<body>
+<body class="tool-page">
 
 <a href="#main" class="skip-link">Skip to main content</a>
 
@@ -54,51 +54,57 @@
   </div>
 </header>
 
-<main id="main" class="status-container">
-  <span class="eyebrow">$ status --cluster</span>
-  <h1 style="font-size:2rem; margin:0.3rem 0;">System Status &amp; Telemetry</h1>
+<main id="main" class="tool-shell">
+  <div class="status-container">
+    <div class="tool-head">
+      <div>
+        <h1>System Status &amp; Telemetry</h1>
+        <p class="tool-sub">Live subsystem status and response latency checks for pokedb.site.</p>
+      </div>
+      <span class="tool-quiet-meta" id="check-time">Updated live</span>
+    </div>
 
-  <div class="system-banner" id="banner">
-    <div style="display:flex; align-items:center;">
-      <span class="dot-green"></span>
-      <strong style="font-size:1.1rem;">All Core Services Operational</strong>
+    <div class="system-banner" id="banner">
+      <div style="display:flex; align-items:center;">
+        <span class="dot-green" aria-hidden="true"></span>
+        <strong style="font-size:1.02rem;">All Core Services Operational</strong>
+      </div>
     </div>
-    <span class="mono" style="font-size:0.85rem;" id="check-time">Updated live</span>
-  </div>
 
-  <div class="services-list">
-    <div class="service-row">
-      <span>Edge Reverse Proxy &amp; WAF</span>
-      <span style="color:var(--success);">● Operational</span>
+    <div class="services-list">
+      <div class="service-row">
+        <span>Edge Reverse Proxy &amp; WAF</span>
+        <span style="color:var(--success);">Operational</span>
+      </div>
+      <div class="service-row">
+        <span>SQLite WAL Engine</span>
+        <span style="color:var(--success);">Operational (WAL Synchronous: NORMAL)</span>
+      </div>
+      <div class="service-row">
+        <span>Cloudflare R2 Storage (Drop v2)</span>
+        <span style="color:var(--success);">Operational (Presigned S3 API)</span>
+      </div>
+      <div class="service-row">
+        <span>In-Memory Click Buffering</span>
+        <span style="color:var(--success);">Active (1,000ms flush interval)</span>
+      </div>
+      <div class="service-row">
+        <span>Local Threat Feed Sync (URLhaus)</span>
+        <span style="color:var(--success);">Synchronized (Sub-millisecond lookup)</span>
+      </div>
+      <div class="service-row">
+        <span>Offline Client Tools (9 apps)</span>
+        <span style="color:var(--success);">100% Client-Side (connect-src 'none')</span>
+      </div>
     </div>
-    <div class="service-row">
-      <span>SQLite WAL Engine</span>
-      <span style="color:var(--success);">● Operational (WAL Synchronous: NORMAL)</span>
-    </div>
-    <div class="service-row">
-      <span>Cloudflare R2 Storage (Drop v2)</span>
-      <span style="color:var(--success);">● Operational (Presigned S3 API)</span>
-    </div>
-    <div class="service-row">
-      <span>In-Memory Click Buffering</span>
-      <span style="color:var(--success);">● Active (1,000ms flush interval)</span>
-    </div>
-    <div class="service-row">
-      <span>Local Threat Feed Sync (URLhaus)</span>
-      <span style="color:var(--success);">● Synchronized (Sub-millisecond lookup)</span>
-    </div>
-    <div class="service-row">
-      <span>Offline Client Tools (9 apps)</span>
-      <span style="color:var(--success);">● 100% Client-Side (connect-src 'none')</span>
-    </div>
-  </div>
 
-  <div class="latency-history">
-    <div style="display:flex; justify-content:space-between; align-items:center;">
-      <span class="mono" style="font-weight:bold; font-size:0.9rem;">Response Latency (Last 30 Pings)</span>
-      <span class="mono" style="font-size:0.8rem; color:var(--muted);" id="current-p50">p50: ~1.4 ms</span>
+    <div class="latency-history">
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:.5rem;">
+        <span class="mono" style="font-weight:600; font-size:.9rem;">Response Latency (Last 30 Pings)</span>
+        <span class="mono" style="font-size:.8rem; color:var(--muted);" id="current-p50">p50: ~1.4 ms</span>
+      </div>
+      <div class="sparkline" id="sparkline"></div>
     </div>
-    <div class="sparkline" id="sparkline"></div>
   </div>
 </main>
 

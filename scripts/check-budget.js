@@ -49,6 +49,11 @@ const BUDGETS = [
     limitKb: 40
   },
   {
+    name: 'LAN Share Tool (tools/lan/public/index.html + app.js)',
+    files: ['tools/lan/public/index.html', 'tools/lan/public/app.js'],
+    limitKb: 40
+  },
+  {
     name: 'Health Dashboard (tools/health/public/index.html + app.js)',
     files: ['tools/health/public/index.html', 'tools/health/public/app.js'],
     limitKb: 40

@@ -14,74 +14,76 @@
       max-width: 680px;
       margin: clamp(1rem, 4vw, 2rem) auto;
       border: 1px solid var(--border);
-      border-radius: 14px;
+      border-radius: 8px;
       background: var(--surface);
-      box-shadow: var(--shadow);
-      padding: clamp(1.1rem, 4vw, 2rem);
+      padding: clamp(1.1rem, 3.5vw, 1.75rem);
     }
+    .preview-meta { font-family: 'IBM Plex Mono', monospace; font-size: .78rem; color: var(--muted); margin-top: .25rem; }
     .dest-box {
       background: var(--bg);
       border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 0.85rem 1rem;
+      border-radius: 7px;
+      padding: .85rem 1rem;
       margin: 1rem 0;
       word-break: break-all;
-      font-family: var(--font-mono);
-      font-size: 0.95rem;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: .9rem;
       color: var(--accent);
     }
+    .dest-label { font-size: .72rem; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin-bottom: .3rem; }
     .stats-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-      gap: 0.75rem;
-      margin: 1.25rem 0;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: .75rem;
+      margin: 1.1rem 0;
     }
+    @media (max-width: 520px) { .stats-grid { grid-template-columns: 1fr; } }
     .stat-card {
       background: var(--bg);
       border: 1px solid var(--border);
       border-radius: 6px;
-      padding: 0.75rem;
-      text-align: center;
+      padding: .75rem;
+      text-align: left;
     }
-    .stat-num { font-size: 1.35rem; font-family: var(--font-mono); color: var(--accent); font-weight: bold; }
-    .stat-label { font-size: 0.72rem; color: var(--muted); font-family: var(--font-mono); margin-top: 0.2rem; }
-    .qr-container { display: flex; flex-direction: column; align-items: center; margin: 1.25rem 0; padding: 1rem; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); }
-    .preview-actions { display: flex; gap: 0.75rem; margin-top: 1.5rem; flex-wrap: wrap; }
+    .stat-num { font-size: 1.15rem; font-family: 'IBM Plex Mono', monospace; color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; }
+    .stat-label { font-size: .72rem; color: var(--muted); font-family: 'IBM Plex Mono', monospace; margin-top: .2rem; text-transform: uppercase; letter-spacing: .04em; }
+    .qr-container { display: flex; flex-direction: column; align-items: center; margin: 1.15rem 0; padding: 1rem; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); }
+    .preview-actions { display: flex; gap: .75rem; margin-top: 1.25rem; flex-wrap: wrap; }
     .preview-actions .btn { min-height: 44px; justify-content: center; }
   </style>
 </head>
-<body>
+<body class="tool-page">
 
 <a href="#main" class="skip-link">Skip to main content</a>
 
-<main id="main" class="container" style="padding-top:1.5rem; padding-bottom:2rem;">
+<main id="main" class="tool-shell">
   <div class="preview-card">
-    <span class="eyebrow">$ link --preview {{code}}</span>
-    <h1 style="font-size:clamp(1.2rem, 3.5vw, 1.45rem); margin:0.3rem 0;">Short Link Preview &amp; Analytics</h1>
+    <h1 style="font-size:clamp(1.2rem, 3.5vw, 1.5rem); margin:0;">Short Link Preview &amp; Analytics</h1>
+    <div class="preview-meta">Code: /{{code}}</div>
 
     <div class="dest-box">
-      <div style="font-size:0.75rem; color:var(--muted); margin-bottom:0.3rem;">TARGET DESTINATION:</div>
+      <div class="dest-label">Target destination</div>
       <a href="{{targetUrl}}" rel="noreferrer noopener" style="color:var(--accent);">{{targetUrl}}</a>
     </div>
 
     <div class="stats-grid">
       <div class="stat-card">
         <div class="stat-num">{{clicks}}</div>
-        <div class="stat-label">TOTAL CLICKS</div>
+        <div class="stat-label">Total clicks</div>
       </div>
       <div class="stat-card">
         <div class="stat-num">{{status}}</div>
-        <div class="stat-label">SAFETY AUDIT</div>
+        <div class="stat-label">Safety status</div>
       </div>
       <div class="stat-card">
-        <div class="stat-num" style="font-size:0.95rem; line-height:1.6;">{{createdAt}}</div>
-        <div class="stat-label">CREATED</div>
+        <div class="stat-num" style="font-size:.95rem; line-height:1.45;">{{createdAt}}</div>
+        <div class="stat-label">Created</div>
       </div>
     </div>
 
     <div class="qr-container">
-      <div id="qr-svg-wrap" style="width:160px; height:160px; background:#fff; padding:8px; border-radius:6px; display:flex; align-items:center; justify-content:center;"></div>
-      <div style="margin-top:0.75rem; display:flex; gap:0.5rem; flex-wrap:wrap; justify-content:center;">
+      <div id="qr-svg-wrap" style="width:160px; height:160px; background:#fff; padding:8px; border-radius:6px; border:1px solid var(--border); display:flex; align-items:center; justify-content:center;"></div>
+      <div style="margin-top:.75rem; display:flex; gap:.5rem; flex-wrap:wrap; justify-content:center;">
         <button class="btn" id="btn-download-qr" type="button" style="min-height:44px;">Download QR SVG</button>
         <button class="btn" id="btn-copy-link" type="button" style="min-height:44px;">Copy Short URL</button>
       </div>

@@ -3,13 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Pokedb Pastebin — paste.pokedb.site</title>
+<title>Pastebin — paste.pokedb.site</title>
 <meta name="description" content="Zero-knowledge code and text pastebin with client-side AES-256-GCM encryption, syntax highlighting, burn-on-read, and password lock.">
 <meta name="robots" content="index, follow">
 <link rel="stylesheet" href="/fonts/fonts.css">
 <link rel="preload" href="/fonts/ibm-plex-mono-400.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="/fonts/ibm-plex-sans-400.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="/shared/theme.css?v=20260913-modal-ui">
+<link rel="stylesheet" href="/shared/theme.css?v=20261124">
 <script src="/shared/theme-switcher.js?v=3"></script>
 <script src="/shared/utils.js"></script>
 <script src="/shared/site.js" defer></script>
@@ -31,63 +31,15 @@
 }
 
 .paste-shell {
-  width: min(100% - 2rem, 1120px);
-  margin: clamp(1.1rem, 3vw, 2.25rem) auto clamp(2rem, 4vw, 3.5rem);
-}
-
-.paste-hero {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-  flex-wrap: wrap;
-  gap: .75rem 1.25rem;
-  margin-bottom: 1.15rem;
-}
-
-.paste-hero-title {
-  display: flex;
-  align-items: center;
-  gap: .65rem;
-  flex-wrap: wrap;
-}
-
-.paste-hero-title h1 {
-  font-size: clamp(1.35rem, 3vw, 1.8rem);
-  line-height: 1.15;
-}
-
-.paste-hero-sub {
-  color: var(--muted);
-  font-size: .88rem;
-  margin-top: .35rem;
-  max-width: 64ch;
-}
-
-.hero-specs {
-  display: flex;
-  align-items: center;
-  gap: .45rem;
-  flex-wrap: wrap;
-}
-
-.spec-chip {
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: .72rem;
-  font-weight: 500;
-  padding: .24rem .55rem;
-  border-radius: 6px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  color: var(--muted);
-  white-space: nowrap;
+  width: min(100% - 2.5rem, 1120px);
 }
 
 /* Split Developer Workspace */
 .paste-workspace {
   display: grid;
-  grid-template-columns: minmax(0, 1.6fr) minmax(300px, 1fr);
+  grid-template-columns: minmax(0, 1.65fr) minmax(300px, 1fr);
   grid-template-rows: auto auto;
-  gap: 1rem 1.25rem;
+  gap: .85rem 1.25rem;
   align-items: start;
 }
 
@@ -97,8 +49,7 @@
   min-width: 0;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 14px;
-  box-shadow: var(--shadow);
+  border-radius: 8px;
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -109,61 +60,39 @@
   justify-content: space-between;
   align-items: center;
   flex-wrap: wrap;
-  gap: .5rem .75rem;
-  padding: .68rem .95rem;
+  gap: .35rem .75rem;
+  padding: .52rem .9rem;
   background: var(--surface-2);
   border-bottom: 1px solid var(--border);
   font-family: 'IBM Plex Mono', monospace;
-  font-size: .76rem;
+  font-size: .75rem;
   color: var(--muted);
 }
 
 .editor-bar-left, .editor-bar-right {
   display: flex;
   align-items: center;
-  gap: .5rem;
+  gap: .45rem;
   flex-wrap: wrap;
   min-width: 0;
 }
 
-.term-dots {
-  display: inline-flex;
-  gap: .3rem;
-  margin-right: .15rem;
-}
-
-.term-dots span {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--border);
-}
-
-.term-dots span:first-child {
-  background: var(--accent);
-}
-
-.editor-cmd {
+.editor-lang {
   color: var(--text);
   font-weight: 600;
 }
 
-.editor-badge {
-  font-size: .7rem;
-  padding: .15rem .45rem;
-  border-radius: 5px;
-  background: var(--bg);
-  border: 1px solid var(--border);
-  color: var(--text);
+.editor-sep {
+  color: var(--muted);
+  opacity: .65;
 }
 
-.editor-badge.is-accent {
-  border-color: var(--success);
+.editor-status.is-e2e {
   color: var(--success);
-  background: var(--bg);
+  font-weight: 500;
 }
 
-.editor-badge.is-muted {
+.editor-status.is-plain {
   color: var(--muted);
 }
 
@@ -184,7 +113,7 @@
 
 .cap-track {
   width: 100%;
-  height: 3px;
+  height: 2px;
   background: var(--border);
   overflow: hidden;
 }
@@ -199,38 +128,37 @@
 .cap-fill.is-warn { background: var(--accent); }
 .cap-fill.is-over { background: var(--danger); }
 
-.paste-textarea {
+.editor-pane .paste-textarea {
   width: 100%;
-  min-height: 410px;
+  min-height: 420px;
   background: var(--bg);
   border: 0;
   border-radius: 0;
-  padding: 1rem 1.1rem;
+  padding: .95rem 1rem;
   font-family: 'IBM Plex Mono', monospace;
   font-size: .9rem;
   line-height: 1.62;
   color: var(--text);
   resize: vertical;
   tab-size: 2;
-  outline: none;
   display: block;
 }
 
-.paste-textarea:focus-visible {
+.editor-pane .paste-textarea:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: -2px;
 }
 
-.paste-textarea.is-dragover {
+.editor-pane .paste-textarea.is-dragover {
   background: color-mix(in srgb, var(--accent) 8%, var(--bg));
   box-shadow: inset 0 0 0 2px var(--accent);
 }
 
 .paste-error {
   display: none;
-  margin: .75rem .95rem .95rem;
-  padding: .65rem .85rem;
-  border-radius: 8px;
+  margin: .7rem .95rem .9rem;
+  padding: .6rem .8rem;
+  border-radius: 6px;
   border: 1px solid color-mix(in srgb, var(--danger) 50%, transparent);
   background: color-mix(in srgb, var(--danger) 10%, transparent);
   color: var(--danger);
@@ -251,11 +179,10 @@
   align-items: center;
   justify-content: space-between;
   gap: .85rem;
-  padding: .85rem 1rem;
+  padding: .75rem .95rem;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 12px;
-  box-shadow: var(--shadow);
+  border-radius: 8px;
 }
 
 .submit-hints {
@@ -279,27 +206,26 @@
 }
 
 .create-cta {
-  min-height: 46px;
-  min-width: 184px;
-  font-size: .86rem;
+  min-height: 44px;
+  min-width: 176px;
+  font-size: .84rem;
   font-weight: 600;
-  padding: .65rem 1.25rem;
+  padding: .6rem 1.2rem;
   flex-shrink: 0;
 }
 
-/* Right Options & Security Rail */
+/* Right Options Rail */
 .options-pane {
   grid-column: 2;
   grid-row: 1 / span 2;
   min-width: 0;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: 1.05rem;
-  box-shadow: var(--shadow);
+  border-radius: 8px;
+  padding: 1rem;
   display: flex;
   flex-direction: column;
-  gap: .95rem;
+  gap: .9rem;
 }
 
 .panel-head {
@@ -307,20 +233,29 @@
   align-items: center;
   justify-content: space-between;
   gap: .5rem;
-  padding-bottom: .65rem;
+  padding-bottom: .6rem;
   border-bottom: 1px solid var(--border);
+}
+
+.options-title {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: .75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--muted);
 }
 
 .btn-ghost-sm {
   min-height: 36px;
   min-width: 60px;
   padding: .3rem .65rem;
-  border-radius: 7px;
+  border-radius: 6px;
   border: 1px solid var(--border);
   background: var(--bg);
   color: var(--muted);
   font-family: 'IBM Plex Mono', monospace;
-  font-size: .75rem;
+  font-size: .74rem;
   cursor: pointer;
   transition: color .15s ease, border-color .15s ease;
 }
@@ -334,11 +269,12 @@
   display: flex;
   flex-direction: column;
   gap: .35rem;
+  min-width: 0;
 }
 
 .meta-field label, .field-heading {
   font-family: 'IBM Plex Mono', monospace;
-  font-size: .73rem;
+  font-size: .72rem;
   color: var(--muted);
   text-transform: uppercase;
   letter-spacing: .04em;
@@ -355,91 +291,47 @@
   min-height: 44px;
   background: var(--bg);
   border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: .5rem .72rem;
+  border-radius: 7px;
+  padding: .5rem .7rem;
   font-family: 'IBM Plex Mono', monospace;
   font-size: .84rem;
   color: var(--text);
 }
 
-.pill-stack {
+.check-group {
   display: flex;
   flex-direction: column;
-  gap: .5rem;
+  gap: .4rem;
 }
 
-.toggle-pill {
+.check-list {
   display: flex;
-  align-items: center;
-  gap: .7rem;
-  min-height: 48px;
-  padding: .55rem .75rem;
-  border-radius: 9px;
-  border: 1px solid var(--border);
-  background: var(--bg);
-  cursor: pointer;
-  transition: border-color .15s ease, background-color .15s ease;
+  flex-direction: column;
+  border-top: 1px solid var(--border);
 }
 
-.toggle-pill:hover {
-  border-color: var(--accent);
+.check-list .clean-check {
+  padding: .62rem 0;
+  border-bottom: 1px solid var(--border);
 }
 
-.toggle-pill.is-checked {
-  border-color: color-mix(in srgb, var(--accent) 60%, var(--border));
-  background: color-mix(in srgb, var(--accent) 8%, var(--bg));
-}
-
-.pill-check {
+.check-list .clean-check input[type="checkbox"] {
   width: 24px;
   height: 24px;
   min-width: 24px;
   min-height: 24px;
-  margin: 0;
-  accent-color: var(--accent);
-  cursor: pointer;
-  flex: none;
+  margin: .08rem 0 0 0;
 }
 
-.pill-copy {
-  display: flex;
-  flex-direction: column;
-  gap: .1rem;
-  min-width: 0;
-  flex: 1;
-}
-
-.pill-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: .4rem;
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: .8rem;
-  font-weight: 600;
-  color: var(--text);
-}
-
-.pill-tag {
-  font-size: .66rem;
-  font-weight: 500;
-  padding: .12rem .4rem;
-  border-radius: 4px;
-  border: 1px solid var(--border);
-  background: var(--surface);
-  color: var(--muted);
-  white-space: nowrap;
-}
-
-.toggle-pill.is-checked .pill-tag {
-  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+.check-list .clean-check:hover .clean-check-label {
   color: var(--accent);
 }
 
-.pill-sub {
-  font-size: .72rem;
-  color: var(--muted);
+.clean-check-label {
+  display: block;
+  font-weight: 500;
   line-height: 1.3;
+  transition: color .15s ease;
 }
 
 .password-wrap {
@@ -457,7 +349,7 @@
   min-width: 44px;
   min-height: 44px;
   padding: 0 .65rem;
-  border-radius: 8px;
+  border-radius: 7px;
   border: 1px solid var(--border);
   background: var(--bg);
   color: var(--text);
@@ -477,11 +369,18 @@
   min-height: 44px;
 }
 
+.modal-copy-btn {
+  padding: .45rem .9rem;
+  font-size: .8rem;
+  min-height: 40px;
+  white-space: nowrap;
+}
+
 .modal-burn-notice {
   display: none;
   margin: .65rem 0;
-  padding: .6rem .75rem;
-  border-radius: 8px;
+  padding: .58rem .75rem;
+  border-radius: 6px;
   border: 1px solid color-mix(in srgb, var(--danger) 45%, transparent);
   background: color-mix(in srgb, var(--danger) 10%, transparent);
   color: var(--danger);
@@ -491,6 +390,48 @@
 
 .modal-burn-notice.is-visible {
   display: block;
+}
+
+.modal-meta-strip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--bg);
+  overflow: hidden;
+  margin-bottom: 1rem;
+}
+
+.modal-meta-cell {
+  padding: .55rem .65rem;
+  border-right: 1px solid var(--border);
+  font-family: 'IBM Plex Mono', monospace;
+  min-width: 0;
+}
+
+.modal-meta-cell:last-child {
+  border-right: 0;
+}
+
+.modal-meta-label {
+  color: var(--muted);
+  font-size: .66rem;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  display: block;
+}
+
+.modal-meta-val {
+  color: var(--text);
+  font-size: .8rem;
+  font-weight: 500;
+  margin-top: .18rem;
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.modal-action-link {
+  text-decoration: none;
 }
 
 .modal-qr-box {
@@ -511,7 +452,8 @@
   height: 168px;
   background: #ffffff;
   padding: .45rem;
-  border-radius: 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
 }
 
 .modal-qr-frame svg {
@@ -524,7 +466,7 @@
   .paste-workspace {
     display: flex;
     flex-direction: column;
-    gap: .95rem;
+    gap: .85rem;
   }
 
   .editor-pane {
@@ -546,10 +488,8 @@
     flex-direction: column;
     align-items: stretch;
     gap: 0;
-    padding: .6rem;
-    border-radius: 12px;
-    background: var(--surface);
-    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
+    padding: .55rem;
+    box-shadow: 0 10px 24px rgba(0, 0, 0, .35);
   }
 
   .submit-hints {
@@ -561,23 +501,26 @@
     min-height: 46px;
   }
 
-  .paste-textarea {
+  .editor-pane .paste-textarea {
     min-height: 240px;
   }
 }
 
 @media (max-width: 768px) {
-  .paste-textarea,
+  .editor-pane .paste-textarea,
   .opt-input,
   .opt-select {
     font-size: 16px !important;
+  }
+
+  .btn-ghost-sm {
+    min-height: 44px;
   }
 }
 
 @media (max-width: 560px) {
   .paste-shell {
     width: calc(100% - 1.25rem);
-    margin: .9rem auto 1.25rem;
   }
 
   .meta-row {
@@ -585,21 +528,33 @@
   }
 
   .editor-bar {
-    padding: .6rem .75rem;
+    padding: .5rem .75rem;
   }
 
-  .paste-textarea {
+  .editor-pane .paste-textarea {
     padding: .85rem;
     min-height: 220px;
   }
 
   .options-pane {
-    padding: .9rem;
+    padding: .85rem;
+  }
+
+  .modal-meta-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .modal-meta-cell:nth-child(2n) {
+    border-right: 0;
+  }
+
+  .modal-meta-cell:nth-child(-n+2) {
+    border-bottom: 1px solid var(--border);
   }
 }
 </style>
 </head>
-<body>
+<body class="tool-page">
 <a href="#main" class="skip-link">Skip to main content</a>
 
 <header class="site-nav">
@@ -609,6 +564,7 @@
     <a class="nav-link" href="https://tinyurl.pokedb.site/" data-nav="tinyurl">TinyURL</a>
     <a class="nav-link" href="https://qr.pokedb.site/" data-nav="qr">QR studio</a>
     <a class="nav-link" href="https://drop.pokedb.site/" data-nav="drop">Drop</a>
+    <a class="nav-link" href="https://lan.pokedb.site/" data-nav="lan">LAN</a>
     <a class="nav-link active" href="https://paste.pokedb.site/" data-nav="paste">Pastebin</a>
     <a class="nav-link" href="https://health.pokedb.site/" data-nav="health">Health</a>
   </nav>
@@ -618,20 +574,11 @@
   </div>
 </header>
 
-<main id="main" class="paste-shell">
-  <div class="paste-hero">
+<main id="main" class="tool-shell paste-shell">
+  <div class="tool-head">
     <div>
-      <span class="eyebrow">$ pastebin --new</span>
-      <div class="paste-hero-title">
-        <h1>Pokedb Pastebin</h1>
-        <span class="status-pill">● LIVE</span>
-      </div>
-      <p class="paste-hero-sub">Fast, zero-logging code &amp; text sharing with client-side AES-256-GCM encryption, burn-on-read, and syntax highlighting.</p>
-    </div>
-    <div class="hero-specs" aria-hidden="true">
-      <span class="spec-chip">AES-GCM #k=</span>
-      <span class="spec-chip">256 KiB CAP</span>
-      <span class="spec-chip">ZERO LOGS</span>
+      <h1>Pastebin</h1>
+      <p class="tool-sub">Share code or text up to 256 KiB. Browser AES-GCM encryption is enabled by default.</p>
     </div>
   </div>
 
@@ -639,10 +586,9 @@
     <section class="editor-pane" aria-label="Code and text editor">
       <div class="editor-bar">
         <div class="editor-bar-left">
-          <span class="term-dots" aria-hidden="true"><span></span><span></span><span></span></span>
-          <span class="editor-cmd">$ buffer</span>
-          <span class="editor-badge" id="editor-lang-badge">Plain Text</span>
-          <span class="editor-badge is-accent" id="editor-e2e-badge">E2E #k=</span>
+          <span class="editor-lang" id="editor-lang-badge">Plain Text</span>
+          <span class="editor-sep" aria-hidden="true">·</span>
+          <span class="editor-status is-e2e" id="editor-e2e-badge">E2E AES-GCM</span>
         </div>
         <div class="editor-bar-right">
           <span class="editor-metrics" id="char-counter" aria-live="polite">0 lines · 0 B / 256 KiB</span>
@@ -656,7 +602,7 @@
         id="paste-content"
         name="content"
         aria-label="Paste content or code"
-        placeholder="// Paste code, logs, configs, or drop a text file here…&#10;// Tip: Ctrl+Enter (or ⌘+Enter) creates your paste right away"
+        placeholder="Paste code, logs, or text here — or drop a file.&#10;Ctrl+Enter (or ⌘+Enter) creates your paste."
         spellcheck="false"
         autocapitalize="off"
         autocomplete="off"
@@ -668,7 +614,7 @@
 
     <div class="editor-submit-bar">
       <div class="submit-hints">
-        <span class="shortcut-hint"><kbd>Ctrl</kbd>+<kbd>Enter</kbd> quick publish</span>
+        <span class="shortcut-hint"><kbd>Ctrl</kbd>+<kbd>Enter</kbd> to publish</span>
         <span class="enc-hint" id="payload-hint">Client AES-GCM active · key stays in #k=</span>
       </div>
       <button class="btn btn-solid create-cta" type="submit" id="create-btn">
@@ -679,13 +625,13 @@
 
     <aside class="options-pane" aria-label="Paste metadata and security options">
       <div class="panel-head">
-        <span class="eyebrow" style="margin-bottom:0;">$ config --paste</span>
+        <h2 class="options-title">Options</h2>
         <button type="button" class="btn-ghost-sm" id="clear-btn">Clear</button>
       </div>
 
       <div class="meta-field">
         <label for="paste-title">Title / Filename</label>
-        <input type="text" class="opt-input" id="paste-title" aria-label="Paste title" placeholder="Untitled Paste (e.g. server.ts)" maxlength="100">
+        <input type="text" class="opt-input" id="paste-title" aria-label="Paste title" placeholder="Untitled paste (e.g. server.ts)" maxlength="100">
       </div>
 
       <div class="meta-row">
@@ -717,41 +663,33 @@
         </div>
       </div>
 
-      <div class="pill-stack">
+      <div class="check-group">
         <span class="field-heading">Privacy &amp; Editor</span>
-
-        <label class="toggle-pill is-checked" for="paste-client-encrypt">
-          <input type="checkbox" class="pill-check" id="paste-client-encrypt" checked>
-          <span class="pill-copy">
-            <span class="pill-top">
-              <span>Zero-Knowledge E2E</span>
-              <span class="pill-tag">#k= AES-GCM</span>
+        <div class="check-list">
+          <label class="clean-check" for="paste-client-encrypt">
+            <input type="checkbox" id="paste-client-encrypt" checked>
+            <span>
+              <span class="clean-check-label">Browser AES-GCM encryption</span>
+              <span class="clean-check-sub">Key stays in the #k= URL fragment; server only stores ciphertext</span>
             </span>
-            <span class="pill-sub">Encrypted in browser; server never sees key</span>
-          </span>
-        </label>
+          </label>
 
-        <label class="toggle-pill" for="paste-burn">
-          <input type="checkbox" class="pill-check" id="paste-burn">
-          <span class="pill-copy">
-            <span class="pill-top">
-              <span>Burn on Read</span>
-              <span class="pill-tag">1 VIEW</span>
+          <label class="clean-check" for="paste-burn">
+            <input type="checkbox" id="paste-burn">
+            <span>
+              <span class="clean-check-label">Burn after reading</span>
+              <span class="clean-check-sub">Deletes immediately after the first view</span>
             </span>
-            <span class="pill-sub">Self-destructs immediately after first open</span>
-          </span>
-        </label>
+          </label>
 
-        <label class="toggle-pill" for="paste-tab-indent">
-          <input type="checkbox" class="pill-check" id="paste-tab-indent">
-          <span class="pill-copy">
-            <span class="pill-top">
-              <span>Tab Key Indents</span>
-              <span class="pill-tag">2 SPACES</span>
+          <label class="clean-check" for="paste-tab-indent">
+            <input type="checkbox" id="paste-tab-indent">
+            <span>
+              <span class="clean-check-label">Tab indents with 2 spaces</span>
+              <span class="clean-check-sub">Press Esc inside editor to return Tab to focus navigation</span>
             </span>
-            <span class="pill-sub">Opt-in: Tab indents code, Esc exits</span>
-          </span>
-        </label>
+          </label>
+        </div>
       </div>
 
       <div class="meta-field">
@@ -772,7 +710,6 @@
   <div class="result-modal-dialog">
     <div class="modal-header">
       <div class="modal-title-group">
-        <span class="eyebrow">$ pastebin --ready</span>
         <h2 id="paste-modal-title">Paste Ready to Share</h2>
       </div>
       <button class="modal-close-btn" id="paste-modal-close-btn" type="button" aria-label="Close dialog">✕</button>
@@ -780,28 +717,28 @@
 
     <div class="modal-url-box">
       <input type="text" id="modal-paste-url" class="modal-url-input" aria-label="Generated paste URL" readonly>
-      <button class="btn btn-solid" id="modal-paste-copy-btn" type="button" style="padding:.45rem .9rem; font-size:.8rem; min-height:40px; white-space:nowrap;">Copy Link</button>
+      <button class="btn btn-solid modal-copy-btn" id="modal-paste-copy-btn" type="button">Copy Link</button>
     </div>
 
     <div class="modal-burn-notice" id="modal-burn-notice">
-      Burn-on-read enabled: opening View Paste will consume and destroy this paste.
+      Burn-on-read enabled: opening View will consume and destroy this paste.
     </div>
 
-    <div class="modal-meta-grid">
-      <div class="modal-meta-item">
+    <div class="modal-meta-strip">
+      <div class="modal-meta-cell">
         <span class="modal-meta-label">Language</span>
         <span class="modal-meta-val" id="modal-paste-lang">Plain Text</span>
       </div>
-      <div class="modal-meta-item">
+      <div class="modal-meta-cell">
         <span class="modal-meta-label">Retention</span>
         <span class="modal-meta-val" id="modal-paste-expiry">30 Days</span>
       </div>
-      <div class="modal-meta-item">
-        <span class="modal-meta-label">Security</span>
+      <div class="modal-meta-cell">
+        <span class="modal-meta-label">Encryption</span>
         <span class="modal-meta-val" id="modal-paste-security">E2E AES-GCM</span>
       </div>
-      <div class="modal-meta-item">
-        <span class="modal-meta-label">Payload</span>
+      <div class="modal-meta-cell">
+        <span class="modal-meta-label">Size</span>
         <span class="modal-meta-val" id="modal-paste-size">0 B</span>
       </div>
     </div>
@@ -811,9 +748,9 @@
     </div>
 
     <div class="modal-actions-bar">
-      <a class="btn btn-solid" id="modal-paste-view-btn" href="/tools/paste/" target="_blank" rel="noopener" style="text-decoration:none;">View Paste ↗</a>
-      <a class="btn" id="modal-paste-raw-btn" href="/tools/paste/" target="_blank" rel="noopener" style="text-decoration:none;">Raw Text</a>
-      <button class="btn" id="modal-paste-qr-btn" type="button" aria-expanded="false">QR Code</button>
+      <a class="btn btn-solid modal-action-link" id="modal-paste-view-btn" href="/tools/paste/" target="_blank" rel="noopener">View</a>
+      <a class="btn modal-action-link" id="modal-paste-raw-btn" href="/tools/paste/" target="_blank" rel="noopener">Raw</a>
+      <button class="btn" id="modal-paste-qr-btn" type="button" aria-expanded="false">QR</button>
       <button class="btn" id="modal-paste-done-btn" type="button">Done</button>
     </div>
   </div>

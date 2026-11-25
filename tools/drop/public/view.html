@@ -15,15 +15,13 @@
   <script src="/shared/site.js" defer></script>
   <style>
     .viewer {
-      width: min(100% - 1.5rem, 880px);
-      margin: clamp(1.25rem, 5vw, 3.5rem) auto;
+      max-width: 820px;
+      margin: 0 auto;
+      width: 100%;
+      min-width: 0;
     }
     .viewer-card {
-      padding: clamp(1.1rem, 4vw, 2rem);
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      background: var(--surface);
-      box-shadow: var(--shadow);
+      padding: clamp(1.1rem, 3.5vw, 1.85rem);
       min-width: 0;
     }
     .viewer-topbar {
@@ -32,26 +30,28 @@
       justify-content: space-between;
       flex-wrap: wrap;
       gap: .65rem;
+      padding-bottom: .9rem;
       margin-bottom: 1rem;
+      border-bottom: 1px solid var(--border);
     }
-    .viewer-topbar .eyebrow { margin-bottom: 0; }
-    .topbar-pills {
+    .topbar-controls {
       display: flex;
       align-items: center;
       flex-wrap: wrap;
       gap: .5rem;
     }
-    .code-pill {
+    .code-readout {
       display: inline-flex;
       align-items: center;
-      gap: .4rem;
-      padding: .28rem .65rem;
-      border-radius: 7px;
+      gap: .45rem;
+      padding: .3rem .65rem;
+      border-radius: 6px;
       border: 1px solid var(--border);
       background: var(--bg);
-      font: 600 .8rem 'IBM Plex Mono', monospace;
+      font: 600 .86rem 'IBM Plex Mono', monospace;
+      font-variant-numeric: tabular-nums;
       color: var(--text);
-      letter-spacing: .04em;
+      letter-spacing: .08em;
     }
     .btn-compact {
       min-height: 44px;
@@ -60,16 +60,26 @@
       width: auto !important;
       flex: 0 0 auto;
     }
-    .status-pill.is-danger {
+    .state-tag {
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: .22rem .55rem;
+      color: var(--muted);
+      background: var(--bg);
+      font: 600 .72rem 'IBM Plex Mono', monospace;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+    .state-tag.is-danger {
       color: var(--danger);
-      border-color: color-mix(in srgb, var(--danger) 50%, transparent);
-      background: color-mix(in srgb, var(--danger) 10%, transparent);
+      border-color: color-mix(in srgb, var(--danger) 45%, var(--border));
+      background: color-mix(in srgb, var(--danger) 8%, var(--bg));
     }
     .file-head {
       display: flex;
       align-items: flex-start;
       gap: 1rem;
-      padding-bottom: 1.25rem;
+      padding-bottom: 1.15rem;
       border-bottom: 1px solid var(--border);
       min-width: 0;
     }
@@ -78,17 +88,17 @@
       display: grid;
       place-items: center;
       flex: none;
-      width: 3.25rem;
-      height: 3.25rem;
+      width: 3rem;
+      height: 3rem;
       border: 1px solid var(--border);
-      border-radius: 10px;
+      border-radius: 6px;
       background: var(--bg);
-      color: var(--accent);
+      color: var(--text);
     }
     .file-name {
       overflow-wrap: anywhere;
       word-break: break-word;
-      font-size: clamp(1.1rem, 3.2vw, 1.5rem);
+      font-size: clamp(1.1rem, 3.2vw, 1.45rem);
       line-height: 1.3;
     }
     .file-meta-grid {
@@ -100,7 +110,7 @@
     .meta-chip {
       background: var(--bg);
       border: 1px solid var(--border);
-      border-radius: 8px;
+      border-radius: 6px;
       padding: .5rem .7rem;
       font-family: 'IBM Plex Mono', monospace;
       min-width: 0;
@@ -116,6 +126,7 @@
       display: block;
       font-size: .82rem;
       font-weight: 500;
+      font-variant-numeric: tabular-nums;
       color: var(--text);
       margin-top: .15rem;
       overflow-wrap: anywhere;
@@ -123,28 +134,29 @@
     .state-banner {
       display: none;
       margin-top: 1rem;
-      padding: .85rem 1rem;
-      border-radius: 10px;
+      padding: .8rem 1rem;
+      border-radius: 6px;
       font: 500 .84rem/1.45 'IBM Plex Mono', monospace;
     }
     .state-banner.is-burn {
       display: block;
-      border: 1px solid var(--accent);
-      background: color-mix(in srgb, var(--accent) 10%, var(--bg));
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--accent);
+      background: var(--bg);
       color: var(--text);
     }
     .state-banner.is-error {
       display: block;
       border: 1px solid var(--danger);
-      background: color-mix(in srgb, var(--danger) 10%, var(--bg));
+      background: color-mix(in srgb, var(--danger) 8%, var(--bg));
       color: var(--danger);
     }
     .warning-box {
       display: none;
-      margin-top: 1.15rem;
-      padding: .95rem 1.05rem;
-      border: 1px solid color-mix(in srgb, var(--danger) 45%, transparent);
-      border-radius: 10px;
+      margin-top: 1.1rem;
+      padding: .9rem 1rem;
+      border: 1px solid color-mix(in srgb, var(--danger) 45%, var(--border));
+      border-radius: 6px;
       background: color-mix(in srgb, var(--danger) 8%, var(--bg));
       font: .84rem/1.45 'IBM Plex Mono', monospace;
       color: var(--text);
@@ -160,10 +172,10 @@
     .warning-list { margin: .35rem 0 0 1.2rem; padding: 0; color: var(--danger); }
     .sha-box {
       display: none;
-      margin-top: 1.15rem;
-      padding: .9rem 1rem;
+      margin-top: 1.1rem;
+      padding: .85rem 1rem;
       border: 1px solid var(--border);
-      border-radius: 10px;
+      border-radius: 6px;
       background: var(--bg);
       font: .8rem/1.5 'IBM Plex Mono', monospace;
     }
@@ -194,17 +206,17 @@
     .sha-match-badge {
       display: none;
       padding: .4rem .65rem;
-      border-radius: 6px;
+      border-radius: 4px;
       font-weight: 600;
       font-size: .78rem;
       white-space: nowrap;
     }
     .quick-links-box {
       display: none;
-      margin-top: 1.15rem;
-      padding: .9rem 1rem;
+      margin-top: 1.1rem;
+      padding: .85rem 1rem;
       border: 1px solid var(--border);
-      border-radius: 10px;
+      border-radius: 6px;
       background: var(--bg);
       gap: .75rem;
     }
@@ -223,10 +235,10 @@
     }
     .media-preview {
       display: none;
-      margin-top: 1.25rem;
+      margin-top: 1.15rem;
       overflow: hidden;
       border: 1px solid var(--border);
-      border-radius: 12px;
+      border-radius: 6px;
       background: #000;
     }
     .media-preview img, .media-preview video {
@@ -242,7 +254,7 @@
     }
     .folder-list {
       display: none;
-      margin-top: 1.25rem;
+      margin-top: 1.15rem;
       border-top: 1px solid var(--border);
       padding-top: 1rem;
     }
@@ -259,8 +271,8 @@
       gap: .65rem;
       padding: .7rem .8rem;
       border: 1px solid var(--border);
-      border-radius: 9px;
-      margin-bottom: .55rem;
+      border-radius: 6px;
+      margin-bottom: .5rem;
       background: var(--bg);
       font-family: 'IBM Plex Mono', monospace;
       font-size: .82rem;
@@ -293,7 +305,7 @@
       display: flex;
       flex-wrap: wrap;
       gap: .65rem;
-      margin-top: 1.25rem;
+      margin-top: 1.15rem;
     }
     .actions .btn {
       flex: 1 1 140px;
@@ -301,7 +313,7 @@
     }
     .card-footer-meta {
       margin-top: 1.15rem;
-      padding-top: .9rem;
+      padding-top: .85rem;
       border-top: 1px solid var(--border);
       display: flex;
       justify-content: space-between;
@@ -326,34 +338,30 @@
       z-index: 9999;
       place-items: center;
       padding: 1rem;
-      background: rgba(0, 0, 0, .78);
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
+      background: rgba(0, 0, 0, .72);
     }
     .modal.is-open { display: grid; }
     .modal-box {
       width: min(100%, 420px);
       padding: 1.35rem;
       border: 1px solid var(--border);
-      border-radius: 14px;
+      border-radius: 8px;
       background: var(--surface);
       text-align: center;
-      box-shadow: var(--shadow);
     }
     .modal-box-caution {
       width: min(100%, 480px);
       text-align: left;
-      border-color: color-mix(in srgb, var(--danger) 50%, transparent);
+      border-color: color-mix(in srgb, var(--danger) 50%, var(--border));
     }
     .qr-frame-white {
       display: inline-block;
       background: #fff;
       padding: .5rem;
-      border-radius: 10px;
+      border-radius: 6px;
       margin: .75rem 0 .45rem;
     }
     @media (max-width: 640px) {
-      .viewer { width: calc(100% - 1.25rem); margin: 1rem auto 2rem; }
       .file-head { gap: .75rem; }
       .file-icon { width: 2.75rem; height: 2.75rem; }
       .link-copy-row { grid-template-columns: 1fr; }
@@ -364,7 +372,7 @@
     }
   </style>
 </head>
-<body>
+<body class="tool-page">
   <a href="#main" class="skip-link">Skip to main content</a>
   <header class="site-nav">
     <a class="logo" href="https://pokedb.site/" data-nav="main">root<span>@</span>pokedb</a>
@@ -373,6 +381,7 @@
       <a class="nav-link" href="https://tinyurl.pokedb.site/" data-nav="tinyurl">TinyURL</a>
       <a class="nav-link" href="https://qr.pokedb.site/" data-nav="qr">QR studio</a>
       <a class="nav-link active" href="https://drop.pokedb.site/" data-nav="drop">Drop</a>
+      <a class="nav-link" href="https://lan.pokedb.site/" data-nav="lan">LAN</a>
       <a class="nav-link" href="https://paste.pokedb.site/" data-nav="paste">Pastebin</a>
       <a class="nav-link" href="https://health.pokedb.site/" data-nav="health">Health</a>
     </nav>
@@ -382,104 +391,106 @@
     </div>
   </header>
 
-  <main id="main" class="viewer">
-    <article class="viewer-card">
-      <div class="viewer-topbar">
-        <span class="eyebrow">$ drop --shared-file</span>
-        <div class="topbar-pills">
-          <span class="code-pill" id="drop-code-pill">CODE: <strong id="drop-code-val">—</strong></span>
-          <button class="btn btn-compact" id="copy-code-btn" type="button">Copy Code</button>
-          <span class="status-pill" id="drop-status-pill">● READY</span>
+  <main id="main" class="tool-shell">
+    <div class="viewer">
+      <article class="viewer-card">
+        <div class="viewer-topbar">
+          <span class="tool-section-label" style="margin-bottom:0;">Shared file</span>
+          <div class="topbar-controls">
+            <span class="code-readout" id="drop-code-pill">CODE: <strong id="drop-code-val">—</strong></span>
+            <button class="btn btn-compact" id="copy-code-btn" type="button">Copy Code</button>
+            <span class="state-tag" id="drop-status-pill">Ready</span>
+          </div>
         </div>
-      </div>
 
-      <div class="file-head">
-        <div class="file-icon" id="file-icon" aria-hidden="true">
-          <svg class="icon-svg" viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
-        </div>
-        <div>
-          <h1 class="file-name" id="file-title">Loading file…</h1>
-          <div class="file-meta-grid">
-            <div class="meta-chip">
-              <span class="meta-chip-label">Size</span>
-              <span class="meta-chip-val" id="file-size">—</span>
-            </div>
-            <div class="meta-chip">
-              <span class="meta-chip-label">Downloads</span>
-              <span class="meta-chip-val" id="file-downloads">—</span>
-            </div>
-            <div class="meta-chip">
-              <span class="meta-chip-label">Retention</span>
-              <span class="meta-chip-val" id="file-expiry">Checking…</span>
+        <div class="file-head">
+          <div class="file-icon" id="file-icon" aria-hidden="true">
+            <svg class="icon-svg" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+          </div>
+          <div>
+            <h1 class="file-name" id="file-title">Loading file…</h1>
+            <div class="file-meta-grid">
+              <div class="meta-chip">
+                <span class="meta-chip-label">Size</span>
+                <span class="meta-chip-val" id="file-size">—</span>
+              </div>
+              <div class="meta-chip">
+                <span class="meta-chip-label">Downloads</span>
+                <span class="meta-chip-val" id="file-downloads">—</span>
+              </div>
+              <div class="meta-chip">
+                <span class="meta-chip-label">Retention</span>
+                <span class="meta-chip-val" id="file-expiry">Checking…</span>
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      <div class="state-banner" id="drop-state-banner" role="status"></div>
+        <div class="state-banner" id="drop-state-banner" role="status"></div>
 
-      <div class="warning-box" id="security-warning-box" role="alert">
-        <strong class="warning-title">
-          <svg class="icon-svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
-          Security Caution Telemetry
-        </strong>
-        <div>Automated scanning detected potential risk flags on this file:</div>
-        <ul class="warning-list" id="warning-flag-list"></ul>
-      </div>
-
-      <div class="sha-box" id="file-sha256-box">
-        <div class="sha-head">
-          <span><strong>SHA-256:</strong> <span class="sha-hash" id="file-sha256-hash">—</span></span>
-          <button class="btn btn-compact" id="copy-sha256-btn" type="button">Copy SHA-256</button>
+        <div class="warning-box" id="security-warning-box" role="alert">
+          <strong class="warning-title">
+            <svg class="icon-svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+            Security Notice
+          </strong>
+          <div>Automated checks flagged potential risk indicators on this file:</div>
+          <ul class="warning-list" id="warning-flag-list"></ul>
         </div>
-        <div class="sha-verify-row">
-          <label for="expected-sha256-input" class="skip-link">Expected SHA-256 checksum</label>
-          <input type="text" id="expected-sha256-input" placeholder="Paste expected SHA-256 to verify integrity…" autocomplete="off" spellcheck="false">
-          <span class="sha-match-badge" id="sha256-match-badge" role="status"></span>
-        </div>
-      </div>
 
-      <div class="media-preview" id="media-preview"></div>
-      <div class="folder-list" id="folder-file-list"></div>
-
-      <div class="quick-links-box" id="quick-links-box">
-        <div id="direct-link-block">
-          <label class="link-copy-label" for="direct-link-input">Direct Download URL (/d/)</label>
-          <div class="link-copy-row">
-            <input type="text" id="direct-link-input" readonly>
-            <button class="btn btn-compact" id="copy-direct-btn" type="button">Copy Direct</button>
+        <div class="sha-box" id="file-sha256-box">
+          <div class="sha-head">
+            <span><strong>SHA-256:</strong> <span class="sha-hash" id="file-sha256-hash">—</span></span>
+            <button class="btn btn-compact" id="copy-sha256-btn" type="button">Copy SHA-256</button>
+          </div>
+          <div class="sha-verify-row">
+            <label for="expected-sha256-input" class="skip-link">Expected SHA-256 checksum</label>
+            <input type="text" id="expected-sha256-input" placeholder="Paste expected SHA-256 to verify integrity…" autocomplete="off" spellcheck="false">
+            <span class="sha-match-badge" id="sha256-match-badge" role="status"></span>
           </div>
         </div>
-        <div id="curl-cmd-block">
-          <label class="link-copy-label" for="curl-cmd-input">Terminal Fetch (cURL)</label>
-          <div class="link-copy-row">
-            <input type="text" id="curl-cmd-input" readonly>
-            <button class="btn btn-compact" id="copy-curl-btn" type="button">Copy curl</button>
+
+        <div class="media-preview" id="media-preview"></div>
+        <div class="folder-list" id="folder-file-list"></div>
+
+        <div class="quick-links-box" id="quick-links-box">
+          <div id="direct-link-block">
+            <label class="link-copy-label" for="direct-link-input">Direct Download URL (/d/)</label>
+            <div class="link-copy-row">
+              <input type="text" id="direct-link-input" readonly>
+              <button class="btn btn-compact" id="copy-direct-btn" type="button">Copy Direct</button>
+            </div>
+          </div>
+          <div id="curl-cmd-block">
+            <label class="link-copy-label" for="curl-cmd-input">Terminal Fetch (cURL)</label>
+            <div class="link-copy-row">
+              <input type="text" id="curl-cmd-input" readonly>
+              <button class="btn btn-compact" id="copy-curl-btn" type="button">Copy curl</button>
+            </div>
           </div>
         </div>
-      </div>
 
-      <div class="actions">
-        <a class="btn btn-solid" id="download-btn" target="_blank" rel="noopener">Download File</a>
-        <button class="btn btn-solid" id="download-all-btn" type="button" style="display:none;">Download All</button>
-        <button class="btn" id="copy-btn" type="button">Copy Link</button>
-        <button class="btn" id="qr-btn" type="button">Show QR</button>
-        <a class="btn" id="new-drop-btn" href="/tools/drop/" data-nav="drop">+ New Drop</a>
-      </div>
+        <div class="actions">
+          <a class="btn btn-solid" id="download-btn" target="_blank" rel="noopener">Download File</a>
+          <button class="btn btn-solid" id="download-all-btn" type="button" style="display:none;">Download All</button>
+          <button class="btn" id="copy-btn" type="button">Copy Link</button>
+          <button class="btn" id="qr-btn" type="button">Show QR</button>
+          <a class="btn" id="new-drop-btn" href="/tools/drop/" data-nav="drop">+ New Drop</a>
+        </div>
 
-      <div class="card-footer-meta">
-        <span>Zero-disk Cloudflare R2 presigned delivery</span>
-        <a id="report-abuse-link" href="/abuse?kind=drop" class="report-link">Report Abuse</a>
-      </div>
-    </article>
+        <div class="card-footer-meta">
+          <span>Cloudflare R2 presigned delivery</span>
+          <a id="report-abuse-link" href="/abuse?kind=drop" class="report-link">Report Abuse</a>
+        </div>
+      </article>
+    </div>
   </main>
 
   <div class="modal" id="download-caution-modal" role="dialog" aria-modal="true" aria-labelledby="caution-modal-title">
     <div class="modal-box modal-box-caution">
-      <span class="eyebrow" style="color:var(--danger); font-weight:600;">Security Caution</span>
-      <h2 id="caution-modal-title" style="font-size:1.1rem; margin:.4rem 0; color:var(--text);">Confirm Download of Flagged File</h2>
+      <span class="tool-section-label" style="color:var(--danger); margin-bottom:.35rem;">Security Caution</span>
+      <h2 id="caution-modal-title" style="font-size:1.1rem; margin:0 0 .5rem; color:var(--text);">Confirm Download of Flagged File</h2>
       <p style="font-size:.86rem; color:var(--text); line-height:1.45;">
-        This file triggered automated threat telemetry or executable advisories:
+        This file triggered automated security advisories:
       </p>
       <div class="warning-box" style="display:block; margin:.75rem 0;">
         <ul class="warning-list" id="modal-caution-flag-list"></ul>
@@ -496,7 +507,6 @@
 
   <div class="modal" id="qr-modal" role="dialog" aria-modal="true" aria-labelledby="qr-modal-title">
     <div class="modal-box">
-      <span class="eyebrow">$ qr --share</span>
       <h2 id="qr-modal-title" style="font-size:1.05rem; margin-bottom:.5rem;">Scan to Open on Mobile</h2>
       <div class="qr-frame-white" id="qr-box"></div>
       <div class="mono" id="qr-url-caption" style="font-size:.74rem; color:var(--muted); overflow-wrap:anywhere; margin-bottom:.85rem;"></div>
@@ -506,7 +516,7 @@
 
   <footer>
     <div class="footer-inner">
-      <span>© pokedb.site · drop storage gateway</span>
+      <span>© pokedb.site · drop</span>
       <span id="uptime">session uptime · 00:00:00</span>
     </div>
   </footer>

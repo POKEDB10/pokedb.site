@@ -5,45 +5,49 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>System Health | pokedb.site</title>
   <meta name="description" content="Live health, latency, uptime, and service telemetry for pokedb.site.">
-<link rel="stylesheet" href="/fonts/fonts.css">
-<link rel="preload" href="/fonts/ibm-plex-mono-400.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="preload" href="/fonts/ibm-plex-sans-400.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/fonts/fonts.css">
+  <link rel="preload" href="/fonts/ibm-plex-mono-400.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/fonts/ibm-plex-sans-400.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="/shared/theme.css">
   <script src="/shared/theme-switcher.js?v=3"></script>
   <style>
-    .health-shell { padding:clamp(2.25rem,5vw,4.5rem) 0; }
-    .health-head { display:flex; align-items:end; justify-content:space-between; gap:1.5rem; margin-bottom:1.75rem; }
-    .health-title { max-width:700px; font-size:clamp(1.8rem,5vw,3.4rem); line-height:1.04; letter-spacing:-.06em; }
-    .health-subtitle { max-width:62ch; color:var(--muted); margin-top:.85rem; }
-    .live-badge { display:inline-flex; align-items:center; gap:.55rem; width:max-content; padding:.38rem .7rem; margin-bottom:.9rem; border:1px solid color-mix(in srgb,var(--success) 45%,transparent); border-radius:999px; color:var(--success); background:color-mix(in srgb,var(--success) 9%,transparent); font:500 .72rem 'IBM Plex Mono',monospace; letter-spacing:.06em; }
-    .live-dot { width:.52rem; height:.52rem; border-radius:50%; background:currentColor; box-shadow:0 0 0 5px color-mix(in srgb,currentColor 15%,transparent); }
-    .health-actions { display:flex; gap:.65rem; flex-wrap:wrap; }
-    .metric-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:1rem; }
-    .metric { min-height:150px; display:flex; flex-direction:column; justify-content:space-between; }
-    .metric-label { color:var(--muted); font:500 .72rem 'IBM Plex Mono',monospace; text-transform:uppercase; letter-spacing:.08em; }
-    .metric-value { overflow-wrap:anywhere; font:600 clamp(1.35rem,3vw,2.1rem)/1.1 'IBM Plex Mono',monospace; letter-spacing:-.06em; }
-    .metric-detail { color:var(--muted); font-size:.8rem; }
-    .telemetry-grid { display:grid; grid-template-columns:minmax(0,1.5fr) minmax(260px,.9fr); gap:1rem; margin-top:1rem; }
-    .telemetry-card { min-height:245px; }
-    .telemetry-top { display:flex; justify-content:space-between; align-items:start; gap:1rem; }
-    .telemetry-top h2,.service-title { font-size:1rem; }
-    .telemetry-summary { color:var(--accent); text-align:right; font:500 .74rem 'IBM Plex Mono',monospace; }
-    .chart { display:grid; grid-template-columns:repeat(20,1fr); align-items:end; gap:.32rem; height:135px; margin-top:1rem; border-bottom:1px solid var(--border); }
-    .bar { min-height:7px; border-radius:3px 3px 0 0; background:var(--accent); opacity:.9; transition:height .35s cubic-bezier(.2,.8,.2,1),background-color .2s ease; }
-    .service-list { display:grid; gap:.55rem; margin-top:1rem; }
-    .service { display:flex; justify-content:space-between; gap:1rem; padding:.72rem 0; border-bottom:1px solid var(--border); }
-    .service:last-child { border:0; }
-    .service-name { display:block; font:500 .78rem 'IBM Plex Mono',monospace; }
-    .service-path { display:block; color:var(--muted); font:.72rem 'IBM Plex Mono',monospace; margin-top:.18rem; overflow-wrap:anywhere; }
-    .service-state { color:var(--success); font:500 .71rem 'IBM Plex Mono',monospace; white-space:nowrap; }
-    .endpoints { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:1rem; margin-top:1rem; }
-    .endpoint { display:flex; gap:.75rem; align-items:center; justify-content:space-between; min-width:0; }
-    .endpoint-text { min-width:0; } .endpoint-label { display:block; color:var(--muted); font:500 .69rem 'IBM Plex Mono',monospace; text-transform:uppercase; letter-spacing:.06em; } .endpoint-url { display:block; margin-top:.35rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--text); font:500 .76rem 'IBM Plex Mono',monospace; }
-    @media (max-width:850px) { .metric-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } .telemetry-grid { grid-template-columns:1fr; } }
-    @media (max-width:560px) { .health-head { align-items:start; flex-direction:column; } .metric-grid,.endpoints { grid-template-columns:1fr; } .metric { min-height:125px; } .telemetry-top { flex-direction:column; } .telemetry-summary { text-align:left; } }
+    .health-status-line { display: inline-flex; align-items: center; gap: .45rem; font: 500 .78rem 'IBM Plex Mono', monospace; color: var(--success); margin-bottom: .35rem; }
+    .status-dot-flat { width: .45rem; height: .45rem; border-radius: 50%; background: currentColor; flex: none; }
+    .health-actions { display: flex; gap: .65rem; flex-wrap: wrap; align-items: center; }
+    .metric-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .85rem; }
+    .metric { min-height: 130px; display: flex; flex-direction: column; justify-content: space-between; }
+    .metric-label { color: var(--muted); font: 500 .72rem 'IBM Plex Mono', monospace; text-transform: uppercase; letter-spacing: .06em; }
+    .metric-value { overflow-wrap: anywhere; font: 600 clamp(1.25rem, 2.6vw, 1.85rem)/1.15 'IBM Plex Mono', monospace; letter-spacing: -.03em; }
+    .metric-detail { color: var(--muted); font-size: .8rem; }
+    .telemetry-grid { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(260px, .9fr); gap: .85rem; margin-top: .85rem; }
+    .telemetry-card { min-height: 240px; }
+    .telemetry-top { display: flex; justify-content: space-between; align-items: start; gap: 1rem; }
+    .telemetry-top h2, .service-title { font-size: .98rem; font-weight: 600; }
+    .telemetry-summary { color: var(--accent); text-align: right; font: 500 .74rem 'IBM Plex Mono', monospace; }
+    .chart { display: grid; grid-template-columns: repeat(20, 1fr); align-items: end; gap: .3rem; height: 135px; margin-top: 1rem; border-bottom: 1px solid var(--border); }
+    .bar { min-height: 7px; border-radius: 2px 2px 0 0; background: var(--accent); opacity: .9; transition: height .35s cubic-bezier(.2,.8,.2,1), background-color .2s ease; }
+    .service-list { display: grid; gap: .35rem; margin-top: .85rem; }
+    .service { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; padding: .65rem 0; border-bottom: 1px solid var(--border); }
+    .service:last-child { border: 0; }
+    .service-name { display: block; font: 500 .8rem 'IBM Plex Mono', monospace; }
+    .service-path { display: block; color: var(--muted); font: .72rem 'IBM Plex Mono', monospace; margin-top: .15rem; overflow-wrap: anywhere; }
+    .service-state { color: var(--success); font: 500 .74rem 'IBM Plex Mono', monospace; white-space: nowrap; }
+    .endpoints { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .85rem; margin-top: .85rem; }
+    .endpoint { display: flex; gap: .75rem; align-items: center; justify-content: space-between; min-width: 0; }
+    .endpoint-text { min-width: 0; }
+    .endpoint-label { display: block; color: var(--muted); font: 500 .7rem 'IBM Plex Mono', monospace; text-transform: uppercase; letter-spacing: .06em; }
+    .endpoint-url { display: block; margin-top: .3rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); font: 500 .78rem 'IBM Plex Mono', monospace; }
+    @media (max-width: 850px) { .metric-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .telemetry-grid { grid-template-columns: 1fr; } }
+    @media (max-width: 560px) {
+      .metric-grid, .endpoints { grid-template-columns: 1fr; }
+      .metric { min-height: 112px; }
+      .telemetry-top { flex-direction: column; }
+      .telemetry-summary { text-align: left; }
+    }
   </style>
 </head>
-<body>
+<body class="tool-page">
+  <a href="#main" class="skip-link">Skip to main content</a>
   <header class="site-nav">
     <a class="logo" href="https://pokedb.site/" data-nav="main">root<span>@</span>pokedb</a>
     <nav class="nav-links" aria-label="Tools navigation">
@@ -51,17 +55,18 @@
       <a class="nav-link" href="https://tinyurl.pokedb.site/" data-nav="tinyurl">TinyURL</a>
       <a class="nav-link" href="https://qr.pokedb.site/" data-nav="qr">QR studio</a>
       <a class="nav-link" href="https://drop.pokedb.site/" data-nav="drop">Drop</a>
+      <a class="nav-link" href="https://lan.pokedb.site/" data-nav="lan">LAN</a>
       <a class="nav-link" href="https://paste.pokedb.site/" data-nav="paste">Pastebin</a>
       <a class="nav-link active" href="https://health.pokedb.site/" data-nav="health">Health</a>
     </nav>
     <div class="theme-switcher"><span class="theme-swatch" id="theme-swatch"></span><select id="theme-select" aria-label="Choose a theme"></select></div>
   </header>
-  <main class="container health-shell">
-    <section class="health-head" aria-labelledby="health-title">
+  <main id="main" class="tool-shell">
+    <section class="tool-head" aria-labelledby="health-title">
       <div>
-        <div class="live-badge" id="system-badge"><span class="live-dot"></span><span id="system-status-title">Checking system health</span></div>
-        <h1 class="health-title" id="health-title">System Telemetry &amp; Health</h1>
-        <p class="health-subtitle">Real-time health status, latency, memory footprint, and service metrics across pokedb.site nodes. Auto-refreshes every 5 seconds.</p>
+        <div class="health-status-line" id="system-badge"><span class="status-dot-flat" aria-hidden="true"></span><span id="system-status-title">Checking system health</span></div>
+        <h1 id="health-title">System Telemetry &amp; Health</h1>
+        <p class="tool-sub">Latency, memory footprint, and subsystem checks across pokedb.site nodes. Refreshes every 5 seconds.</p>
       </div>
       <div class="health-actions"><button class="btn btn-solid" id="refresh-btn" type="button">Run diagnostics</button></div>
     </section>

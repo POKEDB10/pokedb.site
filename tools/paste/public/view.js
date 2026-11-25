@@ -36,6 +36,23 @@
     plaintext: '.txt'
   };
 
+  var LANG_LABELS = {
+    plaintext: 'Plain Text',
+    javascript: 'JavaScript',
+    typescript: 'TypeScript',
+    python: 'Python',
+    html: 'HTML / CSS',
+    css: 'CSS',
+    json: 'JSON',
+    sql: 'SQL',
+    rust: 'Rust',
+    go: 'Go',
+    bash: 'Shell / Bash',
+    shell: 'Shell / Bash',
+    sh: 'Shell / Bash',
+    markdown: 'Markdown'
+  };
+
   var KEYWORDS = {
     javascript: /\b(const|let|var|function|return|async|await|if|else|for|while|try|catch|throw|new|class|import|export|from|interface|type|true|false|null|undefined)\b/,
     python: /\b(def|class|return|import|from|as|if|elif|else|for|while|try|except|with|yield|async|await|True|False|None|pass|break|lambda)\b/,
@@ -148,11 +165,13 @@
     var digits = Math.max(2, String(lines.length).length);
     codeBox.style.setProperty('--ln-width', (digits + 1.2) + 'ch');
 
-    var linesPill = document.getElementById('paste-lines');
-    if (linesPill) {
-      linesPill.textContent = lines.length + (lines.length === 1 ? ' line' : ' lines');
-      linesPill.hidden = false;
+    var linesEl = document.getElementById('paste-lines');
+    var linesSep = document.getElementById('paste-lines-sep');
+    if (linesEl) {
+      linesEl.textContent = lines.length + (lines.length === 1 ? ' line' : ' lines');
+      linesEl.hidden = false;
     }
+    if (linesSep) linesSep.hidden = false;
 
     var frag = document.createDocumentFragment();
     for (var i = 0; i < lines.length; i++) {
@@ -204,12 +223,43 @@
     if (el) el.classList.toggle('is-visible', visible);
   }
 
+  function setMetaVisibility(mode) {
+    var strip = document.getElementById('paste-meta-strip');
+    if (!strip) return;
+    if (mode === 'hidden') {
+      strip.hidden = true;
+      return;
+    }
+    strip.hidden = false;
+    var showPrimary = mode === 'loaded';
+    ['paste-lang', 'paste-size-sep', 'paste-size', 'paste-views-sep', 'paste-views'].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el) el.hidden = !showPrimary;
+    });
+    if (!showPrimary) {
+      ['paste-lines', 'paste-lines-sep', 'paste-burn-status', 'paste-burn-sep'].forEach(function (id) {
+        var el = document.getElementById(id);
+        if (el) el.hidden = true;
+      });
+    }
+    var e2eSep = document.getElementById('paste-e2e-sep');
+    var e2eEl = document.getElementById('paste-e2e-badge');
+    if (e2eSep && e2eEl) {
+      e2eSep.hidden = !showPrimary || e2eEl.hidden;
+    }
+  }
+
   function setE2eBadge(text, variant) {
     var badge = document.getElementById('paste-e2e-badge');
+    var sep = document.getElementById('paste-e2e-sep');
     if (!badge) return;
     badge.textContent = text;
-    badge.className = 'meta-pill' + (variant ? ' ' + variant : '');
+    badge.className = 'meta-item' + (variant ? ' ' + variant : '');
     badge.hidden = !text;
+    if (sep) {
+      var langEl = document.getElementById('paste-lang');
+      sep.hidden = !text || (langEl && langEl.hidden);
+    }
   }
 
   function resolveDownloadFilename(title, lang) {
@@ -265,7 +315,7 @@
   async function decryptAndRender(cipherText, rawKey) {
     var key = (rawKey || '').trim().replace(/^#?k=/, '');
     if (!key || !window.CryptoWeb) {
-      setE2eBadge('Locked · Key Missing', 'is-danger');
+      setE2eBadge('Key missing', 'is-danger');
       document.getElementById('key-auth-title').textContent = 'Decryption Key Required (#k=)';
       document.getElementById('key-error').textContent = '';
       setStateCard('key-auth-box', true);
@@ -277,7 +327,7 @@
       var plain = await window.CryptoWeb.decryptText(cipherText, key);
       loadedContent = plain;
       setStateCard('key-auth-box', false);
-      setE2eBadge('E2E Decrypted', 'is-success');
+      setE2eBadge('E2E', 'is-success');
       var plainSize = typeof TextEncoder !== 'undefined'
         ? new TextEncoder().encode(plain).length
         : plain.length;
@@ -286,7 +336,7 @@
       return true;
     } catch (decErr) {
       console.warn('[Paste Decrypt] Failed to decrypt with key:', decErr);
-      setE2eBadge('Key Mismatch', 'is-danger');
+      setE2eBadge('Key mismatch', 'is-danger');
       document.getElementById('key-auth-title').textContent = 'Decryption Key Mismatch';
       document.getElementById('key-error').textContent = 'The provided #k= key could not decrypt this paste.';
       setStateCard('key-auth-box', true);
@@ -300,6 +350,7 @@
 
   if (!code) {
     document.getElementById('paste-title').textContent = 'Invalid Paste URL';
+    setMetaVisibility('hidden');
     setStateCard('paste-error-box', true);
     document.getElementById('paste-error-msg').textContent = 'No paste ID was found in this URL.';
     return;
@@ -383,7 +434,8 @@
         setStateCard('paste-error-box', false);
         document.getElementById('paste-body-box').style.display = 'none';
         document.getElementById('paste-title').textContent = 'Password Required';
-        setE2eBadge('Password Locked', 'is-accent');
+        setMetaVisibility('auth');
+        setE2eBadge('Password locked', 'is-accent');
         var passErr = document.getElementById('pass-error');
         if (passErr) {
           passErr.textContent = hasAttemptedPassword ? 'Incorrect password. Please try again.' : '';
@@ -403,23 +455,26 @@
 
       setStateCard('pass-auth-box', false);
       setStateCard('paste-error-box', false);
+      setMetaVisibility('loaded');
       document.getElementById('paste-title').textContent = paste.title || 'Untitled Paste';
-      document.getElementById('paste-lang').textContent = loadedLanguage;
+      document.getElementById('paste-lang').textContent = LANG_LABELS[loadedLanguage] || loadedLanguage;
       document.getElementById('paste-size').textContent = formatBytes(paste.size || 0);
       var viewsCount = paste.views || 1;
       document.getElementById('paste-views').textContent = viewsCount + (viewsCount === 1 ? ' view' : ' views');
 
       var burnEl = document.getElementById('paste-burn-status');
+      var burnSep = document.getElementById('paste-burn-sep');
       if (burnEl) {
         if (paste.burnOnRead) {
           burnEl.textContent = 'Burned on read · Deleted';
-          burnEl.className = 'meta-pill is-danger';
+          burnEl.className = 'meta-item is-burn';
           burnEl.hidden = false;
         } else {
           burnEl.textContent = formatExpiry(paste.expiresAt);
-          burnEl.className = 'meta-pill is-muted';
+          burnEl.className = 'meta-item is-muted';
           burnEl.hidden = false;
         }
+        if (burnSep) burnSep.hidden = false;
       }
 
       var hash = window.location.hash || '';
@@ -430,7 +485,7 @@
         await decryptAndRender(paste.content, keyMatch ? keyMatch[1] : '');
       } else {
         setStateCard('key-auth-box', false);
-        setE2eBadge(paste.isProtected ? 'Password Unlocked' : 'Standard', paste.isProtected ? 'is-success' : 'is-muted');
+        setE2eBadge(paste.isProtected ? 'Password unlocked' : 'Standard', paste.isProtected ? 'is-success' : 'is-muted');
         loadedContent = paste.content;
         renderCodeLines(document.getElementById('paste-body-box'), paste.content, loadedLanguage);
       }
@@ -438,6 +493,7 @@
       setStateCard('pass-auth-box', false);
       setStateCard('key-auth-box', false);
       setStateCard('paste-error-box', true);
+      setMetaVisibility('hidden');
       document.getElementById('paste-body-box').style.display = 'none';
       document.getElementById('paste-title').textContent = 'Paste Expired or Not Found';
       document.getElementById('paste-error-msg').textContent = err.message;

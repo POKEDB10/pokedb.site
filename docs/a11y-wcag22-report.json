@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-11-24T19:02:34.081Z",
+  "timestamp": "2026-11-25T06:21:37.236Z",
   "standard": "WCAG 2.2 AA",
   "themes": [
     "paper",
@@ -29,6 +29,10 @@
       "path": "/tools/drop/"
     },
     {
+      "name": "LAN Share Tool",
+      "path": "/tools/lan/"
+    },
+    {
       "name": "QR Studio Tool",
       "path": "/tools/qr/"
     },
@@ -49,7 +53,7 @@
       "isClickable": true
     },
     "targetSize_2_5_8": {
-      "total": 37,
+      "total": 44,
       "violations": []
     },
     "accessibleAuthentication_3_3_8": {
@@ -96,7 +100,7 @@
       "path": "/tools/",
       "theme": "paper",
       "violationsCount": 0,
-      "passesCount": 18,
+      "passesCount": 19,
       "violations": []
     },
     {
@@ -104,7 +108,7 @@
       "path": "/tools/",
       "theme": "matrix",
       "violationsCount": 0,
-      "passesCount": 18,
+      "passesCount": 19,
       "violations": []
     },
     {
@@ -112,7 +116,7 @@
       "path": "/tools/",
       "theme": "cyberpunk",
       "violationsCount": 0,
-      "passesCount": 18,
+      "passesCount": 19,
       "violations": []
     },
     {
@@ -120,7 +124,7 @@
       "path": "/tools/",
       "theme": "synthwave",
       "violationsCount": 0,
-      "passesCount": 18,
+      "passesCount": 19,
       "violations": []
     },
     {
@@ -128,7 +132,7 @@
       "path": "/tools/tinyurl/",
       "theme": "paper",
       "violationsCount": 0,
-      "passesCount": 21,
+      "passesCount": 20,
       "violations": []
     },
     {
@@ -136,7 +140,7 @@
       "path": "/tools/tinyurl/",
       "theme": "matrix",
       "violationsCount": 0,
-      "passesCount": 21,
+      "passesCount": 20,
       "violations": []
     },
     {
@@ -144,7 +148,7 @@
       "path": "/tools/tinyurl/",
       "theme": "cyberpunk",
       "violationsCount": 0,
-      "passesCount": 21,
+      "passesCount": 20,
       "violations": []
     },
     {
@@ -152,7 +156,7 @@
       "path": "/tools/tinyurl/",
       "theme": "synthwave",
       "violationsCount": 0,
-      "passesCount": 21,
+      "passesCount": 20,
       "violations": []
     },
     {
@@ -160,7 +164,7 @@
       "path": "/tools/paste/",
       "theme": "paper",
       "violationsCount": 0,
-      "passesCount": 21,
+      "passesCount": 23,
       "violations": []
     },
     {
@@ -168,7 +172,7 @@
       "path": "/tools/paste/",
       "theme": "matrix",
       "violationsCount": 0,
-      "passesCount": 21,
+      "passesCount": 23,
       "violations": []
     },
     {
@@ -176,7 +180,7 @@
       "path": "/tools/paste/",
       "theme": "cyberpunk",
       "violationsCount": 0,
-      "passesCount": 21,
+      "passesCount": 23,
       "violations": []
     },
     {
@@ -184,7 +188,7 @@
       "path": "/tools/paste/",
       "theme": "synthwave",
       "violationsCount": 0,
-      "passesCount": 21,
+      "passesCount": 23,
       "violations": []
     },
     {
@@ -192,7 +196,7 @@
       "path": "/tools/drop/",
       "theme": "paper",
       "violationsCount": 0,
-      "passesCount": 26,
+      "passesCount": 27,
       "violations": []
     },
     {
@@ -200,7 +204,7 @@
       "path": "/tools/drop/",
       "theme": "matrix",
       "violationsCount": 0,
-      "passesCount": 26,
+      "passesCount": 27,
       "violations": []
     },
     {
@@ -208,7 +212,7 @@
       "path": "/tools/drop/",
       "theme": "cyberpunk",
       "violationsCount": 0,
-      "passesCount": 26,
+      "passesCount": 27,
       "violations": []
     },
     {
@@ -216,7 +220,39 @@
       "path": "/tools/drop/",
       "theme": "synthwave",
       "violationsCount": 0,
-      "passesCount": 26,
+      "passesCount": 27,
+      "violations": []
+    },
+    {
+      "page": "LAN Share Tool",
+      "path": "/tools/lan/",
+      "theme": "paper",
+      "violationsCount": 0,
+      "passesCount": 25,
+      "violations": []
+    },
+    {
+      "page": "LAN Share Tool",
+      "path": "/tools/lan/",
+      "theme": "matrix",
+      "violationsCount": 0,
+      "passesCount": 25,
+      "violations": []
+    },
+    {
+      "page": "LAN Share Tool",
+      "path": "/tools/lan/",
+      "theme": "cyberpunk",
+      "violationsCount": 0,
+      "passesCount": 25,
+      "violations": []
+    },
+    {
+      "page": "LAN Share Tool",
+      "path": "/tools/lan/",
+      "theme": "synthwave",
+      "violationsCount": 0,
+      "passesCount": 25,
       "violations": []
     },
     {
@@ -296,7 +332,7 @@
       "path": "/tools/",
       "theme": "320px-viewport",
       "violationsCount": 0,
-      "passesCount": 19,
+      "passesCount": 20,
       "violations": []
     },
     {
@@ -304,7 +340,7 @@
       "path": "/tools/tinyurl/",
       "theme": "320px-viewport",
       "violationsCount": 0,
-      "passesCount": 22,
+      "passesCount": 21,
       "violations": []
     },
     {
@@ -312,7 +348,7 @@
       "path": "/tools/paste/",
       "theme": "320px-viewport",
       "violationsCount": 0,
-      "passesCount": 22,
+      "passesCount": 24,
       "violations": []
     },
     {
@@ -320,7 +356,15 @@
       "path": "/tools/drop/",
       "theme": "320px-viewport",
       "violationsCount": 0,
-      "passesCount": 27,
+      "passesCount": 28,
+      "violations": []
+    },
+    {
+      "page": "LAN Share Tool (320px)",
+      "path": "/tools/lan/",
+      "theme": "320px-viewport",
+      "violationsCount": 0,
+      "passesCount": 26,
       "violations": []
     },
     {

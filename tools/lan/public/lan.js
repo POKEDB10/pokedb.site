@@ -1,4 +1,4 @@
-// tools/drop/public/lan.js
+// tools/lan/public/lan.js
 // Client-side LAN-to-LAN WebRTC P2P + E2EE (ECDH P-256 + HKDF-SHA-256 + SAS + AES-256-GCM) engine.
 // Exports window.PokedbLan in browsers and CommonJS module in Node.
 

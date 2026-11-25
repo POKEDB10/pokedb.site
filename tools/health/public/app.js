@@ -13,7 +13,6 @@
   function setStatus(isHealthy) {
     var badge = document.getElementById('system-badge');
     badge.style.color = isHealthy ? 'var(--success)' : 'var(--danger)';
-    badge.style.borderColor = isHealthy ? 'color-mix(in srgb,var(--success) 45%,transparent)' : 'color-mix(in srgb,var(--danger) 45%,transparent)';
     setText('system-status-title', isHealthy ? 'All systems operational' : 'Telemetry unavailable');
   }
 
@@ -54,7 +53,7 @@
       details.append(name, path);
       var state = document.createElement('span');
       state.className = 'service-state';
-      state.textContent = services[key] === 'operational' || services[key] === 'redis_active' || services[key] === 'file_fallback' ? '● online' : '● checking';
+      state.textContent = services[key] === 'operational' || services[key] === 'redis_active' || services[key] === 'file_fallback' ? 'operational' : 'checking';
       row.append(details, state);
       container.appendChild(row);
     });

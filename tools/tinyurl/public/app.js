@@ -61,6 +61,8 @@
     }
 
     // Form Submission
+    var shortenBtn = document.getElementById('shorten-btn');
+    var defaultBtnText = shortenBtn ? shortenBtn.textContent : 'Create Short Link';
     form.addEventListener('submit', async function (e) {
       e.preventDefault();
       errorEl.style.display = 'none';
@@ -73,12 +75,17 @@
         expiresInDays: expiresInSelect.value ? Number(expiresInSelect.value) : 30
       };
 
-      if (window.PokedbTurnstile) {
-        var tsToken = await window.PokedbTurnstile.getToken('#tinyurl-turnstile-wrap');
-        if (tsToken) payload['cf-turnstile-response'] = tsToken;
+      if (shortenBtn) {
+        shortenBtn.disabled = true;
+        shortenBtn.textContent = 'Creating...';
       }
 
       try {
+        if (window.PokedbTurnstile) {
+          var tsToken = await window.PokedbTurnstile.getToken('#tinyurl-turnstile-wrap');
+          if (tsToken) payload['cf-turnstile-response'] = tsToken;
+        }
+
         var res = await fetch('/api/shorten', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -88,7 +95,7 @@
         var data = await res.json();
 
         if (!res.ok) {
-          errorEl.textContent = data.error || 'Failed to shorten URL.';
+          errorEl.textContent = data.message || data.error || 'Failed to shorten URL.';
           errorEl.style.display = 'block';
           renderSuggestions(data.suggestions, customAliasInput);
           if (window.PokedbTurnstile) window.PokedbTurnstile.reset('#tinyurl-turnstile-wrap');
@@ -134,6 +141,11 @@
       } catch (err) {
         errorEl.textContent = 'Network error. Please try again.';
         errorEl.style.display = 'block';
+      } finally {
+        if (shortenBtn) {
+          shortenBtn.disabled = false;
+          shortenBtn.textContent = defaultBtnText;
+        }
       }
     });
 

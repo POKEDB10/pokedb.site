@@ -284,27 +284,44 @@ async function scanBufferVirus(buffer, abuseChKey = '') {
 }
 
 const SSR_SHARED_CSS = `
-    .ssr-wrap { width: min(100% - 1.5rem, 640px); margin: clamp(1.25rem, 5vw, 3.25rem) auto; padding-bottom: env(safe-area-inset-bottom); }
-    .ssr-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: clamp(1.15rem, 4vw, 2rem); box-shadow: var(--shadow); }
-    .ssr-card h1 { font-size: clamp(1.15rem, 3.2vw, 1.45rem); overflow-wrap: anywhere; margin: 0.45rem 0 1rem 0; }
-    .pill-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; margin: 0.35rem 0 0.75rem 0; }
-    .code-pill { font-family: 'IBM Plex Mono', monospace; font-size: 0.85rem; font-weight: 600; letter-spacing: 0.08em; padding: 0.28rem 0.65rem; border-radius: 7px; background: var(--bg); border: 1px solid var(--accent); color: var(--accent); user-select: all; }
-    .meta-row { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.7rem; color: var(--muted); font-size: 0.9rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border); }
-    .meta-row span:last-child { color: var(--text); font-family: 'IBM Plex Mono', monospace; overflow-wrap: anywhere; }
-    .burn-warn { background: color-mix(in srgb, var(--danger) 10%, transparent); border: 1px solid color-mix(in srgb, var(--danger) 45%, transparent); border-left: 4px solid var(--danger); color: var(--text); border-radius: 8px; padding: 0.75rem 0.95rem; font-size: 0.86rem; margin: 1rem 0; }
-    .ssr-actions { display: flex; flex-wrap: wrap; gap: 0.65rem; margin-top: 1.35rem; }
-    .ssr-actions .btn { flex: 1 1 160px; justify-content: center; min-height: 44px; text-decoration: none; }
-    .qr-panel { display: none; margin-top: 1.25rem; padding: 1rem; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); flex-direction: column; align-items: center; gap: 0.6rem; }
+    .ssr-wrap { width: min(100% - 1.5rem, 720px); margin: clamp(1.25rem, 4vw, 2.5rem) auto; padding-bottom: env(safe-area-inset-bottom); }
+    .ssr-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: clamp(1.1rem, 3.5vw, 1.85rem); }
+    .ssr-top { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.6rem; padding-bottom: 0.85rem; margin-bottom: 1rem; border-bottom: 1px solid var(--border); }
+    .ssr-tags { display: flex; flex-wrap: wrap; align-items: center; gap: 0.45rem; }
+    .ssr-tag { display: inline-flex; align-items: center; padding: 0.2rem 0.5rem; border: 1px solid var(--border); border-radius: 4px; background: var(--bg); font: 600 0.72rem 'IBM Plex Mono', monospace; color: var(--text); }
+    .ssr-tag.is-burn { border-color: color-mix(in srgb, var(--danger) 45%, var(--border)); color: var(--danger); }
+    .ssr-card h1 { font-size: clamp(1.15rem, 3vw, 1.45rem); overflow-wrap: anywhere; word-break: break-word; margin: 0 0 0.9rem 0; }
+    .ssr-code-box { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.65rem; padding: 0.7rem 0.9rem; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); margin: 0 0 1rem; }
+    .ssr-code-val { font-family: 'IBM Plex Mono', monospace; font-size: clamp(1.15rem, 3.8vw, 1.4rem); font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: 0.12em; color: var(--text); user-select: all; }
+    .meta-row { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 0.4rem 0.75rem; padding: 0.52rem 0; color: var(--muted); font-size: 0.88rem; border-bottom: 1px solid var(--border); }
+    .meta-row span:last-child { color: var(--text); font-family: 'IBM Plex Mono', monospace; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+    .ssr-sha-box { margin-top: 1rem; padding: 0.85rem 0.95rem; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); font: 0.78rem/1.45 'IBM Plex Mono', monospace; }
+    .ssr-sha-head { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.55rem; }
+    .ssr-sha-val { color: var(--text); word-break: break-all; }
+    .ssr-sha-verify { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
+    .ssr-sha-verify input { flex: 1 1 200px; min-height: 44px; background: var(--surface); }
+    .ssr-sha-badge { display: none; padding: 0.35rem 0.6rem; border-radius: 4px; font-weight: 600; font-size: 0.76rem; white-space: nowrap; }
+    .ssr-sha-badge.is-match { display: inline-block; color: var(--success); border: 1px solid var(--success); background: color-mix(in srgb, var(--success) 12%, transparent); }
+    .ssr-sha-badge.is-mismatch { display: inline-block; color: var(--danger); border: 1px solid var(--danger); background: color-mix(in srgb, var(--danger) 12%, transparent); }
+    .ssr-links-box { display: grid; gap: 0.7rem; margin-top: 1rem; padding: 0.85rem 0.95rem; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); }
+    .ssr-link-label { display: block; font: 500 0.74rem 'IBM Plex Mono', monospace; color: var(--muted); margin-bottom: 0.3rem; }
+    .ssr-link-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0.5rem; align-items: center; }
+    .burn-warn { background: color-mix(in srgb, var(--danger) 8%, var(--bg)); border: 1px solid color-mix(in srgb, var(--danger) 40%, var(--border)); border-left: 3px solid var(--danger); color: var(--text); border-radius: 6px; padding: 0.72rem 0.9rem; font-size: 0.84rem; margin: 1rem 0 0; }
+    .ssr-actions { display: flex; flex-wrap: wrap; gap: 0.6rem; margin-top: 1.15rem; }
+    .ssr-actions .btn { flex: 1 1 150px; justify-content: center; min-height: 44px; text-decoration: none; }
+    .btn-compact { min-height: 44px; padding: 0.45rem 0.8rem; font-size: 0.78rem; width: auto !important; flex: 0 0 auto; }
+    .qr-panel { display: none; margin-top: 1rem; padding: 1rem; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); flex-direction: column; align-items: center; gap: 0.6rem; }
     .qr-panel.open { display: flex; }
-    .qr-box-inner { width: 168px; height: 168px; background: #fff; padding: 8px; border-radius: 8px; display: flex; align-items: center; justify-content: center; }
-    .report-wrap { text-align: center; margin-top: 1.2rem; }
-    .report-link { display: inline-flex; align-items: center; min-height: 44px; padding: 0 0.75rem; color: var(--muted); font-size: 0.82rem; text-decoration: none; }
+    .qr-box-inner { width: 168px; height: 168px; background: #fff; padding: 8px; border-radius: 6px; display: flex; align-items: center; justify-content: center; }
+    .report-wrap { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; margin-top: 1.1rem; padding-top: 0.85rem; border-top: 1px solid var(--border); font: 0.78rem 'IBM Plex Mono', monospace; color: var(--muted); }
+    .report-link { display: inline-flex; align-items: center; min-height: 44px; color: var(--muted); text-decoration: none; }
     .report-link:hover { color: var(--danger); text-decoration: underline; }
-    .ssr-status-msg { color: var(--muted); font-size: 0.94rem; margin: 0.5rem 0 1.25rem 0; line-height: 1.6; }
+    .ssr-status-msg { color: var(--muted); font-size: 0.92rem; margin: 0.5rem 0 1.15rem 0; line-height: 1.55; }
     @media (max-width: 640px) {
-      .ssr-wrap { width: calc(100% - 1.25rem); }
+      .ssr-wrap { width: calc(100% - 1.25rem); margin: 1rem auto 1.75rem; }
+      .ssr-link-row { grid-template-columns: 1fr; }
       .ssr-actions { flex-direction: column; }
-      .ssr-actions .btn { width: 100%; }
+      .ssr-actions .btn { width: 100%; flex: 0 0 auto; }
     }
 `;
 
@@ -317,6 +334,7 @@ function renderSsrHeader() {
     <a class="nav-link" href="/tools/tinyurl/" data-nav="tinyurl">TinyURL</a>
     <a class="nav-link" href="/tools/qr/" data-nav="qr">QR studio</a>
     <a class="nav-link active" href="/tools/drop/" data-nav="drop" aria-current="page">Drop</a>
+    <a class="nav-link" href="/tools/lan/" data-nav="lan">LAN</a>
     <a class="nav-link" href="/tools/paste/" data-nav="paste">Pastebin</a>
     <a class="nav-link" href="/tools/health/" data-nav="health">Health</a>
   </nav>
@@ -327,7 +345,7 @@ function renderSsrHeader() {
 </header>`;
 }
 
-function renderDropSsrStatusPage({ title, eyebrow, heading, message, assets }) {
+function renderDropSsrStatusPage({ title, heading, message, assets }) {
   return `<!DOCTYPE html>
 <html lang="en" data-theme="oled-black">
 <head>
@@ -342,11 +360,13 @@ function renderDropSsrStatusPage({ title, eyebrow, heading, message, assets }) {
   <script src="${assets.themeJs}"></script>
   <style>${SSR_SHARED_CSS}</style>
 </head>
-<body>
+<body class="tool-page">
 ${renderSsrHeader()}
 <main id="main" class="ssr-wrap">
   <article class="ssr-card">
-    <span class="eyebrow">${htmlEscape(eyebrow)}</span>
+    <div class="ssr-top">
+      <span class="tool-section-label" style="margin-bottom:0;">Shared file</span>
+    </div>
     <h1>${htmlEscape(heading)}</h1>
     <p class="ssr-status-msg">${htmlEscape(message)}</p>
     <div class="ssr-actions">
@@ -364,8 +384,20 @@ function renderDropSsrPage({ drop, downloadUrl, assets }) {
   const expiresDate = drop.expiresAt ? new Date(drop.expiresAt).toUTCString() : 'Never';
   const isBurn = drop.maxDownloads === 1;
   const isEncrypted = Boolean(drop.encrypted);
+  const viewUrl = downloadUrl.replace(/\/d\/([^/]+)$/, '/v/$1');
+  const curlCmd = `curl -LOJ ${downloadUrl}`;
   const shaBlock = drop.sha256
-    ? `<div class="meta-row"><span>SHA-256:</span><span class="mono" style="font-size:.78rem;">${htmlEscape(drop.sha256)}</span></div>`
+    ? `<div class="ssr-sha-box">
+      <div class="ssr-sha-head">
+        <span><strong>SHA-256:</strong> <span class="ssr-sha-val">${htmlEscape(drop.sha256)}</span></span>
+        <button type="button" class="btn btn-compact" data-copy-value="${htmlEscape(drop.sha256)}">Copy SHA-256</button>
+      </div>
+      <div class="ssr-sha-verify">
+        <label for="ssr-sha-input" class="skip-link">Expected SHA-256 checksum</label>
+        <input type="text" id="ssr-sha-input" data-expected-sha="${htmlEscape(drop.sha256)}" placeholder="Paste expected SHA-256 to verify integrity…" autocomplete="off" spellcheck="false">
+        <span class="ssr-sha-badge" id="ssr-sha-badge" role="status"></span>
+      </div>
+    </div>`
     : '';
   const statusLabel = drop.state === 'complete' ? 'Ready' : 'Uploading / Pending';
 
@@ -385,33 +417,65 @@ function renderDropSsrPage({ drop, downloadUrl, assets }) {
   <script src="${assets.ssrViewJs}" defer></script>
   <style>${SSR_SHARED_CSS}</style>
 </head>
-<body>
+<body class="tool-page">
 ${renderSsrHeader()}
 <main id="main" class="ssr-wrap">
   <article class="ssr-card">
-    <span class="eyebrow">$ drop --fetch ${safeId}</span>
-    <div class="pill-row">
-      <span class="code-pill" title="Typeable Drop Code">${safeId}</span>
-      ${isEncrypted ? '<span class="badge-tag">E2E Encrypted</span>' : ''}
-      ${isBurn ? '<span class="badge-tag">Burn After 1 Download</span>' : ''}
+    <div class="ssr-top">
+      <span class="tool-section-label" style="margin-bottom:0;">Shared file</span>
+      <div class="ssr-tags">
+        ${isEncrypted ? '<span class="ssr-tag">E2E Encrypted</span>' : ''}
+        ${isBurn ? '<span class="ssr-tag is-burn">Burn After 1 Download</span>' : ''}
+      </div>
     </div>
     <h1>${safeNameAttr}</h1>
+    <div class="ssr-code-box">
+      <div>
+        <span class="tool-section-label" style="margin-bottom:0.15rem;">Short Code</span>
+        <div class="ssr-code-val">${safeId}</div>
+      </div>
+      <button type="button" class="btn btn-compact" data-copy-value="${safeId}">Copy Code</button>
+    </div>
     <div class="meta-row"><span>File Size:</span><span>${formatBytes(drop.size)}</span></div>
     <div class="meta-row"><span>Expires At:</span><span>${htmlEscape(expiresDate)}</span></div>
     <div class="meta-row"><span>Downloads:</span><span>${drop.downloads}${drop.maxDownloads ? ` / ${drop.maxDownloads}` : ''}</span></div>
     <div class="meta-row"><span>Status:</span><span>${statusLabel}</span></div>
     ${shaBlock}
-    ${isBurn ? '<div class="burn-warn" role="note">⚠️ Burn on read: this file will be permanently deleted after 1 download.</div>' : ''}
+    <div class="ssr-links-box">
+      <div>
+        <label class="ssr-link-label" for="ssr-share-url">Share URL (/v/)</label>
+        <div class="ssr-link-row">
+          <input type="text" id="ssr-share-url" value="${htmlEscape(viewUrl)}" readonly>
+          <button type="button" class="btn btn-compact" data-copy-value="${htmlEscape(viewUrl)}">Copy Link</button>
+        </div>
+      </div>
+      <div>
+        <label class="ssr-link-label" for="ssr-direct-url">Direct Download URL (/d/)</label>
+        <div class="ssr-link-row">
+          <input type="text" id="ssr-direct-url" value="${htmlEscape(downloadUrl)}" readonly>
+          <button type="button" class="btn btn-compact" data-copy-value="${htmlEscape(downloadUrl)}">Copy Direct</button>
+        </div>
+      </div>
+      <div>
+        <label class="ssr-link-label" for="ssr-curl-cmd">Terminal Fetch (cURL)</label>
+        <div class="ssr-link-row">
+          <input type="text" id="ssr-curl-cmd" value="${htmlEscape(curlCmd)}" readonly>
+          <button type="button" class="btn btn-compact" data-copy-value="${htmlEscape(curlCmd)}">Copy curl</button>
+        </div>
+      </div>
+    </div>
+    ${isBurn ? '<div class="burn-warn" role="note">Burn on read: this file will be permanently deleted after 1 download.</div>' : ''}
     <div class="ssr-actions">
       <a href="${htmlEscape(downloadUrl)}" class="btn btn-solid" download>Download File</a>
-      <button type="button" class="btn" id="copy-download-btn" data-copy-url="${htmlEscape(downloadUrl)}">Copy Link</button>
-      <button type="button" class="btn" id="toggle-qr-btn" data-qr-url="${htmlEscape(downloadUrl)}">QR Code</button>
+      <button type="button" class="btn" id="copy-download-btn" data-copy-url="${htmlEscape(viewUrl)}">Copy Link</button>
+      <button type="button" class="btn" id="toggle-qr-btn" data-qr-url="${htmlEscape(viewUrl)}" aria-expanded="false">QR Code</button>
     </div>
     <div class="qr-panel" id="drop-ssr-qr">
       <div id="drop-ssr-qr-wrap" class="qr-box-inner"></div>
       <span class="mono" style="font-size:0.75rem;color:var(--muted);">Scan to download on mobile</span>
     </div>
     <div class="report-wrap">
+      <span>Cloudflare R2 presigned delivery</span>
       <a href="/abuse?kind=drop&amp;id=${safeId}" class="report-link">Report Abuse</a>
     </div>
   </article>
@@ -1437,11 +1501,6 @@ function createDropRouter({ store, objectStore, limiters = {}, config = {}, cloc
     res.type('application/javascript');
     res.setHeader('Cache-Control', 'public, max-age=0, s-maxage=300, stale-while-revalidate=86400');
     res.sendFile('ssr-view.js', { root: DROP_PUBLIC_DIR });
-  });
-  router.get(['/tools/drop/lan.js', '/lan.js'], (req, res) => {
-    res.type('application/javascript');
-    res.setHeader('Cache-Control', 'public, max-age=0, s-maxage=300, stale-while-revalidate=86400');
-    res.sendFile('lan.js', { root: DROP_PUBLIC_DIR });
   });
 
   return router;

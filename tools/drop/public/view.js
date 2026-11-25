@@ -142,7 +142,7 @@
     if (!id) {
       byId('file-title').textContent = 'No Drop code specified';
       byId('file-size').textContent = '—';
-      byId('drop-status-pill').textContent = '● INVALID';
+      byId('drop-status-pill').textContent = 'Invalid';
       if (dlBtn) dlBtn.style.display = 'none';
       return;
     }
@@ -237,7 +237,7 @@
       }
       if (statusPill) {
         statusPill.classList.add('is-danger');
-        statusPill.textContent = errorStatus === 451 ? '● QUARANTINED' : errorStatus === 410 ? '● EXPIRED' : '● NOT FOUND';
+        statusPill.textContent = errorStatus === 451 ? 'Quarantined' : errorStatus === 410 ? 'Expired' : 'Not found';
       }
       byId('file-title').textContent = resolved ? meta.name : ('Unavailable (' + canonicalCode + ')');
       byId('file-size').textContent = meta.size ? formatBytes(meta.size) : 'Unavailable';
@@ -268,11 +268,11 @@
     if (meta.isBurn && banner) {
       banner.className = 'state-banner is-burn';
       banner.textContent = 'Burn-on-read enabled: this file is permanently deleted after 1 download.';
-      if (statusPill) statusPill.textContent = '● BURN 1×';
+      if (statusPill) statusPill.textContent = 'Burn 1×';
     } else if (meta.isFolder && statusPill) {
-      statusPill.textContent = '● FOLDER';
+      statusPill.textContent = 'Folder';
     } else if (statusPill) {
-      statusPill.textContent = '● READY';
+      statusPill.textContent = 'Ready';
     }
 
     if (!meta.isFolder) {
@@ -377,7 +377,7 @@
       folderList.replaceChildren();
       var heading = document.createElement('div');
       heading.className = 'folder-heading';
-      heading.textContent = '$ ls --files (' + meta.files.length + ' files in folder)';
+      heading.textContent = 'Files (' + meta.files.length + ')';
       folderList.appendChild(heading);
 
       meta.files.forEach(function (f) {

@@ -23,6 +23,7 @@ const PAGES = [
   { name: 'TinyURL Tool', path: '/tools/tinyurl/' },
   { name: 'Paste Tool', path: '/tools/paste/' },
   { name: 'Drop Tool', path: '/tools/drop/' },
+  { name: 'LAN Share Tool', path: '/tools/lan/' },
   { name: 'QR Studio Tool', path: '/tools/qr/' },
   { name: 'Case Study', path: '/projects/pokedb-site.html' }
 ];
@@ -414,6 +415,7 @@ async function run() {
       { tool: 'TinyURL', path: '/tools/tinyurl/', submitId: 'shorten-btn', name: 'Shorten URL' },
       { tool: 'Paste', path: '/tools/paste/', submitId: 'create-btn', name: 'Create Paste' },
       { tool: 'Drop', path: '/tools/drop/', submitId: 'start-upload-btn', name: 'Start Upload' },
+      { tool: 'LAN Share', path: '/tools/lan/', submitId: 'lan-select-files-btn', name: 'Select Files' },
       { tool: 'QR Studio', path: '/tools/qr/', submitId: 'generate-btn', name: 'Generate QR Code' }
     ];
 

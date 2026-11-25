@@ -4,130 +4,117 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Minecraft Server Utilities &amp; Aikar JVM Flags — pokedb.site tools</title>
-<meta name="description" content="Offline-first Minecraft server.properties generator, verified Aikar/PaperMC JVM flags, MOTD color preview, and DNS SRV helper.">
+<meta name="description" content="Offline Minecraft server toolkit: Aikar PaperMC JVM flags, MOTD preview, and DNS SRV helper.">
 <link rel="stylesheet" href="/fonts/fonts.css">
 <link rel="stylesheet" href="/tools/shared/theme.css">
 <script src="/tools/shared/theme-switcher.js?v=3"></script>
 <script src="/tools/shared/state-url.js"></script>
 <style>
-  .tool-container { max-width: 960px; margin: 1.5rem auto; padding: 0 1rem; }
-  .util-section { margin-top: 1.5rem; padding: 1.25rem; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); }
-  .util-section h2 { font-size: 1.1rem; margin-bottom: 0.5rem; color: var(--accent); }
-  .form-row-mc { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; margin: 1rem 0; }
-  .preview-motd { padding: 1rem; border-radius: 6px; background: #000; font-family: var(--font-mono); font-size: 1.1rem; line-height: 1.4; border: 1px solid #333; margin-top: 0.5rem; min-height: 60px; }
-  .code-output { width: 100%; height: 160px; font-family: var(--font-mono); font-size: 0.82rem; padding: 0.75rem; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); color: var(--text); resize: vertical; }
-  .badge-offline { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.2rem 0.6rem; border-radius: 4px; background: color-mix(in srgb, var(--success) 15%, transparent); border: 1px solid var(--success); color: var(--success); font-family: var(--font-mono); font-size: 0.75rem; }
+  .mc-wrap { max-width: 960px; margin-inline: auto; }
+  .util-section { margin-top: 1.15rem; padding: 1.15rem; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); }
+  .util-section:first-of-type { margin-top: 0; }
+  .util-section h2 { font-size: 1.02rem; margin-bottom: .35rem; color: var(--accent); }
+  .form-row-mc { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: .9rem; margin: .85rem 0; }
+  .form-row-mc label { display: block; margin-bottom: .35rem; }
+  .preview-motd { padding: .9rem 1rem; border-radius: 6px; background: #000; font-family: 'IBM Plex Mono', monospace; font-size: 1.05rem; line-height: 1.4; border: 1px solid var(--border); margin-top: .55rem; min-height: 58px; overflow-wrap: anywhere; }
+  .code-output { width: 100%; height: 150px; font-family: 'IBM Plex Mono', monospace; font-size: .82rem; padding: .75rem; border: 1px solid var(--border); border-radius: 7px; background: var(--bg); color: var(--text); resize: vertical; }
 </style>
 </head>
-<body>
+<body class="tool-page">
 
 <a href="#main" class="skip-link">Skip to main content</a>
 
 <header class="site-nav">
   <a class="logo" href="/" data-nav="main">root<span>@</span>pokedb</a>
   <nav class="nav-links" aria-label="Tools navigation">
-    <a class="nav-link" href="https://tools.pokedb.site/" data-nav="tools">Hub</a>
-    <a class="nav-link" href="/tools/json">JSON</a>
-    <a class="nav-link" href="/tools/jwt">JWT</a>
-    <a class="nav-link" href="/tools/codec">Codec</a>
-    <a class="nav-link" href="/tools/hash">Hash</a>
-    <a class="nav-link" href="/tools/uuid">UUID</a>
-    <a class="nav-link" href="/tools/cron">Cron</a>
-    <a class="nav-link" href="/tools/diff">Diff</a>
-    <a class="nav-link active" href="/tools/minecraft">Minecraft</a>
-    <a class="nav-link" href="/tools/sanitizer">Sanitizer</a>
+    <a class="nav-link" href="https://tools.pokedb.site/" data-nav="tools">Tools hub</a>
+    <a class="nav-link" href="https://tinyurl.pokedb.site/" data-nav="tinyurl">TinyURL</a>
+    <a class="nav-link" href="https://qr.pokedb.site/" data-nav="qr">QR studio</a>
+    <a class="nav-link" href="https://drop.pokedb.site/" data-nav="drop">Drop</a>
+    <a class="nav-link" href="https://lan.pokedb.site/" data-nav="lan">LAN</a>
+    <a class="nav-link" href="https://paste.pokedb.site/" data-nav="paste">Pastebin</a>
+    <a class="nav-link" href="https://health.pokedb.site/" data-nav="health">Health</a>
   </nav>
   <div class="theme-switcher">
     <span class="theme-swatch" id="theme-swatch"></span>
-    <select id="theme-select" aria-label="Color theme">
-      <option value="oled-black">OLED</option>
-      <option value="paper">Paper</option>
-      <option value="matrix">Matrix</option>
-      <option value="cyberpunk">Cyberpunk</option>
-      <option value="synthwave">Synthwave</option>
-      <option value="nordic-ice">Nordic</option>
-      <option value="dracula-neon">Dracula</option>
-      <option value="gruvbox-retro">Gruvbox</option>
-      <option value="emerald-forest">Emerald</option>
-      <option value="sunset-amber">Sunset</option>
-      <option value="solarized-gold">Solarized</option>
-      <option value="tokyo-neon">Tokyo</option>
-    </select>
+    <select id="theme-select" aria-label="Color theme"></select>
   </div>
 </header>
 
-<main id="main" class="tool-container">
-  <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem;">
-    <div>
-      <span class="eyebrow">$ mc --ops</span>
-      <h1 style="font-size:1.5rem; margin:0.25rem 0;">Minecraft Server Toolkit</h1>
+<main id="main" class="tool-shell">
+  <div class="mc-wrap">
+    <div class="tool-head">
+      <div>
+        <h1>Minecraft Server Toolkit</h1>
+        <p class="tool-sub">Aikar PaperMC JVM startup flags, MOTD color preview, and SRV DNS helper.</p>
+      </div>
+      <span class="tool-quiet-meta">Local browser only · connect-src: none</span>
     </div>
-    <span class="badge-offline">● 100% Client-Side · connect-src: 'none'</span>
+
+    <section class="util-section">
+      <h2>1. Aikar's JVM Startup Flags (PaperMC Standard)</h2>
+      <p style="color:var(--muted); font-size:.86rem;">Flags aligned with official PaperMC / Aikar specifications.</p>
+
+      <div class="form-row-mc">
+        <div>
+          <label for="mc-memory" class="mono">Allocated memory (RAM)</label>
+          <select id="mc-memory" class="mono">
+            <option value="4G">4 GB</option>
+            <option value="6G">6 GB</option>
+            <option value="8G" selected>8 GB (Recommended)</option>
+            <option value="10G">10 GB</option>
+            <option value="12G">12 GB</option>
+            <option value="16G">16 GB</option>
+            <option value="24G">24 GB</option>
+          </select>
+        </div>
+        <div>
+          <label for="mc-jar" class="mono">Server jar file</label>
+          <input type="text" id="mc-jar" value="paper.jar" class="mono">
+        </div>
+      </div>
+
+      <label for="jvm-output" class="mono" style="display:block; margin-bottom:.35rem;">Generated startup command</label>
+      <textarea id="jvm-output" class="code-output" readonly spellcheck="false"></textarea>
+      <div style="margin-top:.6rem;">
+        <button class="btn btn-solid" type="button" data-copy-id="jvm-output">Copy flags</button>
+      </div>
+    </section>
+
+    <section class="util-section">
+      <h2>2. MOTD &amp; Color Code Preview (&amp; / §)</h2>
+      <p style="color:var(--muted); font-size:.86rem;">Live rendering of Minecraft color codes (&amp;a, &amp;b, &amp;6) and formatting tags.</p>
+      <div style="margin-top:.6rem;">
+        <label for="motd-input" class="mono" style="display:block; margin-bottom:.35rem;">MOTD string</label>
+        <input type="text" id="motd-input" value="&6Eternal Network &7» &aSeason 4 &r&b[1.21.x]" class="mono" style="width:100%;">
+      </div>
+      <div class="preview-motd" id="motd-preview" aria-label="MOTD color preview"></div>
+    </section>
+
+    <section class="util-section">
+      <h2>3. Cloudflare / BIND DNS SRV Record Helper</h2>
+      <p style="color:var(--muted); font-size:.86rem;">Generate SRV records mapping play domains to custom ports.</p>
+      <div class="form-row-mc">
+        <div>
+          <label for="srv-domain" class="mono">Play domain</label>
+          <input type="text" id="srv-domain" value="play.example.com" class="mono">
+        </div>
+        <div>
+          <label for="srv-target" class="mono">Backend target host</label>
+          <input type="text" id="srv-target" value="node01.example.com" class="mono">
+        </div>
+        <div>
+          <label for="srv-port" class="mono">Game port</label>
+          <input type="text" id="srv-port" value="25565" class="mono">
+        </div>
+      </div>
+      <label for="srv-output" class="mono" style="display:block; margin-bottom:.35rem;">DNS SRV record</label>
+      <textarea id="srv-output" class="code-output" style="height:90px;" readonly spellcheck="false"></textarea>
+      <div style="margin-top:.6rem;">
+        <button class="btn" type="button" data-copy-id="srv-output">Copy SRV entry</button>
+      </div>
+    </section>
   </div>
-
-  <!-- 1. Aikar's JVM Flags Generator -->
-  <section class="util-section">
-    <h2>1. Aikar's JVM Startup Flags (PaperMC Standard)</h2>
-    <p style="color:var(--muted); font-size:0.85rem;">Flags verified against official PaperMC / Aikar specifications. Zero invented or deprecated flags.</p>
-    
-    <div class="form-row-mc">
-      <div>
-        <label for="mc-memory" class="mono">Allocated Memory (RAM):</label>
-        <select id="mc-memory" class="mono">
-          <option value="4G">4 GB</option>
-          <option value="6G">6 GB</option>
-          <option value="8G" selected>8 GB (Recommended)</option>
-          <option value="10G">10 GB</option>
-          <option value="12G">12 GB</option>
-          <option value="16G">16 GB</option>
-          <option value="24G">24 GB</option>
-        </select>
-      </div>
-      <div>
-        <label for="mc-jar" class="mono">Server Jar File:</label>
-        <input type="text" id="mc-jar" value="paper.jar" class="mono">
-      </div>
-    </div>
-
-    <textarea id="jvm-output" class="code-output" readonly spellcheck="false"></textarea>
-    <div style="margin-top:0.5rem;">
-      <button class="btn btn-solid" type="button" data-copy-id="jvm-output">Copy Flags</button>
-    </div>
-  </section>
-
-  <!-- 2. MOTD Preview & Color Code Studio -->
-  <section class="util-section">
-    <h2>2. MOTD &amp; Color Code Preview (&amp; / §)</h2>
-    <p style="color:var(--muted); font-size:0.85rem;">Real-time rendering of Minecraft color codes (&amp;a, &amp;b, &amp;6, etc.) and formatting tags.</p>
-    <div style="margin-top:0.5rem;">
-      <input type="text" id="motd-input" value="&6Eternal Network &7» &aSeason 4 &r&b[1.21.x]" class="mono" style="width:100%;">
-    </div>
-    <div class="preview-motd" id="motd-preview"></div>
-  </section>
-
-  <!-- 3. DNS SRV Record Helper -->
-  <section class="util-section">
-    <h2>3. Cloudflare / Bind DNS SRV Record Helper</h2>
-    <p style="color:var(--muted); font-size:0.85rem;">Generate SRV records to hide backend ports and map subdomains to custom game ports.</p>
-    <div class="form-row-mc">
-      <div>
-        <label for="srv-domain" class="mono">Play Domain:</label>
-        <input type="text" id="srv-domain" value="play.example.com" class="mono">
-      </div>
-      <div>
-        <label for="srv-target" class="mono">Backend Target Host:</label>
-        <input type="text" id="srv-target" value="node01.example.com" class="mono">
-      </div>
-      <div>
-        <label for="srv-port" class="mono">Game Port:</label>
-        <input type="text" id="srv-port" value="25565" class="mono">
-      </div>
-    </div>
-    <textarea id="srv-output" class="code-output" style="height:90px;" readonly spellcheck="false"></textarea>
-    <div style="margin-top:0.5rem;">
-      <button class="btn" type="button" data-copy-id="srv-output">Copy SRV Entry</button>
-    </div>
-  </section>
 </main>
 
 <script src="./app.js" defer></script>

@@ -4,91 +4,74 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>JSON Formatter &amp; Validator — pokedb.site tools</title>
-<meta name="description" content="Fast, offline-first client-side JSON formatter, validator, and minifier with zero tracking.">
+<meta name="description" content="Offline client-side JSON formatter, validator, and minifier.">
 <link rel="stylesheet" href="/fonts/fonts.css">
 <link rel="stylesheet" href="/tools/shared/theme.css">
 <script src="/tools/shared/theme-switcher.js?v=3"></script>
 <script src="/tools/shared/state-url.js"></script>
 <style>
-  .tool-container { max-width: 1000px; margin: 1.5rem auto; padding: 0 1rem; }
-  .editor-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem; }
+  .editor-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; margin-top: .85rem; }
   @media (max-width: 768px) { .editor-grid { grid-template-columns: 1fr; } }
-  .editor-pane { display: flex; flex-direction: column; gap: 0.5rem; }
-  .editor-box { width: 100%; height: 420px; font-family: var(--font-mono); font-size: 0.85rem; padding: 0.75rem; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--text); resize: vertical; tab-size: 2; }
-  .controls-row { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin-top: 0.75rem; }
-  .stats-bar { display: flex; gap: 1rem; color: var(--muted); font-family: var(--font-mono); font-size: 0.78rem; margin-top: 0.5rem; }
-  .badge-offline { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.2rem 0.6rem; border-radius: 4px; background: color-mix(in srgb, var(--success) 15%, transparent); border: 1px solid var(--success); color: var(--success); font-family: var(--font-mono); font-size: 0.75rem; }
+  .editor-pane { display: flex; flex-direction: column; gap: .45rem; min-width: 0; }
+  .editor-box { width: 100%; height: 420px; font-family: 'IBM Plex Mono', monospace; font-size: .85rem; padding: .75rem; border: 1px solid var(--border); border-radius: 7px; background: var(--surface); color: var(--text); resize: vertical; tab-size: 2; }
+  .controls-row { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; }
+  .stats-bar { display: flex; gap: 1rem; color: var(--muted); font-family: 'IBM Plex Mono', monospace; font-size: .78rem; }
+  .sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0,0,0,0); border: 0; }
 </style>
 </head>
-<body>
+<body class="tool-page">
 
 <a href="#main" class="skip-link">Skip to main content</a>
 
 <header class="site-nav">
   <a class="logo" href="/" data-nav="main">root<span>@</span>pokedb</a>
   <nav class="nav-links" aria-label="Tools navigation">
-    <a class="nav-link" href="https://tools.pokedb.site/" data-nav="tools">Hub</a>
-    <a class="nav-link active" href="/tools/json">JSON</a>
-    <a class="nav-link" href="/tools/jwt">JWT</a>
-    <a class="nav-link" href="/tools/codec">Codec</a>
-    <a class="nav-link" href="/tools/hash">Hash</a>
-    <a class="nav-link" href="/tools/uuid">UUID</a>
-    <a class="nav-link" href="/tools/cron">Cron</a>
-    <a class="nav-link" href="/tools/diff">Diff</a>
-    <a class="nav-link" href="/tools/minecraft">Minecraft</a>
-    <a class="nav-link" href="/tools/sanitizer">Sanitizer</a>
+    <a class="nav-link" href="https://tools.pokedb.site/" data-nav="tools">Tools hub</a>
+    <a class="nav-link" href="https://tinyurl.pokedb.site/" data-nav="tinyurl">TinyURL</a>
+    <a class="nav-link" href="https://qr.pokedb.site/" data-nav="qr">QR studio</a>
+    <a class="nav-link" href="https://drop.pokedb.site/" data-nav="drop">Drop</a>
+    <a class="nav-link" href="https://lan.pokedb.site/" data-nav="lan">LAN</a>
+    <a class="nav-link" href="https://paste.pokedb.site/" data-nav="paste">Pastebin</a>
+    <a class="nav-link" href="https://health.pokedb.site/" data-nav="health">Health</a>
   </nav>
   <div class="theme-switcher">
     <span class="theme-swatch" id="theme-swatch"></span>
-    <select id="theme-select" aria-label="Color theme">
-      <option value="oled-black">OLED</option>
-      <option value="paper">Paper</option>
-      <option value="matrix">Matrix</option>
-      <option value="cyberpunk">Cyberpunk</option>
-      <option value="synthwave">Synthwave</option>
-      <option value="nordic-ice">Nordic</option>
-      <option value="dracula-neon">Dracula</option>
-      <option value="gruvbox-retro">Gruvbox</option>
-      <option value="emerald-forest">Emerald</option>
-      <option value="sunset-amber">Sunset</option>
-      <option value="solarized-gold">Solarized</option>
-      <option value="tokyo-neon">Tokyo</option>
-    </select>
+    <select id="theme-select" aria-label="Color theme"></select>
   </div>
 </header>
 
-<main id="main" class="tool-container">
-  <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem;">
+<main id="main" class="tool-shell">
+  <div class="tool-head">
     <div>
-      <span class="eyebrow">$ json --format</span>
-      <h1 style="font-size:1.5rem; margin:0.25rem 0;">JSON Formatter &amp; Validator</h1>
+      <h1>JSON Formatter &amp; Validator</h1>
+      <p class="tool-sub">Format, minify, validate syntax, and share JSON state via URL fragment.</p>
     </div>
-    <span class="badge-offline">● 100% Client-Side · connect-src: 'none'</span>
+    <span class="tool-quiet-meta">Local browser only · connect-src: none</span>
   </div>
 
   <div class="controls-row">
-    <button class="btn btn-solid" id="btn-format">Format (2 Spaces)</button>
-    <button class="btn" id="btn-format-4">Format (4 Spaces)</button>
-    <button class="btn" id="btn-minify">Minify</button>
-    <button class="btn" id="btn-copy">Copy Output</button>
-    <button class="btn" id="btn-share">Share State</button>
-    <button class="btn" id="btn-clear">Clear</button>
+    <button class="btn btn-solid" id="btn-format" type="button">Format (2 spaces)</button>
+    <button class="btn" id="btn-format-4" type="button">Format (4 spaces)</button>
+    <button class="btn" id="btn-minify" type="button">Minify</button>
+    <button class="btn" id="btn-copy" type="button">Copy output</button>
+    <button class="btn" id="btn-share" type="button">Share state</button>
+    <button class="btn" id="btn-clear" type="button">Clear</button>
   </div>
 
   <div class="editor-grid">
     <div class="editor-pane">
-      <label for="json-input" class="mono">Raw Input</label>
+      <label for="json-input" class="mono">Raw input</label>
       <textarea id="json-input" class="editor-box" placeholder='{"paste": "json here", "fast": true}' spellcheck="false"></textarea>
       <div id="input-stats" class="stats-bar">Bytes: 0 | Lines: 1</div>
     </div>
     <div class="editor-pane">
-      <label for="json-output" class="mono">Formatted Output</label>
+      <label for="json-output" class="mono">Formatted output</label>
       <textarea id="json-output" class="editor-box" readonly placeholder="Output will appear here..." spellcheck="false"></textarea>
       <div id="output-stats" class="stats-bar">Status: Ready</div>
     </div>
   </div>
 
-  <div id="aria-status" aria-live="polite" class="sr-only" style="position:absolute; left:-9999px;"></div>
+  <div id="aria-status" aria-live="polite" class="sr-only"></div>
 </main>
 
 <script src="./app.js" defer></script>

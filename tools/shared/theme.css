@@ -110,9 +110,47 @@ button:active, .btn:active, .tab-btn:active, .nav-link:active {
   transform: scale(0.97);
 }
 .table-scroll { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+/* Scoped utility-page workbench styles (keeps home page untouched) */
+body.tool-page { background: var(--bg); }
+body.tool-page::before { display: none; }
+body.tool-page .card-box,
+body.tool-page .drop-card,
+body.tool-page .status-card,
+body.tool-page .result-card,
+body.tool-page .paste-card,
+body.tool-page .upload-card,
+body.tool-page .viewer-card {
+  background: var(--surface);
+  box-shadow: none;
+  border-radius: 8px;
+}
+body.tool-page .result-modal-backdrop {
+  background: rgba(0, 0, 0, .72);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+body.tool-page .result-modal-dialog {
+  background: var(--surface);
+  border-radius: 10px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, .42);
+}
+.tool-shell { width: min(100% - 2.5rem, 1080px); margin: clamp(1.25rem, 3.2vw, 2.25rem) auto clamp(2rem, 4vw, 3.5rem); }
+.tool-head { display: flex; align-items: flex-end; justify-content: space-between; gap: .75rem 1.5rem; flex-wrap: wrap; padding-bottom: 1rem; margin-bottom: 1.35rem; border-bottom: 1px solid var(--border); }
+.tool-head h1 { font-size: clamp(1.35rem, 3vw, 1.75rem); font-weight: 600; letter-spacing: -.02em; line-height: 1.15; }
+.tool-sub { color: var(--muted); font-size: .92rem; margin-top: .35rem; max-width: 66ch; }
+.tool-quiet-meta { font-family: 'IBM Plex Mono', monospace; font-size: .76rem; color: var(--muted); white-space: nowrap; }
+.tool-section-label { font-family: 'IBM Plex Mono', monospace; font-size: .74rem; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin-bottom: .75rem; display: block; }
+.panel-flat { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: clamp(1rem, 2.5vw, 1.4rem); }
+.clean-tabs { display: flex; gap: 1.25rem; border-bottom: 1px solid var(--border); margin-bottom: 1.25rem; overflow-x: auto; }
+.clean-tab { background: none; border: 0; border-bottom: 2px solid transparent; padding: .55rem .15rem; min-height: 44px; color: var(--muted); font: 500 .86rem 'IBM Plex Sans', sans-serif; cursor: pointer; white-space: nowrap; transition: color .15s ease, border-color .15s ease; }
+.clean-tab:hover { color: var(--text); }
+.clean-tab.is-active { color: var(--text); border-bottom-color: var(--accent); font-weight: 600; }
+.clean-check { display: flex; align-items: flex-start; gap: .65rem; min-height: 44px; padding: .45rem 0; cursor: pointer; font-family: 'IBM Plex Sans', sans-serif; font-size: .88rem; color: var(--text); }
+.clean-check input[type="checkbox"] { width: 20px; height: 20px; min-width: 20px; min-height: 20px; margin: .15rem 0 0 0; accent-color: var(--accent); cursor: pointer; }
+.clean-check-sub { display: block; font-size: .78rem; color: var(--muted); margin-top: .12rem; }
 @media (max-width: 640px) {
-  input, textarea, select { font-size: 16px; }
-  body { padding-bottom: env(safe-area-inset-bottom); }
+  .tool-shell { width: calc(100% - 1.25rem); margin: 1rem auto 1.5rem; }
+  .tool-head { padding-bottom: .85rem; margin-bottom: 1rem; }
 }
 
 

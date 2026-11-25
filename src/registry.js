@@ -38,10 +38,19 @@ const initialTools = [
     id: 'drop',
     subdomain: 'drop',
     subpath: '/tools/drop',
-    title: 'Secure File Drop',
-    description: 'Direct-to-storage multipart file distribution with header tokens',
+    title: 'Drop File Transfer',
+    description: 'Direct-to-storage multipart file sharing with short typeable links',
     indexRoot: path.join(ROOT_DIR, 'tools', 'drop', 'public'),
     publicDir: path.join(ROOT_DIR, 'tools', 'drop', 'public')
+  },
+  {
+    id: 'lan',
+    subdomain: 'lan',
+    subpath: '/tools/lan',
+    title: 'LAN Direct Share',
+    description: 'Direct browser-to-browser file transfer over your local network with end-to-end encryption',
+    indexRoot: path.join(ROOT_DIR, 'tools', 'lan', 'public'),
+    publicDir: path.join(ROOT_DIR, 'tools', 'lan', 'public')
   },
   {
     id: 'health',

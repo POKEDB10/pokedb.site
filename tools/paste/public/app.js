@@ -81,24 +81,17 @@
     return plainBytes;
   }
 
-  function syncPillClasses() {
-    [encryptBox, burnBox, tabIndentBox].forEach(function (box) {
-      if (!box) return;
-      var pill = box.closest('.toggle-pill');
-      if (pill) pill.classList.toggle('is-checked', box.checked);
-    });
+  function syncOptionUi() {
+    var e2eOn = Boolean(encryptBox && encryptBox.checked);
     if (editorE2eBadge) {
-      var e2eOn = Boolean(encryptBox && encryptBox.checked);
-      editorE2eBadge.textContent = e2eOn ? 'E2E #k=' : 'Standard';
-      editorE2eBadge.classList.toggle('is-accent', e2eOn);
-      editorE2eBadge.classList.toggle('is-muted', !e2eOn);
+      editorE2eBadge.textContent = e2eOn ? 'E2E AES-GCM' : 'Standard';
+      editorE2eBadge.classList.toggle('is-e2e', e2eOn);
+      editorE2eBadge.classList.toggle('is-plain', !e2eOn);
     }
     if (payloadHint) {
-      if (encryptBox && encryptBox.checked) {
-        payloadHint.textContent = 'Client AES-GCM active · key stays in #k=';
-      } else {
-        payloadHint.textContent = 'Plain server storage · raw endpoint enabled';
-      }
+      payloadHint.textContent = e2eOn
+        ? 'Client AES-GCM active · key stays in #k='
+        : 'Plain server storage · raw endpoint enabled';
     }
   }
 
@@ -189,7 +182,11 @@
     if (!createBtn) return;
     createBtn.disabled = busy;
     if (createBtnLabel) {
-      createBtnLabel.textContent = busy ? 'Encrypting & Saving…' : 'Create Paste';
+      if (!busy) {
+        createBtnLabel.textContent = 'Create Paste';
+      } else {
+        createBtnLabel.textContent = (encryptBox && encryptBox.checked) ? 'Encrypting & Saving…' : 'Creating…';
+      }
     }
   }
 
@@ -264,7 +261,7 @@
 
       if (e.key === 'Escape' && tabIndentBox && tabIndentBox.checked) {
         tabIndentBox.checked = false;
-        syncPillClasses();
+        syncOptionUi();
         if (window.showToast) window.showToast('Tab indentation paused — Tab moves focus');
         return;
       }
@@ -341,7 +338,7 @@
   [encryptBox, burnBox, tabIndentBox].forEach(function (box) {
     if (!box) return;
     box.addEventListener('change', function () {
-      syncPillClasses();
+      syncOptionUi();
       updateEditorMetrics();
     });
   });
@@ -355,6 +352,7 @@
       userSelectedLang = false;
       clearError();
       syncLangBadge();
+      syncOptionUi();
       updateEditorMetrics();
       if (textarea) textarea.focus();
     });
@@ -480,7 +478,7 @@
     });
   }
 
-  syncPillClasses();
+  syncOptionUi();
   syncLangBadge();
   updateEditorMetrics();
 })();

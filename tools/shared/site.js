@@ -37,8 +37,8 @@
     }
     var toast = document.createElement('div');
     toast.className = 'mono';
-    toast.style.cssText = 'padding:0.6rem 1rem;background:var(--surface);color:var(--text);border:1px solid var(--accent);border-radius:6px;box-shadow:var(--shadow);font-size:0.8rem;opacity:0;transform:translateY(8px);transition:all 0.2s cubic-bezier(0.16, 1, 0.3, 1);pointer-events:auto;';
-    toast.textContent = '$ ' + message;
+    toast.style.cssText = 'padding:0.6rem 1rem;background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:6px;box-shadow:var(--shadow);font-size:0.8rem;opacity:0;transform:translateY(8px);transition:all 0.2s cubic-bezier(0.16, 1, 0.3, 1);pointer-events:auto;';
+    toast.textContent = message;
     container.appendChild(toast);
     requestAnimationFrame(function () {
       toast.style.opacity = '1';
@@ -54,11 +54,12 @@
   };
 
   var toolsList = [
-    { title: 'TinyURL Shortener', url: '/tools/tinyurl', desc: 'URL shortener with analytics and threat auditing' },
-    { title: 'Encrypted Pastebin', url: '/tools/paste', desc: 'Client-side encrypted zero-knowledge paste sharing' },
-    { title: 'QR Studio', url: '/tools/qr', desc: 'SVG & PNG customizable QR generator' },
-    { title: 'Secure File Drop', url: '/tools/drop', desc: 'Direct-to-R2 presigned multipart file transfers' },
-    { title: 'System Health', url: '/tools/health', desc: 'Real-time telemetry, memory, and replication age' },
+    { title: 'TinyURL', url: '/tools/tinyurl', desc: 'Shorten links with custom aliases, expiry, and QR export' },
+    { title: 'Pastebin', url: '/tools/paste', desc: 'Text and code sharing with optional browser encryption' },
+    { title: 'QR Studio', url: '/tools/qr', desc: 'Generate SVG and PNG QR codes for URLs, Wi-Fi, or email' },
+    { title: 'Drop', url: '/tools/drop', desc: 'Multipart file sharing with 8-character typeable links' },
+    { title: 'LAN Share', url: '/tools/lan', desc: 'Direct browser-to-browser transfer on your local network' },
+    { title: 'System Health', url: '/tools/health', desc: 'API latency trace, uptime, memory, and subsystem checks' },
     { title: 'JSON Formatter', url: '/tools/json', desc: 'Offline client-side JSON validator and minifier' },
     { title: 'JWT Inspector', url: '/tools/jwt', desc: 'Decode claims & verify HMAC signatures via WebCrypto' },
     { title: 'Codec Studio', url: '/tools/codec', desc: 'Base64, Hex, URL, and Binary encoder & decoder' },
@@ -82,8 +83,7 @@
     overlay.innerHTML = 
       '<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;width:100%;max-width:540px;box-shadow:var(--shadow);overflow:hidden;font-family:\'IBM Plex Mono\',monospace;">' +
         '<div style="padding:0.85rem 1rem;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:0.5rem;">' +
-          '<span style="color:var(--accent);">$</span>' +
-          '<input type="text" id="cmd-palette-input" placeholder="Search tools, projects, docs... (ESC to close)" style="width:100%;background:transparent;border:0;color:var(--text);font-family:inherit;font-size:0.9rem;outline:none;" autocomplete="off">' +
+          '<input type="text" id="cmd-palette-input" placeholder="Search tools, projects, docs... (Esc to close)" style="width:100%;background:transparent;border:0;color:var(--text);font-family:inherit;font-size:0.9rem;outline:none;" autocomplete="off">' +
         '</div>' +
         '<div id="cmd-palette-results" style="max-height:320px;overflow-y:auto;padding:0.5rem 0;"></div>' +
       '</div>';

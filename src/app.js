@@ -320,6 +320,7 @@ function createApp(options = {}) {
   // 11. Subpath mounts for localhost / unified navigation (/tools/:id/)
   const toolRouters = {
     drop: dropRouter,
+    ...(lanRouter ? { lan: lanRouter } : {}),
     paste: pasteRouter,
     qr: qrRouter,
     health: healthRouter,

@@ -2,12 +2,12 @@
 <html lang="en" data-theme="oled-black">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="robots" content="noindex, nofollow, noarchive">
   <title>Redirecting — pokedb.site</title>
-<link rel="stylesheet" href="/fonts/fonts.css">
-<link rel="preload" href="/fonts/ibm-plex-mono-400.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="preload" href="/fonts/ibm-plex-sans-400.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/fonts/fonts.css">
+  <link rel="preload" href="/fonts/ibm-plex-mono-400.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/fonts/ibm-plex-sans-400.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="/shared/theme.css">
   <script src="/shared/theme-switcher.js"></script>
   <style>
@@ -15,33 +15,32 @@
       max-width: 680px;
       margin: 0 auto;
       border: 1px solid var(--border);
-      border-radius: 14px;
-      background: var(--surface);
-      box-shadow: 0 8px 32px rgba(0,0,0,0.35);
-      overflow: hidden;
-    }
-    .dest-url-box {
-      background: rgba(0, 0, 0, 0.25);
-      border: 1px solid var(--border);
       border-radius: 8px;
-      padding: .85rem 1rem;
-      margin: .6rem 0 1.25rem 0;
-      word-break: break-all;
-      font-weight: 600;
-      font-size: 1.05rem;
-      color: var(--accent);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: .75rem;
+      background: var(--surface);
+      padding: clamp(1.1rem, 3.5vw, 1.75rem);
     }
+    .redirect-meta { font-family: 'IBM Plex Mono', monospace; font-size: .78rem; color: var(--muted); margin-top: .25rem; }
+    .dest-url-box {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      padding: .85rem 1rem;
+      margin: .6rem 0 1.15rem;
+      word-break: break-all;
+      font-family: 'IBM Plex Mono', monospace;
+      font-weight: 600;
+      font-size: .95rem;
+      color: var(--accent);
+    }
+    .redirect-stats { display: flex; flex-wrap: wrap; gap: .75rem 1.5rem; margin-bottom: 1rem; font-size: .9rem; color: var(--muted); }
+    .redirect-stats strong { color: var(--text); }
     .progress-bar-wrap {
       height: 4px;
       width: 100%;
-      background: rgba(255, 255, 255, 0.08);
+      background: var(--surface-2);
       border-radius: 2px;
       overflow: hidden;
-      margin-top: .85rem;
+      margin-top: .75rem;
     }
     .progress-bar-fill {
       height: 100%;
@@ -49,6 +48,7 @@
       background: var(--accent);
       transition: width 1s linear;
     }
+    .redirect-actions { display: flex; gap: .75rem; justify-content: flex-start; margin-top: 1.35rem; flex-wrap: wrap; }
     .modal-overlay {
       display: none;
       position: fixed;
@@ -56,85 +56,74 @@
       z-index: 100;
       place-items: center;
       padding: 1.25rem;
-      background: rgba(0, 0, 0, 0.88);
-      backdrop-filter: blur(8px);
+      background: rgba(0, 0, 0, .78);
     }
     .modal-card {
       width: min(100%, 540px);
-      padding: 1.85rem;
-      border: 1px solid color-mix(in srgb, var(--danger) 45%, transparent);
-      border-radius: 14px;
+      padding: 1.5rem;
+      border: 1px solid var(--danger);
+      border-radius: 8px;
       background: var(--surface);
-      box-shadow: 0 16px 48px color-mix(in srgb, var(--danger) 20%, transparent);
       text-align: left;
       font-family: 'IBM Plex Sans', sans-serif;
     }
     .modal-header {
       display: flex;
       align-items: center;
-      gap: .75rem;
-      margin-bottom: 1rem;
+      gap: .65rem;
+      margin-bottom: .9rem;
       color: var(--danger);
       font-family: 'IBM Plex Mono', monospace;
-      font-size: 1.15rem;
+      font-size: 1.08rem;
       font-weight: 600;
     }
     .flag-box {
       background: color-mix(in srgb, var(--danger) 8%, transparent);
       border: 1px solid color-mix(in srgb, var(--danger) 30%, transparent);
-      border-radius: 8px;
-      padding: .85rem 1rem;
+      border-radius: 6px;
+      padding: .8rem 1rem;
       margin: 1rem 0;
       font-family: 'IBM Plex Mono', monospace;
       font-size: .84rem;
       color: var(--text);
     }
-    .flag-box ul {
-      margin: .4rem 0 0 1.2rem;
-      padding: 0;
-    }
-    .flag-box li {
-      margin-bottom: .3rem;
-      color: var(--danger);
-    }
-    .modal-actions {
-      display: flex;
-      gap: .75rem;
-      justify-content: flex-end;
-      flex-wrap: wrap;
-      margin-top: 1.5rem;
-    }
+    .flag-box ul { margin: .4rem 0 0 1.2rem; padding: 0; }
+    .flag-box li { margin-bottom: .3rem; color: var(--danger); }
+    .modal-actions { display: flex; gap: .75rem; justify-content: flex-end; flex-wrap: wrap; margin-top: 1.25rem; }
   </style>
 </head>
-<body>
-<header class="site-nav"><div class="logo"><a class="logo" href="https://pokedb.site/" data-nav="main">root<span>@</span>pokedb</a><div class="nav-links"><a class="nav-link" href="https://tools.pokedb.site/" data-nav="tools">← Tools Hub</a></div></div></header>
-<main class="container" style="padding-top: 3rem; padding-bottom: 4rem;">
-  <div class="term-window redirect-card">
-    <div class="term-titlebar mono">~/redirect.sh — pokedb.site</div>
-    <div class="term-body">
-      <div><span class="prompt">$</span> <span class="out">tinyurl --resolve /{{safeCode}}</span></div>
-      <div style="margin-top: .85rem;"><span class="prompt">[+]</span> Destination URL:</div>
-      <div class="dest-url-box mono">
-        <span>{{safeUrl}}</span>
-      </div>
+<body class="tool-page">
+<a href="#main" class="skip-link">Skip to main content</a>
+<header class="site-nav">
+  <a class="logo" href="https://pokedb.site/" data-nav="main">root<span>@</span>pokedb</a>
+  <nav class="nav-links" aria-label="Tools navigation">
+    <a class="nav-link" href="https://tools.pokedb.site/" data-nav="tools">Tools hub</a>
+  </nav>
+</header>
+<main id="main" class="tool-shell">
+  <div class="redirect-card">
+    <h1 style="font-size:clamp(1.2rem, 3.5vw, 1.5rem); margin:0;">External Link Redirect</h1>
+    <div class="redirect-meta">Short link: /{{safeCode}}</div>
 
-      <div style="display:flex; flex-wrap:wrap; gap:1.5rem; margin-bottom:1rem; font-size:.9rem;">
-        <div><span class="prompt">[+]</span> Link Status: <span style="color:var(--accent); font-weight:600;">Active</span> ({{clickCount}} total clicks)</div>
-        <div><span class="prompt">[+]</span> Security Audit: {{{securityAuditStatus}}}</div>
-      </div>
+    <div style="margin-top:1rem; font-size:.82rem; color:var(--muted);" class="mono">Destination URL</div>
+    <div class="dest-url-box">{{safeUrl}}</div>
 
-      {{{flagListHtml}}}
-
-      <div style="margin-top: 1.25rem;">
-        <span class="prompt">$</span> <span class="out" id="countdown-status-line">Auto-redirecting in <strong id="countdown-num" style="color:var(--accent); font-size:1.3rem;">10</strong> seconds…</span>
-        <div class="progress-bar-wrap" id="progress-bar-wrap"><div class="progress-bar-fill" id="progress-bar-fill"></div></div>
-      </div>
+    <div class="redirect-stats">
+      <div>Status: <strong>Active</strong> ({{clickCount}} total clicks)</div>
+      <div>Security Audit: {{{securityAuditStatus}}}</div>
     </div>
-  </div>
 
-  <div style="display: flex; gap: 1rem; justify-content: center; margin-top: 1.75rem; flex-wrap: wrap;">
-    <a id="proceed-btn" class="btn btn-solid" href="{{safeUrl}}">{{primaryButtonLabel}}</a>
-    <a class="btn" href="https://tinyurl.pokedb.site/" data-nav="tinyurl">← Create TinyURL</a>
+    {{{flagListHtml}}}
+
+    <div style="margin-top: 1rem;">
+      <span id="countdown-status-line" class="mono" style="font-size:.9rem;">Auto-redirecting in <strong id="countdown-num" style="color:var(--accent); font-size:1.15rem;">10</strong> seconds…</span>
+      <div class="progress-bar-wrap" id="progress-bar-wrap"><div class="progress-bar-fill" id="progress-bar-fill"></div></div>
+    </div>
+
+    <div class="redirect-actions">
+      <a id="proceed-btn" class="btn btn-solid" href="{{safeUrl}}">{{primaryButtonLabel}}</a>
+      <a class="btn" href="https://tinyurl.pokedb.site/" data-nav="tinyurl">← Create TinyURL</a>
+    </div>
   </div>
 </main>
 
@@ -142,9 +131,9 @@
 <div class="modal-overlay" id="caution-modal" role="dialog" aria-modal="true" aria-label="Security Caution Warning">
   <div class="modal-card">
     <div class="modal-header">
-      <span>⚠️ Security Caution: Flagged Website</span>
+      <span>Security Caution: Flagged Website</span>
     </div>
-    <p style="color:var(--text); font-size:.95rem; line-height:1.5;">
+    <p style="color:var(--text); font-size:.94rem; line-height:1.5;">
       Google Safe Browsing has identified this link as containing potential social engineering (phishing), malware, or unwanted software.
     </p>
     <div class="flag-box">
@@ -155,8 +144,8 @@
       Target: <code style="word-break:break-all; color:var(--accent);">{{safeUrl}}</code>
     </p>
     <div class="modal-actions">
-      <button class="btn" id="cancel-modal-btn" type="button">Cancel & Return to Safety</button>
-      <a class="btn" id="unsafe-proceed-btn" href="{{safeUrl}}" style="background:var(--danger); color:var(--accent-text); border-color:var(--danger);">$ proceed --unsafe →</a>
+      <button class="btn" id="cancel-modal-btn" type="button">Cancel &amp; Return to Safety</button>
+      <a class="btn" id="unsafe-proceed-btn" href="{{safeUrl}}" style="background:var(--danger); color:var(--accent-text); border-color:var(--danger);">Continue anyway →</a>
     </div>
   </div>
 </div>
@@ -180,7 +169,7 @@
 
   if (isSuspicious) {
     if (statusLineEl) {
-      statusLineEl.innerHTML = '<span style="color:var(--danger); font-weight:600;">⚠️ Auto-redirect PAUSED due to security flag. Manual confirmation required below.</span>';
+      statusLineEl.innerHTML = '<span style="color:var(--danger); font-weight:600;">Auto-redirect paused due to security flag. Manual confirmation required below.</span>';
     }
     if (progressBarWrap) {
       progressBarWrap.style.display = 'none';

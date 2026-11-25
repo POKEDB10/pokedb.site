@@ -130,6 +130,7 @@
     var activeKey = '';
     if (host.includes('tinyurl.') || path.includes('/tools/tinyurl')) activeKey = 'tinyurl';
     else if (host.includes('qr.') || path.includes('/tools/qr')) activeKey = 'qr';
+    else if (host.includes('lan.') || path.includes('/tools/lan')) activeKey = 'lan';
     else if (host.includes('drop.') || path.includes('/tools/drop')) activeKey = 'drop';
     else if (host.includes('paste.') || path.includes('/tools/paste')) activeKey = 'paste';
     else if (host.includes('health.') || path.includes('/tools/health')) activeKey = 'health';
@@ -161,6 +162,7 @@
       '<a class="nav-link' + (activeKey === 'tinyurl' ? ' active' : '') + '" href="' + getNavUrl('tinyurl') + '" data-nav="tinyurl">TinyURL</a>' +
       '<a class="nav-link' + (activeKey === 'qr' ? ' active' : '') + '" href="' + getNavUrl('qr') + '" data-nav="qr">QR studio</a>' +
       '<a class="nav-link' + (activeKey === 'drop' ? ' active' : '') + '" href="' + getNavUrl('drop') + '" data-nav="drop">Drop</a>' +
+      '<a class="nav-link' + (activeKey === 'lan' ? ' active' : '') + '" href="' + getNavUrl('lan') + '" data-nav="lan">LAN</a>' +
       '<a class="nav-link' + (activeKey === 'paste' ? ' active' : '') + '" href="' + getNavUrl('paste') + '" data-nav="paste">Pastebin</a>' +
       '<a class="nav-link' + (activeKey === 'health' ? ' active' : '') + '" href="' + getNavUrl('health') + '" data-nav="health">Health</a>';
   }

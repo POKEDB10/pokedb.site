@@ -9,7 +9,7 @@
 <link rel="stylesheet" href="/fonts/fonts.css">
 <link rel="preload" href="/fonts/ibm-plex-mono-400.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="/fonts/ibm-plex-sans-400.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="/shared/theme.css">
+<link rel="stylesheet" href="/shared/theme.css?v=20261124">
 <script src="/shared/theme-switcher.js?v=3"></script>
 <script src="/shared/utils.js"></script>
 <script src="/shared/site.js" defer></script>
@@ -24,12 +24,12 @@
 }
 
 .paste-view-card {
-  width: min(100% - 2rem, 1060px);
-  margin: clamp(1rem, 3vw, 2.25rem) auto clamp(2rem, 4vw, 3.5rem);
+  width: min(100% - 2.5rem, 1080px);
+  min-width: 0;
+  margin: clamp(1rem, 3vw, 2rem) auto clamp(2rem, 4vw, 3.5rem);
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 14px;
-  box-shadow: var(--shadow);
+  border-radius: 8px;
   overflow: visible;
   padding: 0;
 }
@@ -38,15 +38,15 @@
   position: sticky;
   top: 0;
   z-index: 18;
-  padding: 1rem clamp(1rem, 3vw, 1.5rem);
-  background: color-mix(in srgb, var(--surface) 94%, transparent);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
+  padding: .9rem clamp(1rem, 3vw, 1.35rem);
+  background: color-mix(in srgb, var(--surface) 96%, transparent);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--border);
-  border-radius: 14px 14px 0 0;
+  border-radius: 8px 8px 0 0;
   display: flex;
   flex-direction: column;
-  gap: .75rem;
+  gap: .65rem;
 }
 
 .viewer-top-row {
@@ -56,14 +56,24 @@
   gap: .75rem;
 }
 
+.viewer-code-ref {
+  font-size: .78rem;
+  color: var(--muted);
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .viewer-title-group {
   min-width: 0;
 }
 
 .viewer-title {
-  font-size: clamp(1.1rem, 2.8vw, 1.5rem);
+  font-size: clamp(1.1rem, 2.6vw, 1.45rem);
+  font-weight: 600;
   line-height: 1.25;
-  margin: .2rem 0 0 0;
+  margin: 0;
   overflow-wrap: anywhere;
 }
 
@@ -76,48 +86,59 @@
   flex-shrink: 0;
 }
 
-.meta-pills {
+.meta-strip {
   display: flex;
   flex-wrap: wrap;
-  gap: .4rem;
-  margin-top: .5rem;
-}
-
-.meta-pill {
-  display: inline-flex;
   align-items: center;
-  gap: .3rem;
+  gap: .25rem .5rem;
+  margin-top: .45rem;
   font-family: 'IBM Plex Mono', monospace;
-  font-size: .74rem;
+  font-size: .77rem;
   font-variant-numeric: tabular-nums;
-  padding: .22rem .55rem;
-  border-radius: 999px;
-  background: var(--bg);
-  border: 1px solid var(--border);
-  color: var(--text);
-  white-space: nowrap;
-}
-
-.meta-pill.is-muted {
   color: var(--muted);
 }
 
-.meta-pill.is-success {
-  border-color: color-mix(in srgb, var(--success) 50%, transparent);
-  background: color-mix(in srgb, var(--success) 10%, transparent);
+.meta-item {
+  white-space: nowrap;
+}
+
+.meta-item.is-lang {
+  color: var(--text);
+  font-weight: 500;
+}
+
+.meta-item.is-success {
   color: var(--success);
+  font-weight: 500;
 }
 
-.meta-pill.is-danger {
-  border-color: color-mix(in srgb, var(--danger) 50%, transparent);
-  background: color-mix(in srgb, var(--danger) 10%, transparent);
+.meta-item.is-danger {
   color: var(--danger);
+  font-weight: 600;
 }
 
-.meta-pill.is-accent {
-  border-color: color-mix(in srgb, var(--accent) 50%, transparent);
-  background: color-mix(in srgb, var(--accent) 10%, transparent);
+.meta-item.is-accent {
   color: var(--accent);
+  font-weight: 500;
+}
+
+.meta-item.is-muted {
+  color: var(--muted);
+}
+
+.meta-item.is-burn {
+  color: var(--danger);
+  font-weight: 600;
+  padding: .1rem .45rem;
+  border-radius: 4px;
+  border: 1px solid color-mix(in srgb, var(--danger) 40%, transparent);
+  background: color-mix(in srgb, var(--danger) 10%, transparent);
+}
+
+.meta-sep {
+  color: var(--muted);
+  opacity: .55;
+  user-select: none;
 }
 
 .actions-row {
@@ -137,19 +158,20 @@
 
 .btn.is-toggled {
   border-color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 15%, var(--surface));
+  background: color-mix(in srgb, var(--accent) 14%, var(--surface));
   color: var(--text);
 }
 
 .viewer-body-pad {
-  padding: clamp(.85rem, 2.5vw, 1.35rem);
+  padding: clamp(.8rem, 2.5vw, 1.25rem);
+  min-width: 0;
 }
 
 /* Code Viewer */
 .paste-code-box {
   background: var(--bg);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: 6px;
   padding: .75rem 0;
   margin: 0;
   font-family: 'IBM Plex Mono', monospace;
@@ -219,7 +241,7 @@
   padding: clamp(1.15rem, 3vw, 1.75rem);
   background: var(--bg);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: 6px;
   text-align: center;
 }
 
@@ -257,11 +279,16 @@
   min-height: 44px;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 7px;
   padding: .5rem .75rem;
   font-family: 'IBM Plex Mono', monospace;
   font-size: .88rem;
   color: var(--text);
+}
+
+.unlock-pass-toggle {
+  width: auto;
+  flex-shrink: 0;
 }
 
 .unlock-error {
@@ -270,6 +297,15 @@
   font-family: 'IBM Plex Mono', monospace;
   font-size: .8rem;
   min-height: 1.1em;
+}
+
+.qr-dialog {
+  max-width: 380px;
+  text-align: center;
+}
+
+.qr-modal-head {
+  text-align: left;
 }
 
 .modal-close-btn {
@@ -283,7 +319,8 @@
   margin: 0 auto 1rem;
   background: #ffffff;
   padding: 10px;
-  border-radius: 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
 }
 
 .qr-frame svg {
@@ -306,7 +343,7 @@
   }
 
   .paste-sticky-header {
-    padding: .75rem .85rem;
+    padding: .75rem .8rem;
     gap: .55rem;
   }
 
@@ -325,7 +362,7 @@
     width: 100% !important;
     min-width: 0;
     min-height: 44px;
-    padding: .45rem .35rem;
+    padding: .45rem .3rem;
     font-size: .75rem;
     justify-content: center;
   }
@@ -357,7 +394,7 @@
 }
 </style>
 </head>
-<body>
+<body class="tool-page">
 <a href="#main" class="skip-link">Skip to main content</a>
 
 <header class="site-nav">
@@ -367,6 +404,7 @@
     <a class="nav-link" href="https://tinyurl.pokedb.site/" data-nav="tinyurl">TinyURL</a>
     <a class="nav-link" href="https://qr.pokedb.site/" data-nav="qr">QR studio</a>
     <a class="nav-link" href="https://drop.pokedb.site/" data-nav="drop">Drop</a>
+    <a class="nav-link" href="https://lan.pokedb.site/" data-nav="lan">LAN</a>
     <a class="nav-link active" href="https://paste.pokedb.site/" data-nav="paste">Pastebin</a>
     <a class="nav-link" href="https://health.pokedb.site/" data-nav="health">Health</a>
   </nav>
@@ -379,18 +417,24 @@
 <main id="main" class="paste-view-card">
   <div class="paste-sticky-header">
     <div class="viewer-top-row">
-      <span class="eyebrow" style="margin-bottom:0; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"><span>$ pastebin --view <span id="paste-code-label"></span></span></span>
-      <a class="btn btn-solid new-paste-cta" id="new-paste-btn" href="/tools/paste/" data-nav="paste">+ New Paste</a>
+      <span class="viewer-code-ref mono">/p/<span id="paste-code-label">—</span></span>
+      <a class="btn new-paste-cta" id="new-paste-btn" href="/tools/paste/" data-nav="paste">+ New Paste</a>
     </div>
+
     <div class="viewer-title-group">
       <h1 class="viewer-title" id="paste-title">Loading paste…</h1>
-      <div class="meta-pills">
-        <span class="meta-pill is-accent" id="paste-lang">plaintext</span>
-        <span class="meta-pill" id="paste-size">— bytes</span>
-        <span class="meta-pill is-muted" id="paste-lines" hidden>0 lines</span>
-        <span class="meta-pill is-muted" id="paste-views">0 views</span>
-        <span class="meta-pill" id="paste-burn-status" hidden></span>
-        <span class="meta-pill" id="paste-e2e-badge" hidden></span>
+      <div class="meta-strip" id="paste-meta-strip">
+        <span class="meta-item is-lang" id="paste-lang">Plain Text</span>
+        <span class="meta-sep" id="paste-size-sep" aria-hidden="true">·</span>
+        <span class="meta-item" id="paste-size">— bytes</span>
+        <span class="meta-sep" id="paste-lines-sep" aria-hidden="true" hidden>·</span>
+        <span class="meta-item" id="paste-lines" hidden>0 lines</span>
+        <span class="meta-sep" id="paste-views-sep" aria-hidden="true">·</span>
+        <span class="meta-item" id="paste-views">0 views</span>
+        <span class="meta-sep" id="paste-e2e-sep" aria-hidden="true" hidden>·</span>
+        <span class="meta-item" id="paste-e2e-badge" hidden></span>
+        <span class="meta-sep" id="paste-burn-sep" aria-hidden="true" hidden>·</span>
+        <span class="meta-item" id="paste-burn-status" hidden></span>
       </div>
     </div>
 
@@ -414,7 +458,7 @@
       <p id="pass-auth-desc">Enter the password set by the author to unlock this paste.</p>
       <form id="pass-form" class="unlock-form">
         <input type="password" id="pass-input" aria-label="Paste password" placeholder="Enter password…" autocomplete="current-password" required>
-        <button class="btn" id="toggle-unlock-pass" type="button" aria-label="Show password" aria-pressed="false" style="width:auto;">Show</button>
+        <button class="btn unlock-pass-toggle" id="toggle-unlock-pass" type="button" aria-label="Show password" aria-pressed="false">Show</button>
         <button class="btn btn-solid" type="submit" id="unlock-btn">Unlock</button>
       </form>
       <div class="unlock-error" id="pass-error" role="alert"></div>
@@ -447,10 +491,9 @@
 
 <!-- QR Modal -->
 <div class="result-modal-backdrop" id="qr-modal" role="dialog" aria-modal="true" aria-labelledby="qr-modal-title">
-  <div class="result-modal-dialog" style="max-width:380px; text-align:center;">
+  <div class="result-modal-dialog qr-dialog">
     <div class="modal-header">
-      <div class="modal-title-group" style="text-align:left;">
-        <span class="eyebrow">$ pastebin --qr</span>
+      <div class="modal-title-group qr-modal-head">
         <h2 id="qr-modal-title">Share via QR</h2>
       </div>
       <button class="modal-close-btn" id="close-qr-btn" type="button" aria-label="Close QR dialog">✕</button>

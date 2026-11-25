@@ -245,22 +245,22 @@ function createTinyurlRouter(options = {}) {
           if (rawLink.status === 'quarantined') {
             return res.status(451).send(
               renderTemplate('404.html', {
-                title: '451 ?" Link Unavailable For Legal Reasons',
+                title: '451 — Link Unavailable For Legal Reasons',
                 command: `get /${safeCode}`,
                 message: 'This link has been quarantined in response to abuse reports.',
                 returnUrl: 'https://tinyurl.pokedb.site/',
-                returnLabel: '+? Return to Shortener'
+                returnLabel: '← Return to Shortener'
               })
             );
           }
           if (rawLink.expiresAt && rawLink.expiresAt <= clock.now()) {
             return res.status(410).send(
               renderTemplate('404.html', {
-                title: '410 ?" Link Expired',
+                title: '410 — Link Expired',
                 command: `get /${safeCode}`,
                 message: 'This short link has expired.',
                 returnUrl: 'https://tinyurl.pokedb.site/',
-                returnLabel: '+? Return to Shortener'
+                returnLabel: '← Return to Shortener'
               })
             );
           }
@@ -268,11 +268,11 @@ function createTinyurlRouter(options = {}) {
 
         return res.status(404).send(
           renderTemplate('404.html', {
-            title: '404 ?" Short Link Not Found',
+            title: '404 — Short Link Not Found',
             command: `get /${safeCode}`,
             message: 'Error 404: Link not found or expired.',
             returnUrl: 'https://tinyurl.pokedb.site/',
-            returnLabel: '+? Return to Shortener'
+            returnLabel: '← Return to Shortener'
           })
         );
       }
@@ -305,12 +305,12 @@ function createTinyurlRouter(options = {}) {
       }
 
       const auditStatusHtml = isSuspicious
-        ? '<span style="color:#ff5555; font-weight:600;">⚠️ FLAGGED BY GOOGLE SAFE BROWSING</span>'
+        ? '<span style="color:var(--danger); font-weight:600;">FLAGGED BY GOOGLE SAFE BROWSING</span>'
         : '<span style="color:var(--accent); font-weight:600;">Verified Safe (Google Safe Browsing)</span>';
 
       const primaryButtonLabel = isSuspicious
-        ? '$ proceed --caution →'
-        : '$ continue --destination (Skip Timer) →';
+        ? 'proceed --caution →'
+        : 'continue --destination →';
 
       const currentClicks = (link.clicks || 0) + clickBuffer.getBufferedCount(code);
 
@@ -327,7 +327,7 @@ function createTinyurlRouter(options = {}) {
           primaryButtonLabel,
           serializedFlags: serializeForInlineScript(threatFlags),
           flagListHtml: threatFlags
-            .map(f => `<div><span class="prompt">[!]</span> Threat Flag: <span style="color:#ff5555;">${htmlEscape(f)}</span></div>`)
+            .map(f => `<div>Threat Flag: <span style="color:var(--danger);">${htmlEscape(f)}</span></div>`)
             .join('')
         })
       );

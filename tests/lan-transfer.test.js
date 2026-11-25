@@ -2,17 +2,22 @@
 // Comprehensive test suite for LAN-to-LAN ephemeral signaling router & WebRTC/E2EE client engine.
 
 const express = require('express');
+const fs = require('node:fs');
+const path = require('node:path');
 const http = require('node:http');
 const crypto = require('node:crypto');
 const request = require('supertest');
 const { queryTokenRejector } = require('../src/middleware/auth');
+const { createApp } = require('../src/app');
+const { createSqliteStorage } = require('../src/storage/sqlite');
+const { FakeObjectStore } = require('../src/storage/fakeObjectStore');
 const {
   createLanRouter,
   ROOM_CODE_ALPHABET,
   normalizeRoomCode,
   isValidRoomCode
 } = require('../src/tools/lan/router');
-const PokedbLan = require('../tools/drop/public/lan.js');
+const PokedbLan = require('../tools/lan/public/lan.js');
 
 function createTestServer(routerOptions = {}, withQueryTokenRejector = false) {
   const app = express();
@@ -1101,6 +1106,134 @@ describe('LAN-to-LAN Direct P2P Transfer Suite', () => {
       const err = await receiverErrorPromise;
       expect(err).toBeInstanceOf(Error);
       expect(completed).toBe(false);
+    });
+  });
+
+  describe('5. Standalone LAN Share Page Integration & Drop Separation', () => {
+    let fullApp;
+    let store;
+    let clickBuffer;
+    let fullLanRouter;
+
+    beforeAll(() => {
+      store = createSqliteStorage(':memory:');
+      const created = createApp({
+        store,
+        objectStore: new FakeObjectStore(),
+        config: {
+          env: 'test',
+          isProduction: false,
+          baseUrl: 'https://pokedb.site',
+          benchBypassLimiter: true
+        }
+      });
+      fullApp = created.app;
+      clickBuffer = created.clickBuffer;
+      fullLanRouter = created.lanRouter;
+    });
+
+    afterAll(() => {
+      if (fullLanRouter && typeof fullLanRouter.close === 'function') fullLanRouter.close();
+      if (clickBuffer && typeof clickBuffer.close === 'function') clickBuffer.close();
+      if (store && typeof store.close === 'function') store.close();
+    });
+
+    test('lan.js moved cleanly from tools/drop/public/lan.js to tools/lan/public/lan.js', () => {
+      const oldLanPath = path.resolve(__dirname, '../tools/drop/public/lan.js');
+      const newLanPath = path.resolve(__dirname, '../tools/lan/public/lan.js');
+      expect(fs.existsSync(oldLanPath)).toBe(false);
+      expect(fs.existsSync(newLanPath)).toBe(true);
+    });
+
+    test('GET /tools/lan/ serves HTTP 200 HTML with X-Robots-Tag: index, follow, clean UI, and no Drop coupling', async () => {
+      const res = await request(fullApp).get('/tools/lan/').set('Host', 'pokedb.site');
+      expect(res.status).toBe(200);
+      expect(res.headers['content-type']).toContain('text/html');
+      expect(res.headers['x-robots-tag']).toBe('index, follow');
+
+      const html = res.text;
+      expect(html).toContain('<body class="tool-page">');
+      expect(html).toContain('<h1>LAN Direct Share</h1>');
+      expect(html).toContain('class="clean-tabs"');
+      expect(html).toContain('id="lan-mode-send-btn"');
+      expect(html).toContain('id="lan-mode-recv-btn"');
+      expect(html).toContain('id="lan-select-files-btn"');
+      expect(html).toContain('id="lan-join-code-input"');
+      expect(html).toContain('href="/shared/theme.css"');
+      expect(html).toContain('href="/fonts/fonts.css"');
+      expect(html).toContain('src="/shared/theme-switcher.js?v=3"');
+      expect(html).toContain('src="/shared/utils.js"');
+      expect(html).toContain('src="/shared/qrcode.min.js"');
+      expect(html).toContain('src="/shared/site.js"');
+      expect(html).toContain('src="./lan.js"');
+      expect(html).toContain('src="./app.js"');
+
+      // Zero AI slop & zero inline JS / third-party CDNs / analytics
+      expect(html).not.toMatch(/\$\s+lan\b/i);
+      expect(html).not.toContain('● LIVE');
+      expect(html).not.toContain('● E2EE VERIFY');
+      expect(html).not.toContain('ZERO UPLOAD');
+      expect(html).not.toContain('class="eyebrow"');
+      expect(html).not.toContain('term-titlebar');
+      expect(html).not.toContain('term-dots');
+      expect(html).not.toContain('beacon.min.js');
+      expect(html).not.toContain('cloudflareinsights.com');
+      expect(html).not.toContain('fonts.googleapis.com');
+      expect(html).not.toContain('fonts.gstatic.com');
+      expect(html).not.toMatch(/<script(?![^>]*\bsrc=)[^>]*>/i);
+      expect(html).not.toMatch(/\son(?:click|change|input|load|submit|keydown)=/i);
+
+      // Strict separation from Drop
+      expect(html).not.toContain('/api/drop/');
+      expect(html).not.toContain('Cloud Upload (R2)');
+      expect(html).not.toContain('Burn after download');
+      expect(html).not.toContain('File Manager');
+
+      // Keyboard Tab-stop reachability: #lan-select-files-btn <= 12 stops from top
+      const focusableMatches = Array.from(
+        html.matchAll(/<(?:a\b[^>]*\bhref=|button\b|input\b|select\b|textarea\b)[^>]*>/gi)
+      ).map((m) => m[0]).filter((tag) => (
+        !/\btype=["']?hidden/i.test(tag) &&
+        !/\bhidden\b/i.test(tag) &&
+        !/\bdisabled\b/i.test(tag) &&
+        !/\btabindex=["']?-1/i.test(tag)
+      ));
+      const selectBtnIdx = focusableMatches.findIndex((tag) => tag.includes('id="lan-select-files-btn"'));
+      expect(selectBtnIdx).toBeGreaterThanOrEqual(0);
+      expect(selectBtnIdx + 1).toBeLessThanOrEqual(12);
+    });
+
+    test('Host: lan.pokedb.site serves HTTP 200 HTML with X-Robots-Tag: index, follow and valid robots.txt', async () => {
+      const rootRes = await request(fullApp).get('/').set('Host', 'lan.pokedb.site');
+      expect(rootRes.status).toBe(200);
+      expect(rootRes.headers['content-type']).toContain('text/html');
+      expect(rootRes.headers['x-robots-tag']).toBe('index, follow');
+      expect(rootRes.text).toContain('<h1>LAN Direct Share</h1>');
+      expect(rootRes.text).toContain('<body class="tool-page">');
+
+      const robotsRes = await request(fullApp).get('/robots.txt').set('Host', 'lan.pokedb.site');
+      expect(robotsRes.status).toBe(200);
+      expect(robotsRes.text).toContain('Allow: /$');
+      expect(robotsRes.text).toContain('Disallow: /api/');
+    });
+
+    test('Standalone LAN assets serve HTTP 200 on subpath and subdomain with ?code= and ?lan= support', async () => {
+      const pathLanJs = await request(fullApp).get('/tools/lan/lan.js').set('Host', 'pokedb.site');
+      expect(pathLanJs.status).toBe(200);
+      expect(pathLanJs.headers['content-type']).toContain('javascript');
+      expect(pathLanJs.text).toContain('PokedbLan');
+
+      const subAppJs = await request(fullApp).get('/app.js').set('Host', 'lan.pokedb.site');
+      expect(subAppJs.status).toBe(200);
+      expect(subAppJs.headers['content-type']).toContain('javascript');
+      expect(subAppJs.text).toContain("'?code='");
+      expect(subAppJs.text).toContain("params.get('code')");
+      expect(subAppJs.text).toContain("params.get('lan')");
+      expect(subAppJs.text).not.toContain('/api/drop/');
+
+      const pathAppJs = await request(fullApp).get('/tools/lan/app.js').set('Host', 'pokedb.site');
+      expect(pathAppJs.status).toBe(200);
+      expect(pathAppJs.text).toBe(subAppJs.text);
     });
   });
 });

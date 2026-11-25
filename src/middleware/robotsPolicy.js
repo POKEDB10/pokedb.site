@@ -42,8 +42,8 @@ function robotsPolicy(req, res, next) {
     return next();
   }
 
-  // 5. Exact root on storing tools (tinyurl, drop, paste)
-  if ((host.startsWith('tinyurl.') || host.startsWith('drop.') || host.startsWith('paste.')) && p === '/') {
+  // 5. Exact root on storing / session tools (tinyurl, drop, lan, paste)
+  if ((host.startsWith('tinyurl.') || host.startsWith('drop.') || host.startsWith('lan.') || host.startsWith('paste.')) && p === '/') {
     res.setHeader('X-Robots-Tag', 'index, follow');
     return next();
   }
@@ -75,7 +75,7 @@ function handleRobotsTxt(req, res) {
   res.type('text/plain');
   const host = resolveHost(req) || '';
 
-  if (host.startsWith('tinyurl.') || host.startsWith('drop.') || host.startsWith('paste.')) {
+  if (host.startsWith('tinyurl.') || host.startsWith('drop.') || host.startsWith('lan.') || host.startsWith('paste.')) {
     return res.send(`User-agent: *
 Allow: /$
 Disallow: /api/

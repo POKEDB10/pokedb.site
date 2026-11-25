@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="oled-black">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>LAN Direct Share — pokedb.site</title>
+<meta name="description" content="Peer-to-peer local network WebRTC file transfer encrypted in-browser with zero server upload.">
+<meta name="robots" content="index, follow">
+<link rel="stylesheet" href="/fonts/fonts.css">
+<link rel="preload" href="/fonts/ibm-plex-mono-400.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/fonts/ibm-plex-sans-400.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/shared/theme.css">
+<script src="/shared/theme-switcher.js?v=3"></script>
+<script src="/shared/utils.js" defer></script>
+<script src="/shared/qrcode.min.js" defer></script>
+<script src="/shared/site.js" defer></script>
+<script src="./lan.js" defer></script>
+<script src="./app.js" defer></script>
+<style>
+[hidden] { display: none !important; }
+.lan-shell { max-width: 860px; }
+.lan-drop-zone {
+  border: 1.5px dashed var(--border);
+  border-radius: 8px;
+  padding: clamp(1.5rem, 4vw, 2.35rem) 1rem;
+  text-align: center;
+  background: var(--bg);
+  cursor: pointer;
+  transition: border-color .15s ease, background-color .15s ease;
+}
+.lan-drop-zone:hover, .lan-drop-zone.dragover {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 6%, var(--bg));
+}
+.lan-drop-icon { display: inline-flex; color: var(--accent); margin-bottom: .55rem; }
+.lan-drop-title { font-weight: 600; font-size: 1rem; color: var(--text); }
+.lan-drop-meta { font: 400 .8rem/1.45 'IBM Plex Mono', monospace; color: var(--muted); margin: .25rem 0 1rem; }
+.lan-staged-list {
+  list-style: none;
+  margin: 1rem 0 0;
+  padding: 0;
+  border-top: 1px solid var(--border);
+}
+.lan-staged-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: .75rem;
+  padding: .55rem 0;
+  border-bottom: 1px solid var(--border);
+  font-size: .85rem;
+}
+.lan-file-name { min-width: 0; overflow-wrap: anywhere; color: var(--text); font-weight: 500; }
+.lan-file-size { font: 400 .78rem 'IBM Plex Mono', monospace; color: var(--muted); white-space: nowrap; flex-shrink: 0; font-variant-numeric: tabular-nums; }
+.lan-actions { display: flex; flex-wrap: wrap; gap: .65rem; margin-top: 1rem; }
+.lan-actions .btn, .lan-code-btns .btn, #lan-join-btn, #lan-recv-cancel-btn { min-height: 44px; }
+.lan-actions .btn { flex: 1 1 160px; }
+.lan-section { margin-top: 1.35rem; padding-top: 1.25rem; border-top: 1px solid var(--border); }
+.lan-code-row { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: .75rem 1rem; margin-bottom: 1rem; }
+.lan-code-display {
+  font: 700 clamp(1.45rem, 5vw, 2.15rem)/1.1 'IBM Plex Mono', monospace;
+  letter-spacing: .16em;
+  color: var(--text);
+  text-transform: uppercase;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.lan-code-btns { display: flex; flex-wrap: wrap; gap: .5rem; }
+.lan-pair-details { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+.lan-qr-frame {
+  width: 140px;
+  height: 140px;
+  padding: .4rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.lan-pair-info { flex: 1 1 210px; min-width: 0; }
+.lan-status-line { font: 600 .86rem/1.45 'IBM Plex Mono', monospace; color: var(--text); overflow-wrap: anywhere; }
+.lan-pair-hint { font-size: .84rem; color: var(--muted); margin-top: .35rem; overflow-wrap: anywhere; }
+.lan-url-code { font-family: 'IBM Plex Mono', monospace; font-size: .78rem; color: var(--text); overflow-wrap: anywhere; word-break: break-all; }
+.lan-sas-panel {
+  margin-top: 1.1rem;
+  padding: .85rem 1rem;
+  border: 1px solid var(--success);
+  border-left-width: 4px;
+  border-radius: 6px;
+  background: var(--bg);
+}
+.lan-sas-row { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: .45rem 1rem; }
+.lan-sas-code {
+  font: 700 1.35rem/1.2 'IBM Plex Mono', monospace;
+  letter-spacing: .16em;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.lan-sas-hint { font-size: .82rem; color: var(--muted); }
+.lan-progress { margin-top: 1.1rem; }
+.lan-progress-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: .5rem;
+  flex-wrap: wrap;
+  font: 500 .8rem/1.4 'IBM Plex Mono', monospace;
+  margin-bottom: .45rem;
+  font-variant-numeric: tabular-nums;
+}
+.lan-progress-track {
+  width: 100%;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+.lan-progress-fill { width: 0%; height: 100%; background: var(--accent); transition: width .12s linear; }
+.lan-join-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .6rem; align-items: stretch; }
+.lan-join-input {
+  min-height: 44px;
+  text-transform: uppercase;
+  letter-spacing: .16em;
+  font-weight: 700;
+  font-size: 1.05rem;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.lan-status-bar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: .6rem; }
+.lan-inc-name { font-weight: 600; font-size: 1rem; color: var(--text); overflow-wrap: anywhere; }
+.lan-inc-meta { font: 500 .8rem/1.5 'IBM Plex Mono', monospace; color: var(--muted); margin-top: .25rem; overflow-wrap: anywhere; }
+.btn-danger { border-color: var(--danger); color: var(--danger); }
+.lan-verified-msg { font: 600 .86rem/1.45 'IBM Plex Mono', monospace; color: var(--success); margin-bottom: .65rem; }
+.lan-downloads-list { display: flex; flex-wrap: wrap; gap: .5rem; }
+.lan-notice {
+  margin-top: 1rem;
+  padding: .75rem .95rem;
+  border: 1px solid var(--danger);
+  border-left-width: 4px;
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text);
+  font: 500 .82rem/1.45 'IBM Plex Mono', monospace;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 640px) {
+  .lan-join-row { grid-template-columns: 1fr; }
+  .lan-code-btns { width: 100%; }
+  .lan-code-btns .btn { flex: 1 1 120px; }
+  .lan-actions { flex-direction: column; }
+  .lan-actions .btn { width: 100%; flex: 0 0 auto; }
+  .lan-pair-details { flex-direction: column; align-items: flex-start; }
+  .lan-status-bar .btn { width: 100%; }
+}
+</style>
+</head>
+<body class="tool-page">
+<a href="#main" class="skip-link">Skip to main content</a>
+
+<header class="site-nav">
+  <a class="logo" href="https://pokedb.site/" data-nav="main">root<span>@</span>pokedb</a>
+  <nav class="nav-links" aria-label="Tools navigation">
+    <a class="nav-link" href="https://tools.pokedb.site/" data-nav="tools">Tools hub</a>
+    <a class="nav-link" href="https://tinyurl.pokedb.site/" data-nav="tinyurl">TinyURL</a>
+    <a class="nav-link" href="https://qr.pokedb.site/" data-nav="qr">QR studio</a>
+    <a class="nav-link" href="https://drop.pokedb.site/" data-nav="drop">Drop</a>
+    <a class="nav-link active" href="https://lan.pokedb.site/" data-nav="lan">LAN</a>
+    <a class="nav-link" href="https://paste.pokedb.site/" data-nav="paste">Pastebin</a>
+    <a class="nav-link" href="https://health.pokedb.site/" data-nav="health">Health</a>
+  </nav>
+  <div class="theme-switcher">
+    <span class="theme-swatch" id="theme-swatch"></span>
+    <select id="theme-select" aria-label="Choose a color theme">
+      <option value="paper">Paper — Editorial Light</option>
+      <option value="matrix">Matrix — Phosphor Green</option>
+      <option value="cyberpunk">Cyberpunk — Neon Cyan</option>
+      <option value="synthwave">Synthwave — 80s Magenta</option>
+      <option value="nordic-ice">Nordic — Glacier Blue</option>
+      <option value="dracula-neon">Dracula — Electric Violet</option>
+      <option value="gruvbox-retro">Gruvbox — Warm Retro</option>
+      <option value="emerald-forest">Emerald — Deep Woods</option>
+      <option value="sunset-amber">Sunset — Rose Amber</option>
+      <option value="solarized-gold">Solarized — Solar Gold</option>
+      <option value="oled-black">OLED — Pitch Indigo</option>
+      <option value="tokyo-neon">Tokyo — Neon Coral</option>
+    </select>
+  </div>
+</header>
+
+<main id="main" class="tool-shell lan-shell">
+  <header class="tool-head">
+    <div>
+      <h1>LAN Direct Share</h1>
+      <p class="tool-sub">Peer-to-peer local network WebRTC transfer encrypted in-browser with zero server upload.</p>
+    </div>
+    <span class="tool-quiet-meta">ECDH P-256 · AES-256-GCM · SHA-256</span>
+  </header>
+
+  <section class="panel-flat" aria-label="LAN file transfer workbench">
+    <div class="clean-tabs" role="tablist" aria-label="Transfer mode">
+      <button type="button" class="clean-tab is-active" id="lan-mode-send-btn" role="tab" aria-selected="true" aria-controls="lan-send-panel" tabindex="0" data-mode="send">Send files</button>
+      <button type="button" class="clean-tab" id="lan-mode-recv-btn" role="tab" aria-selected="false" aria-controls="lan-receive-panel" tabindex="-1" data-mode="receive">Receive with code</button>
+    </div>
+
+    <div id="lan-send-panel" role="tabpanel" aria-labelledby="lan-mode-send-btn">
+      <div class="lan-drop-zone" id="lan-drop-zone">
+        <input type="file" id="lan-file-input" multiple hidden>
+        <span class="lan-drop-icon" aria-hidden="true">
+          <svg class="icon-svg" viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.55a11 11 0 0 1 14.08 0"></path><path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path><line x1="12" y1="20" x2="12.01" y2="20"></line></svg>
+        </span>
+        <p class="lan-drop-title" id="lan-send-file-label">Drop files here for direct LAN transfer</p>
+        <p class="lan-drop-meta" id="lan-send-file-meta">Stays on your local network · No file size limit</p>
+        <button type="button" class="btn btn-solid" id="lan-select-files-btn">Choose files</button>
+      </div>
+
+      <ul class="lan-staged-list" id="lan-staged-list" aria-label="Selected files" hidden></ul>
+
+      <div class="lan-actions">
+        <button type="button" class="btn btn-solid" id="lan-create-room-btn" disabled>Create pairing code</button>
+        <button type="button" class="btn" id="lan-clear-files-btn" hidden>Clear files</button>
+        <button type="button" class="btn" id="lan-send-cancel-btn" disabled>Cancel session</button>
+      </div>
+
+      <div class="lan-section" id="lan-pairing-card" hidden>
+        <span class="tool-section-label">Pairing code</span>
+        <div class="lan-code-row">
+          <span class="lan-code-display" id="lan-pair-code">------</span>
+          <div class="lan-code-btns">
+            <button type="button" class="btn btn-solid" id="lan-copy-code-btn">Copy code</button>
+            <button type="button" class="btn" id="lan-copy-link-btn">Copy pairing link</button>
+          </div>
+        </div>
+
+        <div class="lan-pair-details">
+          <div class="lan-qr-frame" id="lan-qr-box" role="img" aria-label="Pairing link QR code"></div>
+          <div class="lan-pair-info">
+            <p class="lan-status-line" id="lan-send-status" role="status" aria-live="polite">Waiting for receiver to join…</p>
+            <p class="lan-pair-hint">Scan the QR code or open <code class="lan-url-code" id="lan-pair-url-text"></code> on the receiving device.</p>
+          </div>
+        </div>
+
+        <div class="lan-sas-panel" id="lan-send-sas-box" role="status" hidden>
+          <span class="tool-section-label">Safety code (SAS)</span>
+          <div class="lan-sas-row">
+            <strong class="lan-sas-code" id="lan-send-sas-code">000 000</strong>
+            <span class="lan-sas-hint">Confirm these 6 digits match on the receiving device.</span>
+          </div>
+        </div>
+
+        <div class="lan-progress" id="lan-send-progress" hidden>
+          <div class="lan-progress-head">
+            <span id="lan-send-progress-text">Sending…</span>
+            <strong id="lan-send-percent">0%</strong>
+          </div>
+          <div class="lan-progress-track" id="lan-send-progressbar" role="progressbar" aria-label="Send progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+            <div class="lan-progress-fill" id="lan-send-bar"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="lan-receive-panel" role="tabpanel" aria-labelledby="lan-mode-recv-btn" hidden>
+      <form id="lan-join-form" novalidate>
+        <label for="lan-join-code-input" class="tool-section-label">6-character pairing code</label>
+        <div class="lan-join-row">
+          <input type="text" id="lan-join-code-input" class="lan-join-input" maxlength="12" placeholder="ABC234" autocomplete="off" autocapitalize="characters" spellcheck="false">
+          <button type="submit" class="btn btn-solid" id="lan-join-btn">Join room</button>
+        </div>
+      </form>
+
+      <div class="lan-section" id="lan-recv-status-box" hidden>
+        <div class="lan-status-bar">
+          <span class="lan-status-line" id="lan-recv-status" role="status" aria-live="polite">Connecting…</span>
+          <button type="button" class="btn" id="lan-recv-cancel-btn">Disconnect</button>
+        </div>
+
+        <div class="lan-sas-panel" id="lan-recv-sas-box" role="status" hidden>
+          <span class="tool-section-label">Safety code (SAS)</span>
+          <div class="lan-sas-row">
+            <strong class="lan-sas-code" id="lan-recv-sas-code">000 000</strong>
+            <span class="lan-sas-hint">Confirm these 6 digits match the sender before accepting.</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="lan-section" id="lan-incoming-card" hidden>
+        <span class="tool-section-label">Incoming transfer</span>
+        <div class="lan-inc-name" id="lan-inc-name">file.bin</div>
+        <div class="lan-inc-meta">
+          <span id="lan-inc-size">0 B</span> · <span id="lan-inc-hash">SHA-256: —</span>
+        </div>
+        <ul class="lan-staged-list" id="lan-incoming-files-list" hidden></ul>
+
+        <div class="lan-actions" id="lan-accept-controls">
+          <button type="button" class="btn btn-solid" id="lan-accept-btn">Accept &amp; download</button>
+          <button type="button" class="btn btn-danger" id="lan-decline-btn">Decline</button>
+        </div>
+
+        <div class="lan-progress" id="lan-recv-progress" hidden>
+          <div class="lan-progress-head">
+            <span id="lan-recv-progress-text">Receiving…</span>
+            <strong id="lan-recv-percent">0%</strong>
+          </div>
+          <div class="lan-progress-track" id="lan-recv-progressbar" role="progressbar" aria-label="Receive progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+            <div class="lan-progress-fill" id="lan-recv-bar"></div>
+          </div>
+        </div>
+
+        <div class="lan-section" id="lan-recv-complete" hidden>
+          <p class="lan-verified-msg" id="lan-recv-verified-msg">SHA-256 verified</p>
+          <div class="lan-downloads-list" id="lan-recv-downloads-list"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="lan-notice" id="lan-notice" role="alert" hidden></div>
+  </section>
+</main>
+
+<footer>
+  <div class="footer-inner">
+    <span id="footer-year">© 2026 · pokedb.site</span>
+    <span>Zero-upload WebRTC P2P · In-browser E2EE</span>
+  </div>
+</footer>
+</body>
+</html>

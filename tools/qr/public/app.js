@@ -84,7 +84,7 @@
       isGenerated = true;
       wrapper.classList.add('is-generated');
       previewCol.classList.add('is-visible');
-      genBtn.textContent = '$ qr --update (Re-generate QR Code)';
+      genBtn.textContent = 'Update QR Code';
     }
 
     // 2. Update frame background
@@ -246,12 +246,24 @@
     var logoStatus = document.getElementById('logo-status');
 
     // Tab Switching
+    var studioWrapper = document.getElementById('studio-wrapper');
     tabs.forEach(function (tab) {
       tab.addEventListener('click', function (e) {
         if (e && e.preventDefault) e.preventDefault();
-        tabs.forEach(function (t) { t.classList.remove('is-active'); });
+        tabs.forEach(function (t) {
+          t.classList.remove('is-active');
+          t.setAttribute('aria-selected', 'false');
+          t.setAttribute('tabindex', '-1');
+        });
         tab.classList.add('is-active');
+        tab.setAttribute('aria-selected', 'true');
+        tab.setAttribute('tabindex', '0');
         activeTab = tab.getAttribute('data-tab');
+
+        if (studioWrapper) {
+          studioWrapper.classList.toggle('is-wifi', activeTab === 'wifi');
+          studioWrapper.classList.toggle('is-email', activeTab === 'email');
+        }
 
         document.getElementById('tab-content-url').style.display = activeTab === 'url' ? 'block' : 'none';
         document.getElementById('tab-content-wifi').style.display = activeTab === 'wifi' ? 'block' : 'none';

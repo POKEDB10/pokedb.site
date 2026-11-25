@@ -52,6 +52,27 @@
     });
   });
 
+  var shaInput = document.getElementById('ssr-sha-input');
+  var shaBadge = document.getElementById('ssr-sha-badge');
+  if (shaInput && shaBadge) {
+    var expectedSha = (shaInput.getAttribute('data-expected-sha') || '').trim().toLowerCase();
+    shaInput.addEventListener('input', function () {
+      var val = shaInput.value.trim().toLowerCase();
+      shaBadge.classList.remove('is-match', 'is-mismatch');
+      if (!val) {
+        shaBadge.textContent = '';
+        return;
+      }
+      if (expectedSha && val === expectedSha) {
+        shaBadge.classList.add('is-match');
+        shaBadge.textContent = 'Match';
+      } else {
+        shaBadge.classList.add('is-mismatch');
+        shaBadge.textContent = 'Mismatch';
+      }
+    });
+  }
+
   var qrBtn = document.getElementById('toggle-qr-btn');
   var qrPanel = document.getElementById('drop-ssr-qr');
   var qrWrap = document.getElementById('drop-ssr-qr-wrap');
@@ -59,8 +80,9 @@
 
   if (qrBtn && qrPanel && qrWrap) {
     qrBtn.addEventListener('click', function () {
-      qrPanel.classList.toggle('open');
-      if (!qrRendered && qrPanel.classList.contains('open')) {
+      var isOpen = qrPanel.classList.toggle('open');
+      qrBtn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+      if (!qrRendered && isOpen) {
         var qrUrl = qrBtn.getAttribute('data-qr-url') || window.location.href;
         if (window.QRCodeLib && typeof window.QRCodeLib.generateSVG === 'function') {
           qrWrap.innerHTML = window.QRCodeLib.generateSVG(qrUrl, { dark: '#000000', light: '#ffffff', margin: 1 });
@@ -69,6 +91,12 @@
           window.QRCode.toString(qrUrl, { type: 'svg', margin: 1, errorCorrectionLevel: 'M' }, function (err, svg) {
             if (!err && svg) {
               qrWrap.innerHTML = svg;
+              var svgEl = qrWrap.querySelector('svg');
+              if (svgEl) {
+                svgEl.setAttribute('width', '152');
+                svgEl.setAttribute('height', '152');
+                svgEl.style.display = 'block';
+              }
               qrRendered = true;
             }
           });

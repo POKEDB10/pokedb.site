@@ -4,96 +4,93 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>UUID &amp; ULID Generator &amp; Inspector — pokedb.site tools</title>
-<meta name="description" content="Offline-first cryptographic UUID v4, UUID v7, and ULID generator and timestamp inspector.">
+<meta name="description" content="Offline cryptographic UUID v4, UUID v7, and ULID generator and timestamp inspector.">
 <link rel="stylesheet" href="/fonts/fonts.css">
 <link rel="stylesheet" href="/tools/shared/theme.css">
 <script src="/tools/shared/theme-switcher.js?v=3"></script>
 <style>
-  .tool-container { max-width: 900px; margin: 1.5rem auto; padding: 0 1rem; }
-  .controls-row { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center; margin: 1rem 0; }
-  .output-box { width: 100%; height: 280px; font-family: var(--font-mono); font-size: 0.85rem; padding: 0.75rem; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--text); resize: vertical; }
-  .inspect-box { margin-top: 1.5rem; padding: 1rem; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); }
-  .badge-offline { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.2rem 0.6rem; border-radius: 4px; background: color-mix(in srgb, var(--success) 15%, transparent); border: 1px solid var(--success); color: var(--success); font-family: var(--font-mono); font-size: 0.75rem; }
+  .uuid-wrap { max-width: 900px; margin-inline: auto; }
+  .controls-row { display: flex; flex-wrap: wrap; gap: .65rem; align-items: center; margin-bottom: .9rem; }
+  .control-pair { display: flex; align-items: center; gap: .45rem; }
+  .output-box { width: 100%; height: 280px; font-family: 'IBM Plex Mono', monospace; font-size: .85rem; padding: .75rem; border: 1px solid var(--border); border-radius: 7px; background: var(--surface); color: var(--text); resize: vertical; }
+  .inspect-box { margin-top: 1.25rem; padding: 1.1rem; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); }
+  .inspect-row { display: flex; gap: .5rem; }
+  @media (max-width: 560px) {
+    .control-pair { width: 100%; }
+    .control-pair select { max-width: none !important; flex: 1; }
+    .inspect-row { flex-direction: column; }
+  }
 </style>
 </head>
-<body>
+<body class="tool-page">
 
 <a href="#main" class="skip-link">Skip to main content</a>
 
 <header class="site-nav">
   <a class="logo" href="/" data-nav="main">root<span>@</span>pokedb</a>
   <nav class="nav-links" aria-label="Tools navigation">
-    <a class="nav-link" href="https://tools.pokedb.site/" data-nav="tools">Hub</a>
-    <a class="nav-link" href="/tools/json">JSON</a>
-    <a class="nav-link" href="/tools/jwt">JWT</a>
-    <a class="nav-link" href="/tools/codec">Codec</a>
-    <a class="nav-link" href="/tools/hash">Hash</a>
-    <a class="nav-link active" href="/tools/uuid">UUID</a>
-    <a class="nav-link" href="/tools/cron">Cron</a>
-    <a class="nav-link" href="/tools/diff">Diff</a>
-    <a class="nav-link" href="/tools/minecraft">Minecraft</a>
-    <a class="nav-link" href="/tools/sanitizer">Sanitizer</a>
+    <a class="nav-link" href="https://tools.pokedb.site/" data-nav="tools">Tools hub</a>
+    <a class="nav-link" href="https://tinyurl.pokedb.site/" data-nav="tinyurl">TinyURL</a>
+    <a class="nav-link" href="https://qr.pokedb.site/" data-nav="qr">QR studio</a>
+    <a class="nav-link" href="https://drop.pokedb.site/" data-nav="drop">Drop</a>
+    <a class="nav-link" href="https://lan.pokedb.site/" data-nav="lan">LAN</a>
+    <a class="nav-link" href="https://paste.pokedb.site/" data-nav="paste">Pastebin</a>
+    <a class="nav-link" href="https://health.pokedb.site/" data-nav="health">Health</a>
   </nav>
   <div class="theme-switcher">
     <span class="theme-swatch" id="theme-swatch"></span>
-    <select id="theme-select" aria-label="Color theme">
-      <option value="oled-black">OLED</option>
-      <option value="paper">Paper</option>
-      <option value="matrix">Matrix</option>
-      <option value="cyberpunk">Cyberpunk</option>
-      <option value="synthwave">Synthwave</option>
-      <option value="nordic-ice">Nordic</option>
-      <option value="dracula-neon">Dracula</option>
-      <option value="gruvbox-retro">Gruvbox</option>
-      <option value="emerald-forest">Emerald</option>
-      <option value="sunset-amber">Sunset</option>
-      <option value="solarized-gold">Solarized</option>
-      <option value="tokyo-neon">Tokyo</option>
-    </select>
+    <select id="theme-select" aria-label="Color theme"></select>
   </div>
 </header>
 
-<main id="main" class="tool-container">
-  <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem;">
+<main id="main" class="tool-shell">
+  <div class="uuid-wrap">
+    <div class="tool-head">
+      <div>
+        <h1>UUID &amp; ULID Generator &amp; Inspector</h1>
+        <p class="tool-sub">Generate cryptographic UUID v4, time-ordered UUID v7, or ULIDs and decode timestamps.</p>
+      </div>
+      <span class="tool-quiet-meta">Local browser only · connect-src: none</span>
+    </div>
+
+    <div class="controls-row">
+      <div class="control-pair">
+        <label for="type-select" class="mono">Type</label>
+        <select id="type-select" class="mono" style="max-width:190px;">
+          <option value="v4">UUID v4 (Random)</option>
+          <option value="v7">UUID v7 (Time-Ordered)</option>
+          <option value="ulid">ULID (Base32)</option>
+        </select>
+      </div>
+
+      <div class="control-pair">
+        <label for="count-select" class="mono">Count</label>
+        <select id="count-select" class="mono" style="max-width:90px;">
+          <option value="1">1</option>
+          <option value="5">5</option>
+          <option value="10">10</option>
+          <option value="50">50</option>
+        </select>
+      </div>
+
+      <button class="btn btn-solid" id="btn-generate" type="button">Generate</button>
+      <button class="btn" id="btn-copy" type="button">Copy All</button>
+    </div>
+
     <div>
-      <span class="eyebrow">$ uuid --generate</span>
-      <h1 style="font-size:1.5rem; margin:0.25rem 0;">UUID &amp; ULID Generator &amp; Inspector</h1>
+      <label for="output-box" class="mono" style="display:block; margin-bottom:.4rem;">Generated identifiers</label>
+      <textarea id="output-box" class="output-box" readonly spellcheck="false"></textarea>
     </div>
-    <span class="badge-offline">● 100% Client-Side · connect-src: 'none'</span>
-  </div>
 
-  <div class="controls-row">
-    <label for="type-select" class="mono">Identifier Type:</label>
-    <select id="type-select" class="mono" style="max-width:180px;">
-      <option value="v4">UUID v4 (Random)</option>
-      <option value="v7">UUID v7 (Time-Ordered)</option>
-      <option value="ulid">ULID (Base32)</option>
-    </select>
-
-    <label for="count-select" class="mono">Count:</label>
-    <select id="count-select" class="mono" style="max-width:90px;">
-      <option value="1">1</option>
-      <option value="5">5</option>
-      <option value="10">10</option>
-      <option value="50">50</option>
-    </select>
-
-    <button class="btn btn-solid" id="btn-generate">Generate</button>
-    <button class="btn" id="btn-copy">Copy All</button>
-  </div>
-
-  <div>
-    <textarea id="output-box" class="output-box" readonly spellcheck="false"></textarea>
-  </div>
-
-  <div class="inspect-box">
-    <h3 class="mono" style="font-size:0.95rem; margin-bottom:0.5rem;">Identifier Inspector</h3>
-    <p style="color:var(--muted); font-size:0.8rem; margin-bottom:0.75rem;">Paste any UUID or ULID to decode its generation timestamp and version bits.</p>
-    <div style="display:flex; gap:0.5rem;">
-      <input type="text" id="inspect-input" class="mono" placeholder="018e6e58-3d84-7123-8abc-123456789abc" style="flex:1;">
-      <button class="btn" id="btn-inspect">Inspect</button>
+    <div class="inspect-box">
+      <h2 class="mono" style="font-size:.95rem; margin-bottom:.35rem;">Identifier Inspector</h2>
+      <p style="color:var(--muted); font-size:.82rem; margin-bottom:.75rem;">Paste any UUID or ULID to decode its generation timestamp and version bits.</p>
+      <div class="inspect-row">
+        <input type="text" id="inspect-input" class="mono" aria-label="Identifier to inspect" placeholder="018e6e58-3d84-7123-8abc-123456789abc" style="flex:1;">
+        <button class="btn" id="btn-inspect" type="button">Inspect</button>
+      </div>
+      <div id="inspect-result" class="mono" style="margin-top:.75rem; font-size:.82rem; color:var(--text); white-space:pre-wrap;">Paste an identifier above</div>
     </div>
-    <div id="inspect-result" class="mono" style="margin-top:0.75rem; font-size:0.82rem; color:var(--text); white-space:pre-wrap;">Paste an identifier above</div>
   </div>
 </main>
 
